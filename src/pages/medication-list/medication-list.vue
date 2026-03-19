@@ -4,11 +4,17 @@
     <view class="header">
       <view class="stats-card">
         <view class="stat-item">
+          <view class="stat-icon-wrapper">
+            <text class="stat-icon">💊</text>
+          </view>
           <text class="stat-value">{{ medications.length }}</text>
           <text class="stat-label">正在使用</text>
         </view>
         <view class="stat-divider"></view>
         <view class="stat-item">
+          <view class="stat-icon-wrapper">
+            <text class="stat-icon">⏰</text>
+          </view>
           <text class="stat-value">{{ schedules.filter(s => s.is_active).length }}</text>
           <text class="stat-label">用药计划</text>
         </view>
@@ -30,9 +36,9 @@
 
       <view v-else class="medication-list">
         <view
-          v-for="med in medications"
+          v-for="(med, index) in medications"
           :key="med.id"
-          class="medication-card"
+          :class="`medication-card stagger-in-${index + 1}`"
           @click="goDetail(med)"
         >
           <view class="med-avatar">
@@ -149,12 +155,13 @@ onMounted(async () => {
 }
 
 .header {
-  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   padding: 40rpx 32rpx;
 }
 
 .stats-card {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
   border-radius: 16rpx;
   padding: 32rpx;
   display: flex;
@@ -168,6 +175,21 @@ onMounted(async () => {
   align-items: center;
 }
 
+.stat-icon-wrapper {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12rpx;
+}
+
+.stat-icon {
+  font-size: 28rpx;
+}
+
 .stat-value {
   font-size: 48rpx;
   font-weight: bold;
@@ -176,7 +198,7 @@ onMounted(async () => {
 
 .stat-label {
   font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.9);
   margin-top: 8rpx;
 }
 
@@ -200,18 +222,18 @@ onMounted(async () => {
 .section-title {
   font-size: 32rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .section-count {
   font-size: 24rpx;
-  color: #999;
+  color: var(--text-secondary);
 }
 
 .empty-state {
   text-align: center;
   padding: 100rpx 40rpx;
-  background: white;
+  background: var(--card-bg);
   border-radius: 16rpx;
 }
 
@@ -223,14 +245,14 @@ onMounted(async () => {
 
 .empty-text {
   font-size: 32rpx;
-  color: #666;
+  color: var(--text-secondary);
   display: block;
   margin-bottom: 16rpx;
 }
 
 .empty-hint {
   font-size: 24rpx;
-  color: #999;
+  color: var(--text-disabled);
   display: block;
 }
 
@@ -241,24 +263,31 @@ onMounted(async () => {
 }
 
 .medication-card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 16rpx;
   padding: 24rpx;
   display: flex;
   align-items: center;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s ease;
+
+  &:active {
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+  }
 }
 
 .med-avatar {
   width: 80rpx;
   height: 80rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-right: 20rpx;
   flex-shrink: 0;
+  box-shadow: 0 2rpx 8rpx rgba(30, 136, 229, 0.2);
 }
 
 .med-icon {
@@ -275,13 +304,13 @@ onMounted(async () => {
 .med-name {
   font-size: 30rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8rpx;
 }
 
 .med-detail {
   font-size: 24rpx;
-  color: #999;
+  color: var(--text-secondary);
   display: flex;
   gap: 16rpx;
   margin-bottom: 8rpx;
@@ -295,8 +324,8 @@ onMounted(async () => {
 
 .schedule-tag {
   font-size: 22rpx;
-  color: #2196F3;
-  background: #E3F2FD;
+  color: var(--primary-color);
+  background: var(--primary-light-bg);
   padding: 4rpx 12rpx;
   border-radius: 8rpx;
 }
@@ -309,16 +338,33 @@ onMounted(async () => {
 
 .action-btn {
   font-size: 36rpx;
-  padding: 8rpx;
+  padding: 24rpx;
+  min-height: 56rpx;
+  min-width: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:active {
+    transform: scale(0.9);
+    opacity: 1;
+  }
 }
 
 .action-btn.edit {
-  opacity: 0.7;
+  opacity: 0.8;
+  color: var(--primary-color);
+  background: var(--primary-light-bg);
+  border-radius: 50%;
 }
 
 .action-btn.delete {
-  opacity: 0.7;
+  opacity: 0.8;
+  color: var(--danger-color);
+  background: var(--danger-bg);
+  border-radius: 50%;
 }
 
 .contraindication-section {
@@ -327,8 +373,8 @@ onMounted(async () => {
 }
 
 .contraindication-card {
-  background: #FFF3E0;
-  border-left: 4rpx solid #FF9800;
+  background: var(--warning-bg);
+  border-left: 6rpx solid var(--warning-color);
   border-radius: 8rpx;
   padding: 20rpx;
   margin-bottom: 16rpx;
@@ -337,14 +383,14 @@ onMounted(async () => {
 .contraindication-drugs {
   font-size: 28rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   display: block;
   margin-bottom: 8rpx;
 }
 
 .contraindication-desc {
   font-size: 24rpx;
-  color: #666;
+  color: var(--text-secondary);
   display: block;
 }
 </style>
