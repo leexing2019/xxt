@@ -243,15 +243,18 @@ function logout() {
 <style lang="scss" scoped>
 .settings-page {
   min-height: 100vh;
-  background: #F5F5F5;
+  background: var(--bg-color);
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .user-section {
   display: flex;
   align-items: center;
   padding: 40rpx 32rpx;
-  background: white;
+  background: var(--card-bg);
   margin-bottom: 20rpx;
+  box-shadow: var(--shadow-sm);
 }
 
 .user-avatar {
@@ -263,10 +266,17 @@ function logout() {
   width: 100rpx;
   height: 100rpx;
   border-radius: 50%;
-  background: #E3F2FD;
+  background: linear-gradient(135deg, var(--primary-bg) 0%, rgba(33, 150, 243, 0.1) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 4rpx 12rpx rgba(33, 150, 243, 0.15);
+  transition: transform 0.2s ease;
+}
+
+.avatar-img:active,
+.avatar-placeholder:active {
+  transform: scale(0.95);
 }
 
 .avatar-icon {
@@ -280,30 +290,64 @@ function logout() {
 .user-name {
   font-size: 32rpx;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .user-phone {
   font-size: 26rpx;
-  color: #999;
+  color: var(--text-secondary);
   margin-top: 8rpx;
 }
 
 .edit-btn {
   font-size: 28rpx;
-  color: #2196F3;
+  color: var(--primary-color);
+  padding: 12rpx 24rpx;
+  background: var(--primary-light-bg);
+  border-radius: 20rpx;
+  transition: all 0.2s ease;
+}
+
+.edit-btn:active {
+  background: var(--primary-color);
+  color: white;
+  transform: scale(0.95);
 }
 
 .settings-list {
-  background: white;
+  background: var(--card-bg);
   margin-bottom: 20rpx;
+  box-shadow: var(--shadow-sm);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 32rpx 16rpx;
+  background: linear-gradient(90deg, rgba(33, 150, 243, 0.05) 0%, transparent 100%);
+  border-left: 6rpx solid var(--primary-color);
+}
+
+.section-header-text {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--primary-color);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .setting-item {
   display: flex;
   align-items: center;
-  padding: 28rpx 32rpx;
-  border-bottom: 1px solid #F0F0F0;
+  padding: 36rpx 32rpx;
+  border-bottom: 1px solid var(--border-color);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 120rpx;
+}
+
+.setting-item:active {
+  background: var(--bg-color);
+  transform: scale(0.98);
 }
 
 .setting-item:last-child {
@@ -311,54 +355,94 @@ function logout() {
 }
 
 .setting-icon {
-  font-size: 40rpx;
-  margin-right: 20rpx;
+  font-size: 44rpx;
+  margin-right: 24rpx;
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary-bg) 0%, rgba(33, 150, 243, 0.1) 100%);
+  border-radius: 16rpx;
+  flex-shrink: 0;
 }
 
 .setting-info {
   flex: 1;
+  min-width: 0;
 }
 
 .setting-title {
-  font-size: 30rpx;
-  color: #333;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: block;
 }
 
 .setting-desc {
-  font-size: 24rpx;
-  color: #999;
-  margin-top: 6rpx;
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  margin-top: 8rpx;
+  display: block;
 }
 
 .setting-arrow {
-  font-size: 28rpx;
-  color: #CCC;
+  font-size: 32rpx;
+  color: var(--text-disabled);
   margin-left: 16rpx;
+  transition: transform 0.2s ease;
+}
+
+.setting-item:active .setting-arrow {
+  transform: translateX(4rpx);
+}
+
+/* Switch 开关动画 */
+.setting-item switch {
+  transform: scale(1.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.setting-item switch:active {
+  transform: scale(1.05);
 }
 
 .about-section {
-  background: white;
+  background: var(--card-bg);
   margin-bottom: 20rpx;
+  box-shadow: var(--shadow-sm);
 }
 
 .section-title {
   font-size: 26rpx;
-  color: #999;
-  padding: 24rpx 32rpx 12rpx;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 20rpx 32rpx 16rpx;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0%, transparent 100%);
+  border-left: 4rpx solid var(--text-disabled);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .about-list {
-  background: white;
+  background: var(--card-bg);
 }
 
 .about-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 28rpx 32rpx;
-  border-bottom: 1px solid #F0F0F0;
+  padding: 36rpx 32rpx;
+  border-bottom: 1px solid var(--border-color);
   font-size: 30rpx;
-  color: #333;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  min-height: 120rpx;
+}
+
+.about-item:active {
+  background: var(--bg-color);
+  transform: scale(0.98);
 }
 
 .about-item:last-child {
@@ -366,20 +450,40 @@ function logout() {
 }
 
 .about-arrow {
-  font-size: 28rpx;
-  color: #CCC;
+  font-size: 32rpx;
+  color: var(--text-disabled);
+  transition: transform 0.2s ease;
+}
+
+.about-item:active .about-arrow {
+  transform: translateX(4rpx);
 }
 
 .version-text {
-  color: #999;
+  color: var(--text-secondary);
+  font-size: 28rpx;
 }
 
 .logout-section {
-  padding: 40rpx 32rpx;
+  padding: 40rpx 32rpx 60rpx;
 }
 
 .logout-btn {
   width: 100%;
+  background: linear-gradient(135deg, var(--danger-color) 0%, var(--danger-dark) 100%);
+  color: white;
+  border: none;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  box-shadow: 0 8rpx 24rpx rgba(244, 67, 54, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.logout-btn:active {
+  transform: scale(0.96);
+  box-shadow: 0 4rpx 12rpx rgba(244, 67, 54, 0.2);
 }
 
 .safe-area-bottom {
