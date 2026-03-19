@@ -1,0 +1,115 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "今日用药",
+        "navigationBarBackgroundColor": "#2196F3",
+        "navigationBarTextStyle": "white",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationBarBackgroundColor": "#2196F3",
+        "navigationBarTextStyle": "white",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/add-medication/add-medication",
+      "style": {
+        "navigationBarTitleText": "添加药品",
+        "navigationBarBackgroundColor": "#2196F3",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/medication-list/medication-list",
+      "style": {
+        "navigationBarTitleText": "我的药品",
+        "navigationBarBackgroundColor": "#2196F3",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/medication-detail/medication-detail",
+      "style": {
+        "navigationBarTitleText": "药品详情",
+        "navigationBarBackgroundColor": "#2196F3",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/health-records/health-records",
+      "style": {
+        "navigationBarTitleText": "健康记录",
+        "navigationBarBackgroundColor": "#2196F3",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/medical-history/medical-history",
+      "style": {
+        "navigationBarTitleText": "病史小结",
+        "navigationBarBackgroundColor": "#2196F3",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/emergency/emergency",
+      "style": {
+        "navigationBarTitleText": "紧急求助",
+        "navigationBarBackgroundColor": "#F44336",
+        "navigationBarTextStyle": "white",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/settings/settings",
+      "style": {
+        "navigationBarTitleText": "设置",
+        "navigationBarBackgroundColor": "#2196F3",
+        "navigationBarTextStyle": "white"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "AI用药助手",
+    "navigationBarBackgroundColor": "#2196F3",
+    "backgroundColor": "#F5F5F5"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#2196F3",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "🏠 首页"
+      },
+      {
+        "pagePath": "pages/medication-list/medication-list",
+        "text": "💊 药品"
+      },
+      {
+        "pagePath": "pages/health-records/health-records",
+        "text": "📊 健康"
+      },
+      {
+        "pagePath": "pages/settings/settings",
+        "text": "⚙️ 设置"
+      }
+    ]
+  },
+  "permission": {
+    "scope.record": {
+      "desc": "用于语音识别和语音交互功能"
+    }
+  },
+  "requiredPrivateInfos": ["chooseLocation", "getLocation"]
+}

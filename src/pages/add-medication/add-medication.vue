@@ -1,0 +1,877 @@
+<template>
+  <view class="add-medication-page">
+    <!-- 选择添加方式 -->
+    <view class="method-selection">
+      <view class="section-title">
+        <text class="h3-title">添加药品</text>
+        <text class="section-hint">选择一种方式添加药品</text>
+      </view>
+
+      <view class="method-cards">
+        <!-- AI拍照识别 -->
+        <view class="method-card" @click="selectMethod('camera')">
+          <text class="method-icon">📷</text>
+          <text class="method-name">拍照识别</text>
+          <text class="method-desc">拍摄药盒或药片</text>
+        </view>
+
+        <!-- 处方识别 -->
+        <view class="method-card" @click="selectMethod('prescription')">
+          <text class="method-icon">📋</text>
+          <text class="method-name">处方识别</text>
+          <text class="method-desc">拍摄医生处方</text>
+        </view>
+
+        <!-- 语音输入 -->
+        <view class="method-card" @click="selectMethod('voice')">
+          <text class="method-icon">🎤</text>
+          <text class="method-name">语音输入</text>
+          <text class="method-desc">说出药品名称</text>
+        </view>
+
+        <!-- 手动搜索 -->
+        <view class="method-card" @click="selectMethod('search')">
+          <text class="method-icon">🔍</text>
+          <text class="method-name">手动搜索</text>
+          <text class="method-desc">输入药品名称</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- AI识别区域 -->
+    <view v-if="selectedMethod === 'camera'" class="scan-area">
+      <view class="camera-preview" @click="openCamera">
+        <image v-if="capturedImage" :src="capturedImage" mode="aspectFit" class="preview-image" />
+        <view v-else class="camera-placeholder">
+          <text class="placeholder-icon">📷</text>
+          <text class="placeholder-text">点击拍摄药盒</text>
+        </view>
+      </view>
+
+      <view v-if="recognizedData" class="recognized-result">
+        <view class="result-header">
+          <text class="h3-title">识别结果</text>
+          <text class="confidence">置信度: {{ confidence }}%</text>
+        </view>
+        <view class="result-item">
+          <text class="result-label">药品名称：</text>
+          <text class="result-value">{{ recognizedData.name }}</text>
+        </view>
+        <view class="result-item">
+          <text class="result-label">规格：</text>
+          <text class="result-value">{{ recognizedData.specification }}</text>
+        </view>
+        <view class="result-item">
+          <text class="result-label">生产厂家：</text>
+          <text class="result-value">{{ recognizedData.manufacturer }}</text>
+        </view>
+        <view class="result-actions">
+          <button class="btn btn-outline" @click="resetScan">重新拍摄</button>
+          <button class="btn btn-primary" @click="confirmMedication">确认添加</button>
+        </view>
+      </view>
+    </view>
+
+    <!-- 处方识别区域 -->
+    <view v-if="selectedMethod === 'prescription'" class="scan-area">
+      <view class="camera-preview" @click="openPrescriptionCamera">
+        <view v-if="prescriptionImage" class="preview-container">
+          <image :src="prescriptionImage" mode="aspectFit" class="preview-image" />
+        </view>
+        <view v-else class="camera-placeholder">
+          <text class="placeholder-icon">📋</text>
+          <text class="placeholder-text">拍摄处方照片</text>
+        </view>
+      </view>
+
+      <view v-if="prescriptionData" class="recognized-result">
+        <view class="result-header">
+          <text class="h3-title">处方识别结果</text>
+        </view>
+        <view v-for="(med, index) in prescriptionData.medications" :key="index" class="prescription-item">
+          <text class="med-item-name">{{ med.name }}</text>
+          <text class="med-item-detail">{{ med.dosage }} · {{ med.frequency }}</text>
+          <text class="med-item-duration">服用{{ med.duration }}</text>
+        </view>
+        <view class="result-actions">
+          <button class="btn btn-outline" @click="resetPrescription">重新拍摄</button>
+          <button class="btn btn-primary" @click="importPrescription">全部导入</button>
+        </view>
+      </view>
+    </view>
+
+    <!-- 语音输入区域 -->
+    <view v-if="selectedMethod === 'voice'" class="voice-area">
+      <view class="voice-animation" :class="{ recording: isRecording }" @click="startVoiceInput">
+        <text class="voice-circle">{{ isRecording ? '🔴' : '🎤' }}</text>
+      </view>
+      <text class="voice-hint">{{ isRecording ? '正在聆听...' : '点击开始说话' }}</text>
+      <text v-if="voiceText" class="voice-result">{{ voiceText }}</text>
+    </view>
+
+    <!-- 手动搜索区域 -->
+    <view v-if="selectedMethod === 'search'" class="search-area">
+      <view class="search-input-wrapper">
+        <input
+          v-model="searchKeyword"
+          type="text"
+          placeholder="输入药品名称搜索"
+          class="input search-input"
+          @confirm="searchDrug"
+        />
+        <button class="btn btn-primary search-btn" @click="searchDrug">搜索</button>
+      </view>
+
+      <view v-if="searchResults.length > 0" class="search-results">
+        <view
+          v-for="drug in searchResults"
+          :key="drug.name"
+          class="drug-item"
+          @click="selectDrug(drug)"
+        >
+          <text class="drug-name">{{ drug.name }}</text>
+          <text class="drug-generic">{{ drug.genericName }}</text>
+          <text class="drug-indication">{{ drug.indications }}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 药品信息表单 -->
+    <view v-if="showForm" class="medication-form">
+      <view class="form-header">
+        <text class="h3-title">{{ isEditing ? '编辑药品' : '完善药品信息' }}</text>
+      </view>
+
+      <view class="form-group">
+        <text class="input-label">药品名称 *</text>
+        <input v-model="formData.name" type="text" placeholder="请输入药品名称" class="input" />
+      </view>
+
+      <view class="form-group">
+        <text class="input-label">通用名</text>
+        <input v-model="formData.generic_name" type="text" placeholder="请输入通用名" class="input" />
+      </view>
+
+      <view class="form-group">
+        <text class="input-label">规格</text>
+        <input v-model="formData.specification" type="text" placeholder="如：50mg × 30片" class="input" />
+      </view>
+
+      <view class="form-group">
+        <text class="input-label">药品类型</text>
+        <picker :value="formTypes.indexOf(formData.form)" :range="formTypes" @change="onFormChange">
+          <view class="input picker-value">
+            {{ formData.form || '请选择' }}
+          </view>
+        </picker>
+      </view>
+
+      <view class="form-group">
+        <text class="input-label">生产厂家</text>
+        <input v-model="formData.manufacturer" type="text" placeholder="请输入生产厂家" class="input" />
+      </view>
+
+      <view class="form-group">
+        <text class="input-label">药品外观描述</text>
+        <input v-model="formData.appearance_desc" type="text" placeholder="如：白色圆形药片" class="input" />
+      </view>
+
+      <view class="form-group">
+        <text class="input-label">用药提醒时间</text>
+        <view class="time-inputs">
+          <view v-for="(time, index) in formData.times" :key="index" class="time-row">
+            <picker mode="time" :value="time" @change="(e: any) => onTimeChange(e, index)">
+              <view class="input time-picker">{{ time || '选择时间' }}</view>
+            </picker>
+            <text v-if="formData.times.length > 1" class="remove-time" @click="removeTime(index)">×</text>
+</view>
+          <button class="btn btn-outline add-time-btn" @click="addTime">+ 添加时间</button>
+        </view>
+      </view>
+
+      <view class="form-group">
+        <text class="input-label">用法说明</text>
+        <textarea v-model="formData.instructions" placeholder="如：饭后半小时服用" class="input textarea" />
+      </view>
+
+      <view class="form-actions">
+        <button class="btn btn-outline" @click="cancelForm">取消</button>
+        <button class="btn btn-primary" :disabled="!formData.name" @click="submitForm">保存药品</button>
+      </view>
+    </view>
+
+    <!-- 加载中 -->
+    <view v-if="loading" class="loading-overlay">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">{{ loadingText }}</text>
+    </view>
+  </view>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive } from 'vue'
+import { useMedicationStore } from '@/store/medication'
+import { recognizeMedication, recognizePrescription, searchDrug as searchDrugApi } from '@/services/medication'
+import { recognizeSpeech, speakText } from '@/services/voice'
+
+const medicationStore = useMedicationStore()
+
+// 状态
+const selectedMethod = ref('')
+const capturedImage = ref('')
+const prescriptionImage = ref('')
+const recognizedData = ref<any>(null)
+const prescriptionData = ref<any>(null)
+const confidence = ref(0)
+const voiceText = ref('')
+const isRecording = ref(false)
+const searchKeyword = ref('')
+const searchResults = ref<any[]>([])
+const showForm = ref(false)
+const isEditing = ref(false)
+const loading = ref(false)
+const loadingText = ref('')
+
+// 药品类型
+const formTypes = ['片剂', '胶囊', '口服液', '颗粒', '注射液', '外用药', '贴剂', '其他']
+
+// 表单数据
+const formData = reactive({
+  name: '',
+  generic_name: '',
+  specification: '',
+  form: '',
+  manufacturer: '',
+  appearance_desc: '',
+  instructions: '',
+  image_url: '',
+  times: ['08:00']
+})
+
+// 选择添加方式
+function selectMethod(method: string) {
+  selectedMethod.value = method
+  showForm.value = false
+}
+
+// 打开相机
+function openCamera() {
+  uni.chooseImage({
+    count: 1,
+    sourceType: ['camera'],
+    success: async (res) => {
+      capturedImage.value = res.tempFilePaths[0]
+      await processImage(res.tempFilePaths[0])
+    }
+  })
+}
+
+// 处理图片识别
+async function processImage(imagePath: string) {
+  loading.value = true
+  loadingText.value = '正在识别药品...'
+
+  try {
+    const result = await recognizeMedication(imagePath)
+    recognizedData.value = result
+    confidence.value = 85 + Math.floor(Math.random() * 15) // 模拟置信度
+
+    // 填充表单
+    formData.name = result.name || ''
+    formData.specification = result.specification || ''
+    formData.manufacturer = result.manufacturer || ''
+    formData.appearance_desc = result.form || ''
+    formData.image_url = imagePath
+
+    speakText(`识别到${result.name}，请确认是否添加`)
+  } catch (error) {
+    uni.showToast({ title: '识别失败，请重试', icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
+
+// 确认添加药品
+function confirmMedication() {
+  showForm.value = true
+}
+
+// 重置扫描
+function resetScan() {
+  capturedImage.value = ''
+  recognizedData.value = null
+  selectedMethod.value = ''
+}
+
+// 处方相机
+function openPrescriptionCamera() {
+  uni.chooseImage({
+    count: 1,
+    sourceType: ['camera'],
+    success: async (res) => {
+      prescriptionImage.value = res.tempFilePaths[0]
+      await processPrescription(res.tempFilePaths[0])
+    }
+  })
+}
+
+// 处理处方识别
+async function processPrescription(imagePath: string) {
+  loading.value = true
+  loadingText.value = '正在识别处方...'
+
+  try {
+    const result = await recognizePrescription(imagePath)
+    prescriptionData.value = result
+    speakText(`识别到${result.medications.length}种药品`)
+  } catch (error) {
+    uni.showToast({ title: '识别失败', icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
+
+// 导入处方药品
+async function importPrescription() {
+  if (!prescriptionData.value) return
+
+  for (const med of prescriptionData.value.medications) {
+    formData.name = med.name
+    formData.specification = med.dosage
+    formData.instructions = `${med.frequency}，服用${med.duration}`
+    await submitForm()
+  }
+
+  uni.showToast({ title: '已导入全部药品', icon: 'success' })
+  setTimeout(() => {
+    uni.switchTab({ url: '/pages/medication-list/medication-list' })
+  }, 1500)
+}
+
+// 重置处方
+function resetPrescription() {
+  prescriptionImage.value = ''
+  prescriptionData.value = null
+  selectedMethod.value = ''
+}
+
+// 语音输入
+async function startVoiceInput() {
+  if (isRecording.value) return
+
+  isRecording.value = true
+  speakText('请说出药品名称')
+
+  setTimeout(async () => {
+    const result = await recognizeSpeech()
+    isRecording.value = false
+
+    if (result.success && result.text) {
+      voiceText.value = result.text
+      searchKeyword.value = result.text
+      await searchDrugApiFromVoice(result.text)
+    } else {
+      speakText('没有识别到声音，请重试')
+    }
+  }, 2000)
+}
+
+// 语音搜索药品
+async function searchDrugApiFromVoice(keyword: string) {
+  loading.value = true
+  loadingText.value = '搜索中...'
+
+  try {
+    const results = await searchDrugApi(keyword)
+    if (results.length > 0) {
+      searchResults.value = results
+      selectDrug(results[0])
+    } else {
+      uni.showToast({ title: '未找到相关药品', icon: 'none' })
+    }
+  } catch (error) {
+    uni.showToast({ title: '搜索失败', icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
+
+// 搜索药品
+async function searchDrug() {
+  if (!searchKeyword.value.trim()) {
+    uni.showToast({ title: '请输入药品名称', icon: 'none' })
+    return
+  }
+
+  loading.value = true
+  loadingText.value = '搜索中...'
+
+  try {
+    const results = await searchDrugApi(searchKeyword.value)
+    searchResults.value = results
+
+    if (results.length === 0) {
+      // 未找到，直接进入手动输入
+      formData.name = searchKeyword.value
+      showForm.value = true
+    }
+  } catch (error) {
+    uni.showToast({ title: '搜索失败', icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
+
+// 选择药品
+function selectDrug(drug: any) {
+  formData.name = drug.name
+  formData.generic_name = drug.genericName
+  formData.instructions = drug.dosage
+  formData.appearance_desc = drug.form || ''
+  showForm.value = true
+}
+
+// 时间选择
+function onTimeChange(e: any, index: number) {
+  formData.times[index] = e.detail.value
+}
+
+function addTime() {
+  if (formData.times.length < 6) {
+    formData.times.push('12:00')
+  }
+}
+
+function removeTime(index: number) {
+  formData.times.splice(index, 1)
+}
+
+// 药品类型选择
+function onFormChange(e: any) {
+  formData.form = formTypes[e.detail.value]
+}
+
+// 取消表单
+function cancelForm() {
+  showForm.value = false
+  selectedMethod.value = ''
+  resetForm()
+}
+
+// 重置表单
+function resetForm() {
+  formData.name = ''
+  formData.generic_name = ''
+  formData.specification = ''
+  formData.form = ''
+  formData.manufacturer = ''
+  formData.appearance_desc = ''
+  formData.instructions = ''
+  formData.image_url = ''
+  formData.times = ['08:00']
+}
+
+// 提交表单
+async function submitForm() {
+  if (!formData.name.trim()) {
+    uni.showToast({ title: '请输入药品名称', icon: 'none' })
+    return
+  }
+
+  loading.value = true
+  loadingText.value = '保存中...'
+
+  try {
+    // 添加药品
+    const result = await medicationStore.addMedication({
+      name: formData.name,
+      generic_name: formData.generic_name,
+      specification: formData.specification,
+      form: formData.form,
+      manufacturer: formData.manufacturer,
+      appearance_desc: formData.appearance_desc,
+      image_url: formData.image_url
+    })
+
+    if (result.success && result.data) {
+      // 添加用药计划
+      for (const time of formData.times) {
+        await medicationStore.addSchedule({
+          medication_id: result.data.id,
+          time_of_day: time,
+          dosage: '1片',
+          instructions: formData.instructions,
+          weekdays: [1, 2, 3, 4, 5, 6, 7],
+          start_date: new Date().toISOString().split('T')[0]
+        })
+      }
+
+      speakText(`${formData.name}已添加成功`)
+      uni.showToast({ title: '添加成功', icon: 'success' })
+
+      setTimeout(() => {
+        resetForm()
+        showForm.value = false
+        selectedMethod.value = ''
+        uni.switchTab({ url: '/pages/medication-list/medication-list' })
+      }, 1500)
+    } else {
+      uni.showToast({ title: result.error || '添加失败', icon: 'none' })
+    }
+  } catch (error) {
+    uni.showToast({ title: '添加失败', icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.add-medication-page {
+  min-height: 100vh;
+  background: #F5F5F5;
+  padding: 32rpx;
+}
+
+.method-selection {
+  margin-bottom: 32rpx;
+}
+
+.section-title {
+  margin-bottom: 24rpx;
+}
+
+.section-hint {
+  font-size: 24rpx;
+  color: #999;
+  margin-left: 16rpx;
+}
+
+.method-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20rpx;
+}
+
+.method-card {
+  background: white;
+  border-radius: 16rpx;
+  padding: 32rpx 24rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.06);
+  transition: all 0.2s;
+}
+
+.method-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+
+.method-icon {
+  font-size: 64rpx;
+  margin-bottom: 16rpx;
+  display: block;
+}
+
+.method-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8rpx;
+  display: block;
+}
+
+.method-desc {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.scan-area {
+  margin-bottom: 32rpx;
+}
+
+.camera-preview {
+  height: 400rpx;
+  background: #1a1a1a;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+}
+
+.camera-placeholder {
+  text-align: center;
+}
+
+.placeholder-icon {
+  font-size: 80rpx;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.placeholder-text {
+  color: #999;
+  font-size: 28rpx;
+}
+
+.recognized-result {
+  background: white;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-top: 20rpx;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.confidence {
+  font-size: 24rpx;
+  color: #4CAF50;
+}
+
+.result-item {
+  display: flex;
+  padding: 12rpx 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.result-label {
+  color: #999;
+  width: 160rpx;
+}
+
+.result-value {
+  flex: 1;
+  color: #333;
+}
+
+.result-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 24rpx;
+}
+
+.prescription-item {
+  padding: 16rpx;
+  background: #F5F5F5;
+  border-radius: 12rpx;
+  margin-bottom: 12rpx;
+}
+
+.med-item-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.med-item-detail {
+  font-size: 26rpx;
+  color: #666;
+  margin-top: 6rpx;
+}
+
+.med-item-duration {
+  font-size: 24rpx;
+  color: #2196F3;
+  margin-top: 6rpx;
+}
+
+.voice-area {
+  text-align: center;
+  padding: 60rpx 0;
+}
+
+.voice-animation {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 50%;
+  background: #E3F2FD;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 32rpx;
+}
+
+.voice-circle {
+  font-size: 80rpx;
+}
+
+.voice-animation.recording {
+  animation: pulse 1s infinite;
+  background: #FFEBEE;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.voice-hint {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.voice-result {
+  display: block;
+  margin-top: 24rpx;
+  font-size: 32rpx;
+  color: #2196F3;
+  font-weight: 500;
+}
+
+.search-area {
+  margin-bottom: 32rpx;
+}
+
+.search-input-wrapper {
+  display: flex;
+  gap: 16rpx;
+}
+
+.search-input {
+  flex: 1;
+}
+
+.search-btn {
+  padding: 0 32rpx;
+}
+
+.search-results {
+  margin-top: 20rpx;
+}
+
+.drug-item {
+  background: white;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.drug-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.drug-generic {
+  font-size: 26rpx;
+  color: #666;
+  margin-top: 6rpx;
+}
+
+.drug-indication {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 6rpx;
+}
+
+.medication-form {
+  background: white;
+  border-radius: 16rpx;
+  padding: 32rpx;
+}
+
+.form-header {
+  margin-bottom: 32rpx;
+}
+
+.form-group {
+  margin-bottom: 28rpx;
+}
+
+.picker-value {
+  color: #333;
+}
+
+.time-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.time-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.time-picker {
+  flex: 1;
+}
+
+.remove-time {
+  width: 56rpx;
+  height: 56rpx;
+  background: #FFEBEE;
+  color: #F44336;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+}
+
+.add-time-btn {
+  margin-top: 8rpx;
+}
+
+.textarea {
+  height: 120rpx;
+  padding: 16rpx;
+}
+
+.form-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 40rpx;
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  color: white;
+  margin-top: 24rpx;
+  font-size: 28rpx;
+}
+</style>

@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"http://localhost:3000\")",
+      "Bash(npm run:*)",
+      "Bash(ls:*)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(taskkill /IM node.exe /F)",
+      "Bash(Get-Process -Name node -ErrorAction SilentlyContinue)",
+      "Bash(Stop-Process -Force)",
+      "Bash(pkill -f node)",
+      "mcp__chrome-devtools__list_pages",
+      "mcp__chrome-devtools__new_page",
+      "mcp__chrome-devtools__list_console_messages",
+      "mcp__chrome-devtools__take_snapshot",
+      "mcp__chrome-devtools__navigate_page",
+      "mcp__chrome-devtools__take_screenshot",
+      "Bash(node scripts/create-demo-user.js)",
+      "Bash(node scripts/confirm-demo-user-email.js)",
+      "Bash(node scripts/recreate-demo-user.js)",
+      "Bash(node scripts/generate-tabbar-icons.js)",
+      "WebSearch",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git init:*)",
+      "Bash(git remote:*)"
+    ]
+  }
+}

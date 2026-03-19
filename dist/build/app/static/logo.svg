@@ -1,0 +1,28 @@
+<!-- AI用药助手 - Logo SVG -->
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景圆 -->
+  <circle cx="256" cy="256" r="256" fill="#2196F3"/>
+  
+  <!-- 药丸图标 -->
+  <g transform="translate(126, 126)">
+    <!-- 药丸主体 -->
+    <rect x="0" y="60" width="180" height="120" rx="60" fill="white"/>
+    
+    <!-- 分割线 -->
+    <line x1="90" y1="60" x2="90" y2="180" stroke="#2196F3" stroke-width="4"/>
+    
+    <!-- 左侧高亮 -->
+    <ellipse cx="45" cy="90" rx="20" ry="10" fill="#E3F2FD" opacity="0.6"/>
+  </g>
+  
+  <!-- AI 点缀 -->
+  <g transform="translate(340, 340)">
+    <circle cx="0" cy="0" r="50" fill="white" opacity="0.9"/>
+    <text x="0" y="10" text-anchor="middle" font-family="Arial" font-size="40" font-weight="bold" fill="#2196F3">AI</text>
+  </g>
+  
+  <!-- 星星点缀 -->
+  <circle cx="400" cy="150" r="8" fill="white" opacity="0.8"/>
+  <circle cx="100" cy="400" r="6" fill="white" opacity="0.6"/>
+  <circle cx="450" cy="300" r="5" fill="white" opacity="0.7"/>
+</svg>
