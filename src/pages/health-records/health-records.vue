@@ -10,6 +10,7 @@
         <view class="progress-bar">
           <view class="progress-fill" :style="{ width: complianceRate + '%' }"></view>
         </view>
+        <view class="progress-animation-hint"></view>
         <view class="stat-tips">
           <text v-if="complianceRate >= 90">👍 非常好，继续保持！</text>
           <text v-else-if="complianceRate >= 70">💪 不错，可以做得更好</text>
@@ -23,13 +24,15 @@
       <view class="section-title">今天感觉怎么样？</view>
       <view class="feeling-options">
         <view
-          v-for="option in feelingOptions"
+          v-for="(option, index) in feelingOptions"
           :key="option.value"
-          class="feeling-btn"
+          :class="`feeling-btn stagger-in-${index + 1}`"
           :class="{ selected: todayFeeling === option.value }"
           @click="selectFeeling(option.value)"
         >
-          <text class="feeling-icon">{{ option.icon }}</text>
+          <view class="feeling-icon-wrapper">
+            <text class="feeling-icon">{{ option.icon }}</text>
+          </view>
           <text class="feeling-label">{{ option.label }}</text>
         </view>
       </view>
@@ -177,16 +180,18 @@ onMounted(() => {
 <style lang="scss" scoped>
 .health-records-page {
   min-height: 100vh;
-  background: #F5F5F5;
+  background: var(--bg-color);
 }
 
 .header {
-  background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+  background: linear-gradient(135deg, var(--success-color) 0%, var(--success-dark) 100%);
   padding: 40rpx 32rpx;
+  border-radius: 0 0 24rpx 24rpx;
 }
 
 .stats-card {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
   border-radius: 16rpx;
   padding: 32rpx;
 }
@@ -219,9 +224,28 @@ onMounted(() => {
 
 .progress-fill {
   height: 100%;
-  background: white;
+  background: linear-gradient(90deg, #fff 0%, #e8f5e9 100%);
   border-radius: 6rpx;
-  transition: width 0.3s ease;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progress-animation-hint {
+  height: 2rpx;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.5) 50%, transparent 100%);
+  margin-top: 4rpx;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.3;
+  }
 }
 
 .stat-tips {
@@ -230,17 +254,17 @@ onMounted(() => {
 }
 
 .today-section {
-  background: white;
+  background: var(--card-bg);
   padding: 32rpx;
   margin: 32rpx;
   border-radius: 16rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-md);
 }
 
 .section-title {
   font-size: 30rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 24rpx;
 }
 
@@ -254,25 +278,46 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20rpx 28rpx;
-  background: #F5F5F5;
-  border-radius: 16rpx;
-  transition: all 0.2s ease;
+  padding: 28rpx 36rpx;
+  min-width: 140rpx;
+  background: var(--bg-color);
+  border-radius: 20rpx;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &.selected {
-    background: #E8F5E9;
-    border: 2rpx solid #4CAF50;
+    background: var(--success-bg);
+    border: 3rpx solid var(--success-color);
+    transform: translateY(-4rpx);
+    box-shadow: 0 8rpx 16rpx rgba(76, 175, 80, 0.2);
+  }
+}
+
+.feeling-icon-wrapper {
+  width: 88rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12rpx;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(46, 125, 50, 0.1) 100%);
+  border-radius: 50%;
+  transition: all 0.3s ease;
+
+  .feeling-btn.selected & {
+    background: linear-gradient(135deg, var(--success-color) 0%, var(--success-dark) 100%);
+    transform: scale(1.1);
   }
 }
 
 .feeling-icon {
   font-size: 48rpx;
-  margin-bottom: 8rpx;
+  line-height: 1;
 }
 
 .feeling-label {
-  font-size: 24rpx;
-  color: #666;
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .note-section {
@@ -283,22 +328,35 @@ onMounted(() => {
   width: 100%;
   min-height: 120rpx;
   padding: 20rpx;
-  background: #F5F5F5;
+  background: var(--bg-color);
   border-radius: 12rpx;
   font-size: 28rpx;
-  color: #333;
+  color: var(--text-primary);
   box-sizing: border-box;
+  border: 2rpx solid transparent;
+  transition: border-color 0.2s ease;
+
+  &:focus {
+    border-color: var(--success-color);
+  }
 }
 
 .save-btn {
   margin-top: 16rpx;
-  background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+  background: linear-gradient(135deg, var(--success-color) 0%, var(--success-dark) 100%);
   color: white;
   border: none;
   border-radius: 12rpx;
   padding: 20rpx;
   font-size: 28rpx;
   font-weight: bold;
+  box-shadow: 0 4rpx 12rpx rgba(76, 175, 80, 0.3);
+  transition: all 0.2s ease;
+
+  &:active {
+    transform: scale(0.98);
+    box-shadow: 0 2rpx 8rpx rgba(76, 175, 80, 0.2);
+  }
 }
 
 .records-section {
@@ -315,19 +373,20 @@ onMounted(() => {
 .section-title {
   font-size: 30rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .section-link {
   font-size: 24rpx;
-  color: #4CAF50;
+  color: var(--success-color);
 }
 
 .empty-state {
   text-align: center;
   padding: 80rpx 40rpx;
-  background: white;
+  background: var(--card-bg);
   border-radius: 16rpx;
+  box-shadow: var(--shadow-md);
 }
 
 .empty-icon {
@@ -338,14 +397,14 @@ onMounted(() => {
 
 .empty-text {
   font-size: 28rpx;
-  color: #666;
+  color: var(--text-secondary);
   display: block;
   margin-bottom: 12rpx;
 }
 
 .empty-hint {
   font-size: 24rpx;
-  color: #999;
+  color: var(--text-disabled);
   display: block;
 }
 
@@ -356,11 +415,17 @@ onMounted(() => {
 }
 
 .record-card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 16rpx;
   padding: 24rpx;
   display: flex;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s ease;
+
+  &:active {
+    transform: scale(0.98);
+    box-shadow: var(--shadow-sm);
+  }
 }
 
 .record-date {
@@ -368,20 +433,26 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 80rpx;
+  width: 96rpx;
   margin-right: 20rpx;
   flex-shrink: 0;
+  background: linear-gradient(135deg, var(--success-bg) 0%, rgba(76, 175, 80, 0.05) 100%);
+  border-radius: 12rpx;
+  padding: 16rpx 8rpx;
+  border: 2rpx solid rgba(76, 175, 80, 0.1);
 }
 
 .record-day {
-  font-size: 40rpx;
+  font-size: 48rpx;
   font-weight: bold;
-  color: #4CAF50;
+  color: var(--success-color);
+  line-height: 1;
 }
 
 .record-month {
   font-size: 22rpx;
-  color: #999;
+  color: var(--text-secondary);
+  margin-top: 4rpx;
 }
 
 .record-content {
@@ -391,23 +462,24 @@ onMounted(() => {
 .record-feeling {
   font-size: 28rpx;
   margin-bottom: 8rpx;
+  color: var(--text-primary);
 }
 
 .record-notes {
   font-size: 26rpx;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 8rpx;
   line-height: 1.5;
 }
 
 .record-symptoms {
   font-size: 24rpx;
-  color: #999;
+  color: var(--text-disabled);
 }
 
 .symptom-label {
   font-weight: bold;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .quick-actions {
@@ -422,12 +494,18 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   padding: 32rpx;
-  background: white;
+  background: var(--card-bg);
   border-radius: 16rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s ease;
+
+  &:active {
+    transform: scale(0.98);
+    box-shadow: var(--shadow-sm);
+  }
 
   &.emergency {
-    background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
+    background: linear-gradient(135deg, var(--danger-color) 0%, var(--danger-dark) 100%);
 
     .quick-icon,
     .quick-label {
@@ -443,6 +521,7 @@ onMounted(() => {
 
 .quick-label {
   font-size: 26rpx;
-  color: #666;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 </style>
