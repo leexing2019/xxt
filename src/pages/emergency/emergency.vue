@@ -203,56 +203,100 @@ function closeDetail() {
 <style lang="scss" scoped>
 .emergency-page {
   min-height: 100vh;
-  background: #F5F5F5;
+  background: var(--bg-color);
 }
 
 .emergency-header {
-  background: linear-gradient(135deg, #F44336, #D32F2F);
+  background: linear-gradient(135deg, var(--danger-color) 0%, var(--danger-dark) 100%);
   padding: 48rpx 32rpx;
   text-align: center;
+  box-shadow: 0 4rpx 24rpx rgba(244, 67, 54, 0.3);
 }
 
 .emergency-title {
   display: block;
   font-size: 48rpx;
-  font-weight: bold;
+  font-weight: 800;
   color: white;
   margin-bottom: 12rpx;
+  letter-spacing: 2px;
 }
 
 .emergency-subtitle {
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.95);
   font-size: 28rpx;
+  font-weight: 500;
 }
 
 .main-emergency {
-  padding: 40rpx 32rpx;
+  padding: 32rpx 32rpx 48rpx;
 }
 
+/* SOS 紧急按钮 - 更大更明显 */
 .emergency-btn-large {
-  background: linear-gradient(135deg, #F44336, #D32F2F);
-  border-radius: 24rpx;
-  padding: 60rpx;
+  background: linear-gradient(135deg, var(--danger-color) 0%, var(--danger-dark) 100%);
+  border-radius: 32rpx;
+  padding: 72rpx 48rpx;
   text-align: center;
-  box-shadow: 0 8rpx 24rpx rgba(244, 67, 54, 0.4);
+  box-shadow: 0 12rpx 40rpx rgba(244, 67, 54, 0.5);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  &:active {
+    transform: scale(0.95);
+    box-shadow: 0 6rpx 20rpx rgba(244, 67, 54, 0.4);
+  }
+
+  &:active::before {
+    opacity: 1;
+  }
 }
 
 .btn-icon {
-  font-size: 80rpx;
+  font-size: 96rpx;
   display: block;
-  margin-bottom: 16rpx;
+  margin-bottom: 24rpx;
+  animation: pulse 2s ease-in-out infinite;
 }
 
 .btn-text {
-  font-size: 48rpx;
-  font-weight: bold;
+  font-size: 52rpx;
+  font-weight: 800;
   color: white;
+  letter-spacing: 4px;
+  display: block;
 }
 
 .btn-sub {
   font-size: 28rpx;
-  color: rgba(255, 255, 255, 0.9);
-  margin-top: 8rpx;
+  color: rgba(255, 255, 255, 0.95);
+  margin-top: 12rpx;
+  display: block;
+  font-weight: 500;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
 }
 
 .contact-section,
@@ -262,200 +306,307 @@ function closeDetail() {
 
 .section-title {
   font-size: 30rpx;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 20rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 24rpx;
+  display: flex;
+  align-items: center;
+
+  &::before {
+    content: '';
+    width: 6rpx;
+    height: 32rpx;
+    background: linear-gradient(180deg, var(--danger-color) 0%, var(--danger-dark) 100%);
+    border-radius: 3rpx;
+    margin-right: 12rpx;
+  }
 }
 
+/* 紧急联系人卡片优化 */
 .contact-card {
-  background: white;
-  border-radius: 16rpx;
-  padding: 28rpx;
+  background: var(--card-bg);
+  border-radius: 20rpx;
+  padding: 32rpx;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.06);
+  box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.1);
+  border-left: 6rpx solid var(--danger-color);
+  transition: all 0.2s ease;
+
+  &:active {
+    transform: scale(0.98);
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+  }
 }
 
 .contact-info {
   flex: 1;
+  min-width: 0;
 }
 
 .contact-name {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #333;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: block;
 }
 
 .contact-phone {
-  font-size: 28rpx;
-  color: #666;
+  font-size: 30rpx;
+  color: var(--text-secondary);
   margin-top: 8rpx;
+  display: block;
+  font-weight: 500;
 }
 
 .contact-actions {
   display: flex;
-  gap: 24rpx;
+  gap: 20rpx;
+  margin-left: 20rpx;
 }
 
 .action-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-size: 40rpx;
+  padding: 16rpx 20rpx;
+  background: var(--primary-light-bg);
+  border-radius: 16rpx;
+  transition: all 0.2s ease;
+  min-width: 80rpx;
+
+  &:active {
+    transform: scale(0.9);
+    background: var(--primary-bg);
+  }
+}
+
+.action-item .action-icon {
+  font-size: 44rpx;
+  margin-bottom: 4rpx;
 }
 
 .action-text {
   font-size: 22rpx;
-  color: #666;
+  color: var(--primary-color);
   margin-top: 4rpx;
+  font-weight: 600;
 }
 
+/* 空状态优化 */
 .empty-contact {
-  background: white;
-  border-radius: 16rpx;
-  padding: 48rpx;
+  background: var(--card-bg);
+  border-radius: 20rpx;
+  padding: 64rpx 48rpx;
   text-align: center;
-  border: 2px dashed #E0E0E0;
+  border: 3rpx dashed var(--border-color);
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:active {
+    transform: scale(0.98);
+    border-color: var(--primary-color);
+    background: var(--primary-light-bg);
+  }
 }
 
 .empty-icon {
-  font-size: 64rpx;
+  font-size: 72rpx;
   display: block;
-  margin-bottom: 16rpx;
+  margin-bottom: 20rpx;
+  opacity: 0.6;
 }
 
 .empty-text {
   font-size: 28rpx;
-  color: #999;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
+/* 紧急情况场景卡片 */
 .scenario-card {
-  background: white;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
+  background: var(--card-bg);
+  border-radius: 20rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  min-height: 120rpx;
+
+  &:active {
+    transform: scale(0.98);
+    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+  }
 }
 
 .scenario-header {
   display: flex;
   align-items: center;
+  flex: 1;
 }
 
 .scenario-icon {
-  font-size: 48rpx;
-  margin-right: 20rpx;
+  font-size: 52rpx;
+  margin-right: 24rpx;
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--danger-bg) 0%, rgba(244, 67, 54, 0.1) 100%);
+  border-radius: 20rpx;
+  flex-shrink: 0;
 }
 
 .scenario-info {
   flex: 1;
+  min-width: 0;
 }
 
 .scenario-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #333;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: block;
 }
 
 .scenario-severity {
   font-size: 22rpx;
-  padding: 4rpx 12rpx;
-  border-radius: 8rpx;
-  margin-top: 8rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 12rpx;
+  margin-top: 10rpx;
   display: inline-block;
-}
+  font-weight: 600;
 
-.scenario-severity.critical {
-  background: #FFEBEE;
-  color: #F44336;
-}
+  &.critical {
+    background: var(--danger-bg);
+    color: var(--danger-color);
+  }
 
-.scenario-severity.high {
-  background: #FFF3E0;
-  color: #FF9800;
-}
+  &.high {
+    background: var(--warning-bg);
+    color: var(--warning-color);
+  }
 
-.scenario-severity.medium {
-  background: #E3F2FD;
-  color: #2196F3;
+  &.medium {
+    background: var(--primary-light-bg);
+    color: var(--primary-color);
+  }
 }
 
 .scenario-arrow {
-  font-size: 32rpx;
-  color: #CCC;
+  font-size: 34rpx;
+  color: var(--text-disabled);
+  margin-left: 16rpx;
+  transition: transform 0.2s ease;
 }
 
-/* 详情弹窗 */
+.scenario-card:active .scenario-arrow {
+  transform: translateX(4rpx);
+}
+
+/* 详情弹窗优化 */
 .detail-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   z-index: 999;
   display: flex;
   align-items: flex-end;
+  animation: fadeIn 0.2s ease-out;
 }
 
 .detail-modal {
-  background: white;
+  background: var(--card-bg);
   width: 100%;
   max-height: 85vh;
   border-radius: 32rpx 32rpx 0 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  animation: slideUp 0.3s ease-out;
 }
 
 .detail-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 32rpx;
-  border-bottom: 1px solid #F0F0F0;
+  padding: 36rpx 32rpx;
+  border-bottom: 1px solid var(--border-color);
+  background: linear-gradient(90deg, var(--danger-bg) 0%, transparent 100%);
 }
 
 .detail-title {
-  font-size: 34rpx;
-  font-weight: bold;
-  color: #333;
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: 1px;
 }
 
 .detail-close {
-  font-size: 48rpx;
-  color: #999;
+  font-size: 52rpx;
+  color: var(--text-disabled);
   padding: 0 16rpx;
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bg-color);
+  transition: all 0.2s ease;
+
+  &:active {
+    background: var(--danger-bg);
+    color: var(--danger-color);
+    transform: scale(0.9);
+  }
 }
 
 .detail-content {
   flex: 1;
   overflow-y: auto;
   padding: 32rpx;
+  background: var(--bg-color);
 }
 
 .detail-section {
-  margin-bottom: 32rpx;
+  margin-bottom: 36rpx;
+  background: var(--card-bg);
+  border-radius: 16rpx;
+  padding: 24rpx;
+  box-shadow: var(--shadow-sm);
 }
 
 .detail-section-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 16rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 20rpx;
+  display: block;
+  padding-bottom: 16rpx;
+  border-bottom: 2rpx solid var(--border-color);
 }
 
 .symptom-item,
 .action-item,
 .warning-item {
   font-size: 28rpx;
-  color: #666;
-  padding: 12rpx 0;
-  border-bottom: 1px solid #F5F5F5;
+  color: var(--text-secondary);
+  padding: 16rpx 0;
+  border-bottom: 1px solid var(--border-color);
+  line-height: 1.6;
+
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .action-section .action-item {
@@ -465,36 +616,60 @@ function closeDetail() {
 }
 
 .action-number {
-  width: 40rpx;
-  height: 40rpx;
-  background: #2196F3;
+  width: 48rpx;
+  height: 48rpx;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24rpx;
+  font-weight: 700;
   flex-shrink: 0;
+  box-shadow: 0 2rpx 8rpx rgba(30, 136, 229, 0.3);
 }
 
 .action-text {
   flex: 1;
+  line-height: 1.6;
 }
 
 .warning-section {
-  background: #FFF3E0;
-  border-radius: 12rpx;
-  padding: 20rpx;
+  background: var(--warning-bg);
+  border-radius: 16rpx;
+  padding: 24rpx;
+  border-left: 6rpx solid var(--warning-color);
 }
 
 .warning-item {
   color: #E65100;
   border-bottom-color: #FFE0B2;
+  font-weight: 500;
 }
 
 .detail-footer {
-  padding: 24rpx 32rpx;
-  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
-  border-top: 1px solid #F0F0F0;
+  padding: 28rpx 32rpx;
+  padding-bottom: calc(28rpx + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border-color);
+  background: var(--card-bg);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 </style>
