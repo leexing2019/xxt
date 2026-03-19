@@ -1,5 +1,5 @@
 <template>
-  <view class="register-page">
+  <view class="register-page page-fade-in">
     <!-- 顶部背景 -->
     <view class="header">
       <view class="logo-area">
@@ -39,6 +39,25 @@
           />
           <text class="toggle-password" @click="togglePassword">
             {{ showPassword ? '👁️' : '👁️‍🗨️' }}
+          </text>
+        </view>
+        <!-- 密码强度指示器 -->
+        <view v-if="password" class="password-strength">
+          <view class="strength-bars">
+            <view
+              v-for="i in 3"
+              :key="i"
+              class="strength-bar"
+              :class="{
+                active: i <= passwordStrength.level,
+                'bar-weak': passwordStrength.level >= 1,
+                'bar-medium': passwordStrength.level >= 2,
+                'bar-strong': passwordStrength.level === 3
+              }"
+            ></view>
+          </view>
+          <text class="strength-label" :style="{ color: passwordStrength.color }">
+            {{ passwordStrength.label }}
           </text>
         </view>
       </view>
@@ -89,7 +108,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import { speakText } from '@/services/voice'
 
@@ -101,6 +120,23 @@ const confirmPassword = ref('')
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const loading = ref(false)
+
+// 密码强度计算
+const passwordStrength = computed(() => {
+  const pwd = password.value
+  if (!pwd) return { level: 0, label: '', color: '' }
+
+  let strength = 0
+  if (pwd.length >= 6) strength++
+  if (pwd.length >= 10) strength++
+  if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) strength++
+  if (/\d/.test(pwd)) strength++
+  if (/[^a-zA-Z0-9]/.test(pwd)) strength++
+
+  if (strength <= 2) return { level: 1, label: '弱', color: '#E53935' }
+  if (strength <= 4) return { level: 2, label: '中', color: '#FB8C00' }
+  return { level: 3, label: '强', color: '#43A047' }
+})
 
 // 切换密码显示
 function togglePassword() {
@@ -220,7 +256,7 @@ function showPrivacy() {
 }
 
 .input-group {
-  margin-bottom: 32rpx;
+  margin-bottom: 40rpx;
 }
 
 .input-label {
@@ -256,6 +292,49 @@ function showPrivacy() {
   font-size: 36rpx;
   padding: 24rpx;
   cursor: pointer;
+}
+
+/* 密码强度指示器 */
+.password-strength {
+  margin-top: 12rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.strength-bars {
+  display: flex;
+  gap: 8rpx;
+  flex: 1;
+}
+
+.strength-bar {
+  flex: 1;
+  height: 6rpx;
+  background: #E0E0E0;
+  border-radius: 3rpx;
+  transition: all 0.3s ease;
+
+  &.active {
+    &.bar-weak {
+      background: #E53935;
+    }
+
+    &.bar-medium {
+      background: #FB8C00;
+    }
+
+    &.bar-strong {
+      background: #43A047;
+    }
+  }
+}
+
+.strength-label {
+  font-size: 22rpx;
+  font-weight: 500;
+  min-width: 60rpx;
+  text-align: right;
 }
 
 .btn-large {
