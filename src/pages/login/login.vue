@@ -1,5 +1,5 @@
 <template>
-  <view class="login-page">
+  <view class="login-page page-fade-in">
     <!-- 顶部背景 -->
     <view class="header">
       <view class="logo-area">
@@ -44,7 +44,7 @@
 
       <!-- 登录按钮 -->
       <button
-        class="btn btn-primary btn-large"
+        class="btn btn-primary btn-large login-btn"
         :disabled="!username || !password || loading"
         @click="handleLogin"
       >
@@ -243,7 +243,7 @@ function goEmergency() {
 }
 
 .input-group {
-  margin-bottom: 32rpx;
+  margin-bottom: 40rpx;
 }
 
 .input-label {
@@ -292,7 +292,10 @@ function goEmergency() {
 }
 
 .demo-login-section {
-  margin-top: 24rpx;
+  margin-top: 40rpx;
+  padding: 24rpx;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border-radius: 20rpx;
   text-align: center;
 }
 
@@ -300,11 +303,17 @@ function goEmergency() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 16rpx 32rpx;
+  padding: 20rpx 40rpx;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 32rpx;
   cursor: pointer;
-  opacity: 0.9;
+  transition: all 0.2s ease-out;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+
+  &:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.2);
+  }
 }
 
 .demo-icon {
