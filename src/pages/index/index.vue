@@ -1,8 +1,8 @@
 <template>
-  <view class="container">
-    <!-- 顶部问候区域 -->
-    <view class="header">
-      <view class="greeting">
+  <view class="container page-fade-in">
+    <!-- 顶部问候卡片 -->
+    <view class="header-card">
+      <view class="greeting-section">
         <text class="greeting-text">{{ greeting }}</text>
         <text class="date-text">{{ currentDate }}</text>
       </view>
@@ -11,17 +11,58 @@
       </view>
     </view>
 
-    <!-- 进度卡片 -->
+    <!-- 进度环形卡片 -->
     <view class="progress-card card">
-      <view class="progress-header">
-        <text class="progress-title">今日用药进度</text>
-        <text class="progress-percent">{{ progressPercent }}%</text>
-      </view>
-      <view class="progress-bar">
-        <view class="progress-fill" :style="{ width: progressPercent + '%' }"></view>
-      </view>
-      <view class="progress-stats">
-        <text>已完成 {{ takenCount }} / {{ totalCount }}</text>
+      <view class="progress-content">
+        <view class="progress-ring-container">
+          <svg class="progress-ring" width="160" height="160" viewBox="0 0 160 160">
+            <!-- 背景圆环 -->
+            <circle
+              class="progress-ring-bg"
+              cx="80"
+              cy="80"
+              r="64"
+              fill="none"
+              stroke="#E0E0E0"
+              stroke-width="16"
+            />
+            <!-- 进度圆环 -->
+            <circle
+              class="progress-ring-fill"
+              cx="80"
+              cy="80"
+              r="64"
+              fill="none"
+              stroke="url(#progressGradient)"
+              stroke-width="16"
+              stroke-linecap="round"
+              :stroke-dasharray="circumference"
+              :stroke-dashoffset="dashOffset"
+              transform="rotate(-90 80 80)"
+            />
+            <defs>
+              <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#4CAF50" />
+                <stop offset="100%" stop-color="#45a049" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <view class="progress-center-text">
+            <text class="center-percent">{{ progressPercent }}%</text>
+            <text class="center-label">已完成</text>
+          </view>
+        </view>
+        <view class="progress-details">
+          <view class="detail-item">
+            <text class="detail-value">{{ takenCount }}</text>
+            <text class="detail-label">已服用</text>
+          </view>
+          <view class="detail-divider" />
+          <view class="detail-item">
+            <text class="detail-value">{{ totalCount }}</text>
+            <text class="detail-label">总计划</text>
+          </view>
+        </view>
       </view>
     </view>
 
@@ -140,6 +181,11 @@ const progressPercent = computed(() => {
   return Math.round((takenCount.value / totalCount.value) * 100)
 })
 
+// 进度环计算
+const radius = 64
+const circumference = computed(() => 2 * Math.PI * radius)
+const dashOffset = computed(() => circumference.value - (progressPercent.value / 100) * circumference.value)
+
 // 服用药品
 async function takeMedication(item: any) {
   if (item.taken) {
@@ -237,95 +283,144 @@ onMounted(() => {
   padding-bottom: 20px;
 }
 
-.header {
+.header-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 16px;
+  padding: 24px 20px;
   background: linear-gradient(135deg, #2196F3, #1976D2);
-  color: white;
+  border-radius: 0 0 24px 24px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
 }
 
-.greeting {
+.greeting-section {
   display: flex;
   flex-direction: column;
+  gap: 4px;
 }
 
 .greeting-text {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 4px;
+  font-size: 26px;
+  font-weight: 700;
+  color: white;
 }
 
 .date-text {
   font-size: 16px;
-  opacity: 0.9;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .voice-btn {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: all 0.2s ease;
 
   &:active {
     background: rgba(255, 255, 255, 0.3);
+    transform: scale(0.95);
   }
 }
 
 .voice-icon {
-  font-size: 22px;
+  font-size: 24px;
 }
 
 .progress-card {
   margin: 16px;
   background: white;
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.progress-header {
+.progress-content {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  margin-bottom: 12px;
 }
 
-.progress-title {
-  font-size: 18px;
-  font-weight: 600;
+.progress-ring-container {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  margin-bottom: 20px;
+}
+
+.progress-ring {
+  width: 160px;
+  height: 160px;
+}
+
+.progress-ring-bg {
+  stroke: #E0E0E0;
+}
+
+.progress-ring-fill {
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.progress-center-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.center-percent {
+  font-size: 32px;
+  font-weight: 700;
+  color: #4CAF50;
+  line-height: 1;
+}
+
+.center-label {
+  font-size: 14px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.progress-details {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  width: 100%;
+  padding-top: 16px;
+  border-top: 1px solid #F0F0F0;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.detail-value {
+  font-size: 24px;
+  font-weight: 700;
   color: #333;
 }
 
-.progress-percent {
-  font-size: 28px;
-  font-weight: bold;
-  color: #2196F3;
-}
-
-.progress-bar {
-  height: 12px;
-  background: #E0E0E0;
-  border-radius: 6px;
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #4CAF50, #45a049);
-  border-radius: 6px;
-  transition: width 0.3s ease;
-}
-
-.progress-stats {
-  text-align: center;
+.detail-label {
   font-size: 14px;
   color: #666;
+}
+
+.detail-divider {
+  width: 1px;
+  height: 32px;
+  background: #E0E0E0;
 }
 
 .medications-section {
