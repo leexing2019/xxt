@@ -37,6 +37,52 @@
         </view>
       </view>
     </view>
+
+    <!-- 语音输入区域 -->
+    <view v-if="selectedMethod === 'voice'" class="voice-section">
+      <!-- 语音按钮 -->
+      <view class="voice-button-wrapper">
+        <view
+          class="voice-button"
+          :class="{ recording: isRecording }"
+          @click="toggleRecording"
+        >
+          <text class="voice-icon">{{ isRecording ? '🔴' : '🎤' }}</text>
+        </view>
+        <text class="voice-hint">
+          {{ isRecording ? '正在听，请说药品名称...' : '点击按钮，说出药品名称' }}
+        </text>
+      </view>
+
+      <!-- 识别结果 -->
+      <view v-if="recognizedText" class="recognized-result">
+        <text class="recognized-label">您说的是：</text>
+        <text class="recognized-text">{{ recognizedText }}</text>
+        <view class="recognized-actions">
+          <button class="btn btn-outline" @click="retryVoice">重新说</button>
+          <button class="btn btn-primary" @click="confirmVoice">是这个药</button>
+        </view>
+      </view>
+
+      <!-- 搜索结果 -->
+      <view v-if="searchResults.length > 0" class="search-results">
+        <text class="results-title">找到 {{ searchResults.length }} 种药品</text>
+        <view
+          v-for="(drug, index) in searchResults"
+          :key="index"
+          class="result-card"
+          @click="selectSearchResult(drug)"
+        >
+          <image :src="drug.image" class="result-image" mode="aspectFill" />
+          <view class="result-info">
+            <text class="result-name">{{ drug.name }}</text>
+            <text class="result-generic">通用名：{{ drug.genericName }}</text>
+            <text class="result-appearance">🔍 {{ drug.appearanceDesc }}</text>
+            <text class="result-usage">用于：{{ drug.indications }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
     <!-- AI识别区域 -->
     <view v-if="selectedMethod === 'camera'" class="scan-area">
       <view class="camera-preview" @click="openCamera">
@@ -701,6 +747,159 @@ async function submitForm() {
 .method-desc {
   font-size: 24rpx;
   color: #999;
+}
+
+// ===== 语音输入区域样式 =====
+.voice-section {
+  padding: 32rpx 24rpx;
+  background: white;
+  border-radius: 20rpx;
+  margin-top: 24rpx;
+}
+
+.voice-button-wrapper {
+  text-align: center;
+  padding: 32rpx 0;
+}
+
+.voice-button {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(33, 150, 243, 0.3);
+  transition: all 0.3s;
+
+  &:active {
+    transform: scale(0.92);
+  }
+}
+
+.voice-button.recording {
+  background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.voice-icon {
+  font-size: 80rpx;
+}
+
+.voice-hint {
+  font-size: 28rpx;
+  color: #666;
+  display: block;
+}
+
+.recognized-result {
+  text-align: center;
+  padding: 32rpx;
+  background: #F5F5F5;
+  border-radius: 16rpx;
+  margin-top: 24rpx;
+}
+
+.recognized-label {
+  font-size: 26rpx;
+  color: #999;
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.recognized-text {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #2196F3;
+  display: block;
+  margin-bottom: 24rpx;
+}
+
+.recognized-actions {
+  display: flex;
+  justify-content: center;
+  gap: 24rpx;
+}
+
+.search-results {
+  margin-top: 32rpx;
+}
+
+.results-title {
+  font-size: 26rpx;
+  color: #666;
+  display: block;
+  margin-bottom: 20rpx;
+}
+
+.result-card {
+  display: flex;
+  padding: 24rpx;
+  background: #F5F5F5;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  gap: 24rpx;
+
+  &:active {
+    background: #EEEEEE;
+  }
+}
+
+.result-image {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 12rpx;
+  background: white;
+  flex-shrink: 0;
+}
+
+.result-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8rpx;
+  min-width: 0;
+}
+
+.result-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-generic {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.result-appearance {
+  font-size: 24rpx;
+  color: #E65100;
+  background: #FFF3E0;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  display: inline-block;
+  width: fit-content;
+}
+
+.result-usage {
+  font-size: 24rpx;
+  color: #666;
 }
 
 .scan-area {
