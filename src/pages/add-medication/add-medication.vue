@@ -154,6 +154,40 @@
       <text v-if="voiceText" class="voice-result">{{ voiceText }}</text>
     </view>
 
+
+    <!-- 常用药品区域 -->
+    <view v-if="selectedMethod === 'common'" class="common-drugs-section">
+      <!-- 分类 Tab -->
+      <scroll-view scroll-x class="category-tabs" show-scrollbar>
+        <view class="tabs-wrapper">
+          <view
+            v-for="cat in categories"
+            :key="cat.id"
+            class="tab"
+            :class="{ active: activeCategory === cat.id }"
+            @click="selectCategory(cat.id)"
+          >
+            {{ cat.name }}
+          </view>
+        </view>
+      </scroll-view>
+
+      <!-- 药品网格 -->
+      <view class="drug-grid">
+        <view
+          v-for="drug in filteredDrugs"
+          :key="drug.id"
+          class="drug-card"
+          @click="selectCommonDrug(drug)"
+        >
+          <image :src="drug.image" class="drug-image" mode="aspectFill" />
+          <text class="drug-name">{{ drug.name }}</text>
+          <text class="drug-usage">{{ drug.usage }}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 手动搜索区域 -->
     <!-- 手动搜索区域 -->
     <view v-if="selectedMethod === 'search'" class="search-area">
       <view class="search-input-wrapper">
@@ -1047,6 +1081,86 @@ async function submitForm() {
   font-size: 32rpx;
   color: #2196F3;
   font-weight: 500;
+}
+
+// ===== 常用药品区域样式 =====
+.common-drugs-section {
+  background: white;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  margin-top: 24rpx;
+}
+
+.category-tabs {
+  width: 100%;
+  white-space: nowrap;
+  margin-bottom: 24rpx;
+}
+
+.tabs-wrapper {
+  display: inline-flex;
+  gap: 16rpx;
+  padding: 8rpx 4rpx;
+}
+
+.tab {
+  display: inline-block;
+  padding: 12rpx 28rpx;
+  font-size: 26rpx;
+  color: #666;
+  background: #F5F5F5;
+  border-radius: 32rpx;
+  transition: all 0.2s;
+
+  &.active {
+    background: #2196F3;
+    color: white;
+    font-weight: 600;
+  }
+}
+
+.drug-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20rpx;
+}
+
+.drug-card {
+  background: #F5F5F5;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  text-align: center;
+  transition: all 0.2s;
+
+  &:active {
+    background: #EEEEEE;
+    transform: scale(0.96);
+  }
+}
+
+.drug-image {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 12rpx;
+  background: white;
+  margin-bottom: 16rpx;
+}
+
+.drug-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  display: block;
+  margin-bottom: 8rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drug-usage {
+  font-size: 22rpx;
+  color: #666;
+  display: block;
 }
 
 .search-area {
