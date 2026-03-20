@@ -399,36 +399,59 @@
   </view>
 </template>
 
+
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useMedicationStore } from '@/store/medication'
 import { useAuthStore } from '@/store/auth'
 import { recognizeMedication, recognizePrescription, searchDrug as searchDrugApi } from '@/services/medication'
 import { recognizeSpeech, speakText } from '@/services/voice'
 import { uploadMedicationImage } from '@/services/storage'
+import {
+  COMMON_MEDICATIONS,
+  MEDICATION_CATEGORIES,
+  getMedicationsByCategory,
+  searchMedications,
+  type CommonMedication
+} from '@/data/common-medications'
 
 const medicationStore = useMedicationStore()
 const authStore = useAuthStore()
 
-// 状�?const selectedMethod = ref('')
+// 状态
+const selectedMethod = ref('') // 'voice' | 'common' | 'camera' | 'handwrite'
+const selectedDrug = ref<CommonMedication | null>(null)
+const selectedTime = ref('')
 const capturedImage = ref('')
 const prescriptionImage = ref('')
 const recognizedData = ref<any>(null)
 const prescriptionData = ref<any>(null)
 const confidence = ref(0)
 const voiceText = ref('')
+const recognizedText = ref('')
 const isRecording = ref(false)
 const searchKeyword = ref('')
-const searchResults = ref<any[]>([])
+const searchResults = ref<CommonMedication[]>([])
 const showForm = ref(false)
 const isEditing = ref(false)
 const loading = ref(false)
 const loadingText = ref('')
-const coverImage = ref('') // 封面图片
-const medicationImages = ref<string[]>([]) // 药品照片列表
+const coverImage = ref('')
+const medicationImages = ref<string[]>([])
+
+// 常用药状态
+const activeCategory = ref('all')
+
+// 分类列表
+const categories = MEDICATION_CATEGORIES
+
+// 筛选后的常用药
+const filteredDrugs = computed(() => {
+  return getMedicationsByCategory(activeCategory.value)
+})
 
 // 药品类型
-const formTypes = ['片剂', '胶囊', '口服�?, '颗粒', '注射�?, '外用�?, '贴剂', '其他']
+const formTypes = ['片剂', '胶囊', '口服液', '颗粒', '注射液', '外用药', '贴剂', '其他']
 
 // 表单数据
 const formData = reactive({
@@ -444,6 +467,167 @@ const formData = reactive({
 })
 
 // 选择添加方式
+function selectMethod(method: string) {
+  selectedMethod.value = method
+  showForm.value = false
+  if (method === 'voice') {
+    speakText('请点击按钮，说出药品名称')
+  }
+}
+
+// 切换录音状态
+async function toggleRecording() {
+  if (isRecording.value) {
+    stopRecording()
+  } else {
+    startRecording()
+  }
+}
+
+// 开始录音
+async function startRecording() {
+  isRecording.value = true
+  speakText('正在听，请说药品名称')
+
+  try {
+    const result = await recognizeSpeech()
+    isRecording.value = false
+
+    if (result.success && result.text) {
+      recognizedText.value = result.text
+      searchResults.value = searchMedications(result.text)
+
+      if (searchResults.value.length > 0) {
+        speakText(`找到${searchResults.value.length}种药品，请查看屏幕选择`)
+      } else {
+        speakText('没有找到相关药品，请重新说或试试其他方式')
+      }
+    }
+  } catch (error) {
+    isRecording.value = false
+    uni.showToast({ title: '语音识别失败', icon: 'none' })
+  }
+}
+
+// 停止录音
+function stopRecording() {
+  isRecording.value = false
+}
+
+// 重新识别
+function retryVoice() {
+  recognizedText.value = ''
+  searchResults.value = []
+  startRecording()
+}
+
+// 确认语音识别
+function confirmVoice() {
+  if (searchResults.value.length > 0) {
+    selectSearchResult(searchResults.value[0])
+  }
+}
+
+// 选择搜索结果
+function selectSearchResult(drug: CommonMedication) {
+  selectedDrug.value = drug
+  selectedTime.value = '08:00'
+  speakText(`您选择的是${drug.name}，用于${drug.indications}`)
+}
+
+// 选择常用药
+function selectCommonDrug(drug: CommonMedication) {
+  selectedDrug.value = drug
+  selectedTime.value = '08:00'
+  speakText(`您选择的是${drug.name}，用于${drug.indications}`)
+}
+
+// 选择分类
+function selectCategory(categoryId: string) {
+  activeCategory.value = categoryId
+}
+
+// 设置时间
+function setTime(time: string) {
+  selectedTime.value = time
+}
+
+// 时间选择器变化
+function onTimeChange(e: any) {
+  selectedTime.value = e.detail.value
+}
+
+// 关闭详情
+function closeDetail() {
+  selectedDrug.value = null
+}
+
+// 格式化时间显示
+function formatTime(time: string): string {
+  const [hour] = time.split(':')
+  const h = parseInt(hour)
+  if (h < 6) return '凌晨'
+  if (h < 10) return '早上'
+  if (h < 14) return '中午'
+  if (h < 18) return '下午'
+  if (h < 21) return '晚上'
+  return '睡前'
+}
+
+// 确认添加
+async function confirmAdd() {
+  if (!selectedDrug.value) return
+
+  loading.value = true
+  loadingText.value = '正在添加...'
+
+  try {
+    // 添加药品到数据库
+    const result = await medicationStore.addMedication({
+      name: selectedDrug.value.name,
+      generic_name: selectedDrug.value.genericName,
+      specification: '',
+      form: '',
+      manufacturer: '',
+      appearance_desc: selectedDrug.value.appearanceDesc,
+      image_url: selectedDrug.value.image
+    })
+
+    if (result.success && result.data) {
+      // 添加用药计划
+      await medicationStore.addSchedule({
+        medication_id: result.data.id,
+        time_of_day: selectedTime.value,
+        dosage: '1 片',
+        instructions: selectedDrug.value.usage,
+        weekdays: [1, 2, 3, 4, 5, 6, 7],
+        start_date: new Date().toISOString().split('T')[0]
+      })
+
+      speakText(`${selectedDrug.value.name}已添加成功，每天${formatTime(selectedTime.value)}提醒您`)
+      uni.showToast({ title: '添加成功', icon: 'success' })
+
+      setTimeout(() => {
+        resetState()
+        uni.switchTab({ url: '/pages/medication-list/medication-list' })
+      }, 1500)
+    }
+  } catch (error) {
+    uni.showToast({ title: '添加失败', icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
+
+// 重置状态
+function resetState() {
+  selectedMethod.value = ''
+  selectedDrug.value = null
+  selectedTime.value = ''
+  recognizedText.value = ''
+  searchResults.value = []
+}
+
 function selectMethod(method: string) {
   selectedMethod.value = method
   showForm.value = false
