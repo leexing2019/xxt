@@ -7,37 +7,36 @@
         <text class="section-hint">选择一种方式添加药品</text>
       </view>
 
-      <view class="method-cards">
-        <!-- AI拍照识别 -->
+      <view class="method-grid">
+        <!-- 语音输入 - 主推 -->
+        <view class="method-card primary" @click="selectMethod('voice')">
+          <text class="method-icon-large">🎤</text>
+          <text class="method-name-large">语音说药名</text>
+          <text class="method-desc">说出药品名称，自动搜索</text>
+        </view>
+
+        <!-- 常用药品 -->
+        <view class="method-card" @click="selectMethod('common')">
+          <text class="method-icon">📋</text>
+          <text class="method-name">常用药品</text>
+          <text class="method-desc">高血压/糖尿病等常用药</text>
+        </view>
+
+        <!-- 拍照识别 -->
         <view class="method-card" @click="selectMethod('camera')">
           <text class="method-icon">📷</text>
           <text class="method-name">拍照识别</text>
-          <text class="method-desc">拍摄药盒或药片</text>
+          <text class="method-desc">拍摄药盒，适合新药</text>
         </view>
 
-        <!-- 处方识别 -->
-        <view class="method-card" @click="selectMethod('prescription')">
-          <text class="method-icon">📋</text>
-          <text class="method-name">处方识别</text>
-          <text class="method-desc">拍摄医生处方</text>
-        </view>
-
-        <!-- 语音输入 -->
-        <view class="method-card" @click="selectMethod('voice')">
-          <text class="method-icon">🎤</text>
-          <text class="method-name">语音输入</text>
-          <text class="method-desc">说出药品名称</text>
-        </view>
-
-        <!-- 手动搜索 -->
-        <view class="method-card" @click="selectMethod('search')">
-          <text class="method-icon">🔍</text>
-          <text class="method-name">手动搜索</text>
-          <text class="method-desc">输入药品名称</text>
+        <!-- 手写输入 -->
+        <view class="method-card" @click="selectMethod('handwrite')">
+          <text class="method-icon">✏️</text>
+          <text class="method-name">手写输入</text>
+          <text class="method-desc">手写药名，更准确</text>
         </view>
       </view>
     </view>
-
     <!-- AI识别区域 -->
     <view v-if="selectedMethod === 'camera'" class="scan-area">
       <view class="camera-preview" @click="openCamera">
@@ -51,18 +50,18 @@
       <view v-if="recognizedData" class="recognized-result">
         <view class="result-header">
           <text class="h3-title">识别结果</text>
-          <text class="confidence">置信度: {{ confidence }}%</text>
+          <text class="confidence">置信�? {{ confidence }}%</text>
         </view>
         <view class="result-item">
-          <text class="result-label">药品名称：</text>
+          <text class="result-label">药品名称�?/text>
           <text class="result-value">{{ recognizedData.name }}</text>
         </view>
         <view class="result-item">
-          <text class="result-label">规格：</text>
+          <text class="result-label">规格�?/text>
           <text class="result-value">{{ recognizedData.specification }}</text>
         </view>
         <view class="result-item">
-          <text class="result-label">生产厂家：</text>
+          <text class="result-label">生产厂家�?/text>
           <text class="result-value">{{ recognizedData.manufacturer }}</text>
         </view>
         <view class="result-actions">
@@ -105,7 +104,7 @@
       <view class="voice-animation" :class="{ recording: isRecording }" @click="startVoiceInput">
         <text class="voice-circle">{{ isRecording ? '🔴' : '🎤' }}</text>
       </view>
-      <text class="voice-hint">{{ isRecording ? '正在聆听...' : '点击开始说话' }}</text>
+      <text class="voice-hint">{{ isRecording ? '正在聆听...' : '点击开始说�? }}</text>
       <text v-if="voiceText" class="voice-result">{{ voiceText }}</text>
     </view>
 
@@ -142,19 +141,49 @@
         <text class="h3-title">{{ isEditing ? '编辑药品' : '完善药品信息' }}</text>
       </view>
 
+      <!-- 药品封面上传 -->
       <view class="form-group">
-        <text class="input-label">药品名称 *</text>
-        <input v-model="formData.name" type="text" placeholder="请输入药品名称" class="input" />
+        <text class="input-label">药品封面</text>
+        <view class="image-upload-area">
+          <view v-if="coverImage" class="uploaded-image-wrapper">
+            <image :src="coverImage" mode="aspectFill" class="uploaded-image" />
+            <text class="remove-image" @click="removeCoverImage">×</text>
+          </view>
+          <view v-else class="upload-placeholder" @click="uploadCoverImage">
+            <text class="upload-icon">📷</text>
+            <text class="upload-text">点击拍摄封面</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 药品照片上传 -->
+      <view class="form-group">
+        <text class="input-label">药品照片</text>
+        <view class="image-upload-grid">
+          <view v-for="(img, index) in medicationImages" :key="index" class="uploaded-image-wrapper">
+            <image :src="img" mode="aspectFill" class="uploaded-image small" />
+            <text class="remove-image" @click="removeMedicationImage(index)">×</text>
+          </view>
+          <view v-if="medicationImages.length < 6" class="upload-placeholder small" @click="uploadMedicationPhoto">
+            <text class="upload-icon">+</text>
+            <text class="upload-text">添加照片</text>
+          </view>
+        </view>
       </view>
 
       <view class="form-group">
-        <text class="input-label">通用名</text>
-        <input v-model="formData.generic_name" type="text" placeholder="请输入通用名" class="input" />
+        <text class="input-label">药品名称 *</text>
+        <input v-model="formData.name" type="text" placeholder="请输入药品名�? class="input" />
+      </view>
+
+      <view class="form-group">
+        <text class="input-label">通用�?/text>
+        <input v-model="formData.generic_name" type="text" placeholder="请输入通用�? class="input" />
       </view>
 
       <view class="form-group">
         <text class="input-label">规格</text>
-        <input v-model="formData.specification" type="text" placeholder="如：50mg × 30片" class="input" />
+        <input v-model="formData.specification" type="text" placeholder="如：50mg × 30�? class="input" />
       </view>
 
       <view class="form-group">
@@ -168,7 +197,7 @@
 
       <view class="form-group">
         <text class="input-label">生产厂家</text>
-        <input v-model="formData.manufacturer" type="text" placeholder="请输入生产厂家" class="input" />
+        <input v-model="formData.manufacturer" type="text" placeholder="请输入生产厂�? class="input" />
       </view>
 
       <view class="form-group">
@@ -191,7 +220,7 @@
 
       <view class="form-group">
         <text class="input-label">用法说明</text>
-        <textarea v-model="formData.instructions" placeholder="如：饭后半小时服用" class="input textarea" />
+        <textarea v-model="formData.instructions" placeholder="如：饭后半小时服�? class="input textarea" />
       </view>
 
       <view class="form-actions">
@@ -200,7 +229,7 @@
       </view>
     </view>
 
-    <!-- 加载中 -->
+    <!-- 加载�?-->
     <view v-if="loading" class="loading-overlay">
       <view class="loading-spinner"></view>
       <text class="loading-text">{{ loadingText }}</text>
@@ -211,13 +240,15 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useMedicationStore } from '@/store/medication'
+import { useAuthStore } from '@/store/auth'
 import { recognizeMedication, recognizePrescription, searchDrug as searchDrugApi } from '@/services/medication'
 import { recognizeSpeech, speakText } from '@/services/voice'
+import { uploadMedicationImage } from '@/services/storage'
 
 const medicationStore = useMedicationStore()
+const authStore = useAuthStore()
 
-// 状态
-const selectedMethod = ref('')
+// 状�?const selectedMethod = ref('')
 const capturedImage = ref('')
 const prescriptionImage = ref('')
 const recognizedData = ref<any>(null)
@@ -231,9 +262,11 @@ const showForm = ref(false)
 const isEditing = ref(false)
 const loading = ref(false)
 const loadingText = ref('')
+const coverImage = ref('') // 封面图片
+const medicationImages = ref<string[]>([]) // 药品照片列表
 
 // 药品类型
-const formTypes = ['片剂', '胶囊', '口服液', '颗粒', '注射液', '外用药', '贴剂', '其他']
+const formTypes = ['片剂', '胶囊', '口服�?, '颗粒', '注射�?, '外用�?, '贴剂', '其他']
 
 // 表单数据
 const formData = reactive({
@@ -274,8 +307,7 @@ async function processImage(imagePath: string) {
   try {
     const result = await recognizeMedication(imagePath)
     recognizedData.value = result
-    confidence.value = 85 + Math.floor(Math.random() * 15) // 模拟置信度
-
+    confidence.value = 85 + Math.floor(Math.random() * 15) // 模拟置信�?
     // 填充表单
     formData.name = result.name || ''
     formData.specification = result.specification || ''
@@ -283,7 +315,7 @@ async function processImage(imagePath: string) {
     formData.appearance_desc = result.form || ''
     formData.image_url = imagePath
 
-    speakText(`识别到${result.name}，请确认是否添加`)
+    speakText(`识别�?{result.name}，请确认是否添加`)
   } catch (error) {
     uni.showToast({ title: '识别失败，请重试', icon: 'none' })
   } finally {
@@ -323,7 +355,7 @@ async function processPrescription(imagePath: string) {
   try {
     const result = await recognizePrescription(imagePath)
     prescriptionData.value = result
-    speakText(`识别到${result.medications.length}种药品`)
+    speakText(`识别�?{result.medications.length}种药品`)
   } catch (error) {
     uni.showToast({ title: '识别失败', icon: 'none' })
   } finally {
@@ -338,11 +370,11 @@ async function importPrescription() {
   for (const med of prescriptionData.value.medications) {
     formData.name = med.name
     formData.specification = med.dosage
-    formData.instructions = `${med.frequency}，服用${med.duration}`
+    formData.instructions = `${med.frequency}，服�?{med.duration}`
     await submitForm()
   }
 
-  uni.showToast({ title: '已导入全部药品', icon: 'success' })
+  uni.showToast({ title: '已导入全部药�?, icon: 'success' })
   setTimeout(() => {
     uni.switchTab({ url: '/pages/medication-list/medication-list' })
   }, 1500)
@@ -360,7 +392,7 @@ async function startVoiceInput() {
   if (isRecording.value) return
 
   isRecording.value = true
-  speakText('请说出药品名称')
+  speakText('请说出药品名�?)
 
   setTimeout(async () => {
     const result = await recognizeSpeech()
@@ -371,7 +403,7 @@ async function startVoiceInput() {
       searchKeyword.value = result.text
       await searchDrugApiFromVoice(result.text)
     } else {
-      speakText('没有识别到声音，请重试')
+      speakText('没有识别到声音，请重�?)
     }
   }, 2000)
 }
@@ -379,7 +411,7 @@ async function startVoiceInput() {
 // 语音搜索药品
 async function searchDrugApiFromVoice(keyword: string) {
   loading.value = true
-  loadingText.value = '搜索中...'
+  loadingText.value = '搜索�?..'
 
   try {
     const results = await searchDrugApi(keyword)
@@ -387,7 +419,7 @@ async function searchDrugApiFromVoice(keyword: string) {
       searchResults.value = results
       selectDrug(results[0])
     } else {
-      uni.showToast({ title: '未找到相关药品', icon: 'none' })
+      uni.showToast({ title: '未找到相关药�?, icon: 'none' })
     }
   } catch (error) {
     uni.showToast({ title: '搜索失败', icon: 'none' })
@@ -399,12 +431,12 @@ async function searchDrugApiFromVoice(keyword: string) {
 // 搜索药品
 async function searchDrug() {
   if (!searchKeyword.value.trim()) {
-    uni.showToast({ title: '请输入药品名称', icon: 'none' })
+    uni.showToast({ title: '请输入药品名�?, icon: 'none' })
     return
   }
 
   loading.value = true
-  loadingText.value = '搜索中...'
+  loadingText.value = '搜索�?..'
 
   try {
     const results = await searchDrugApi(searchKeyword.value)
@@ -446,6 +478,68 @@ function removeTime(index: number) {
   formData.times.splice(index, 1)
 }
 
+// 上传封面图片
+async function uploadCoverImage() {
+  uni.chooseImage({
+    count: 1,
+    sourceType: ['camera', 'album'],
+    success: async (res) => {
+      const tempFilePath = res.tempFilePaths[0]
+      coverImage.value = tempFilePath
+
+      // 上传到云�?      if (authStore.userId) {
+        try {
+          const file = await urlToFile(tempFilePath, 'cover.jpg')
+          const publicUrl = await uploadMedicationImage(file, authStore.userId)
+          formData.image_url = publicUrl
+        } catch (error) {
+          console.error('上传封面失败:', error)
+        }
+      }
+    }
+  })
+}
+
+// 移除封面图片
+function removeCoverImage() {
+  coverImage.value = ''
+  formData.image_url = ''
+}
+
+// 上传药品照片
+async function uploadMedicationPhoto() {
+  uni.chooseImage({
+    count: 1,
+    sourceType: ['camera', 'album'],
+    success: async (res) => {
+      const tempFilePath = res.tempFilePaths[0]
+      medicationImages.value.push(tempFilePath)
+
+      // 上传到云端（可选）
+      if (authStore.userId) {
+        try {
+          const file = await urlToFile(tempFilePath, `med_${medicationImages.value.length}.jpg`)
+          await uploadMedicationImage(file, authStore.userId)
+        } catch (error) {
+          console.error('上传照片失败:', error)
+        }
+      }
+    }
+  })
+}
+
+// 移除药品照片
+function removeMedicationImage(index: number) {
+  medicationImages.value.splice(index, 1)
+}
+
+// �?URL 加载图片�?File 对象
+async function urlToFile(url: string, filename: string): Promise<File> {
+  const response = await uni.request({ url, responseType: 'arraybuffer' })
+  const blob = new Blob([response.data])
+  return new File([blob], filename, { type: blob.type })
+}
+
 // 药品类型选择
 function onFormChange(e: any) {
   formData.form = formTypes[e.detail.value]
@@ -474,12 +568,12 @@ function resetForm() {
 // 提交表单
 async function submitForm() {
   if (!formData.name.trim()) {
-    uni.showToast({ title: '请输入药品名称', icon: 'none' })
+    uni.showToast({ title: '请输入药品名�?, icon: 'none' })
     return
   }
 
   loading.value = true
-  loadingText.value = '保存中...'
+  loadingText.value = '保存�?..'
 
   try {
     // 添加药品
@@ -499,7 +593,7 @@ async function submitForm() {
         await medicationStore.addSchedule({
           medication_id: result.data.id,
           time_of_day: time,
-          dosage: '1片',
+          dosage: '1�?,
           instructions: formData.instructions,
           weekdays: [1, 2, 3, 4, 5, 6, 7],
           start_date: new Date().toISOString().split('T')[0]
@@ -547,38 +641,61 @@ async function submitForm() {
   margin-left: 16rpx;
 }
 
-.method-cards {
+.method-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20rpx;
+  gap: 24rpx;
+  margin-top: 32rpx;
 }
 
 .method-card {
   background: white;
-  border-radius: 16rpx;
-  padding: 32rpx 24rpx;
+  border-radius: 20rpx;
+  padding: 40rpx 24rpx;
   text-align: center;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
   transition: all 0.2s;
+  border: 2rpx solid transparent;
 }
 
 .method-card:active {
-  transform: scale(0.98);
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+  transform: scale(0.96);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.12);
+}
+
+.method-card.primary {
+  grid-column: span 2;
+  padding: 48rpx 24rpx;
+  background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+  border: 2rpx solid #2196F3;
+}
+
+.method-icon-large {
+  font-size: 88rpx;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.method-name-large {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1976D2;
+  display: block;
+  margin-bottom: 12rpx;
 }
 
 .method-icon {
   font-size: 64rpx;
-  margin-bottom: 16rpx;
   display: block;
+  margin-bottom: 12rpx;
 }
 
 .method-name {
   font-size: 30rpx;
   font-weight: 600;
   color: #333;
-  margin-bottom: 8rpx;
   display: block;
+  margin-bottom: 8rpx;
 }
 
 .method-desc {
@@ -791,6 +908,95 @@ async function submitForm() {
 
 .form-group {
   margin-bottom: 28rpx;
+}
+
+.image-upload-area {
+  margin-top: 12rpx;
+}
+
+.upload-placeholder {
+  width: 200rpx;
+  height: 200rpx;
+  background: #F5F5F5;
+  border-radius: 12rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx dashed #E0E0E0;
+  transition: all 0.2s;
+
+  &.small {
+    width: 160rpx;
+    height: 160rpx;
+  }
+
+  &:active {
+    background: #EEEEEE;
+    border-color: var(--primary-color);
+  }
+}
+
+.upload-icon {
+  font-size: 48rpx;
+  color: #999;
+  margin-bottom: 8rpx;
+
+  &.small {
+    font-size: 32rpx;
+  }
+}
+
+.upload-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.uploaded-image-wrapper {
+  position: relative;
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+
+  &.small {
+    width: 160rpx;
+    height: 160rpx;
+  }
+}
+
+.uploaded-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+
+  &.small {
+    width: 160rpx;
+    height: 160rpx;
+  }
+}
+
+.remove-image {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  width: 48rpx;
+  height: 48rpx;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  z-index: 10;
+}
+
+.image-upload-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 12rpx;
 }
 
 .picker-value {
