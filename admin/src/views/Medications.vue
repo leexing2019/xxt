@@ -365,7 +365,6 @@ onMounted(() => {
 
 <style scoped>
 .medications-page {
-  max-width: 1400px;
 }
 
 .page-header {

@@ -96,18 +96,18 @@
       <view v-if="recognizedData" class="recognized-result">
         <view class="result-header">
           <text class="h3-title">识别结果</text>
-          <text class="confidence">置信�? {{ confidence }}%</text>
+          <text class="confidence">置信度 {{ confidence }}%</text>
         </view>
         <view class="result-item">
-          <text class="result-label">药品名称�?/text>
+          <text class="result-label">药品名称</text>
           <text class="result-value">{{ recognizedData.name }}</text>
         </view>
         <view class="result-item">
-          <text class="result-label">规格�?/text>
+          <text class="result-label">规格</text>
           <text class="result-value">{{ recognizedData.specification }}</text>
         </view>
         <view class="result-item">
-          <text class="result-label">生产厂家�?/text>
+          <text class="result-label">生产厂家</text>
           <text class="result-value">{{ recognizedData.manufacturer }}</text>
         </view>
         <view class="result-actions">
@@ -144,16 +144,6 @@
         </view>
       </view>
     </view>
-
-    <!-- 语音输入区域 -->
-    <view v-if="selectedMethod === 'voice'" class="voice-area">
-      <view class="voice-animation" :class="{ recording: isRecording }" @click="startVoiceInput">
-        <text class="voice-circle">{{ isRecording ? '🔴' : '🎤' }}</text>
-      </view>
-      <text class="voice-hint">{{ isRecording ? '正在聆听...' : '点击开始说�? }}</text>
-      <text v-if="voiceText" class="voice-result">{{ voiceText }}</text>
-    </view>
-
 
     <!-- 常用药品区域 -->
     <view v-if="selectedMethod === 'common'" class="common-drugs-section">
@@ -335,17 +325,17 @@
 
       <view class="form-group">
         <text class="input-label">药品名称 *</text>
-        <input v-model="formData.name" type="text" placeholder="请输入药品名�? class="input" />
+        <input v-model="formData.name" type="text" placeholder="请输入药品名称" class="input" />
       </view>
 
       <view class="form-group">
-        <text class="input-label">通用�?/text>
-        <input v-model="formData.generic_name" type="text" placeholder="请输入通用�? class="input" />
+        <text class="input-label">通用名</text>
+        <input v-model="formData.generic_name" type="text" placeholder="请输入通用名" class="input" />
       </view>
 
       <view class="form-group">
         <text class="input-label">规格</text>
-        <input v-model="formData.specification" type="text" placeholder="如：50mg × 30�? class="input" />
+        <input v-model="formData.specification" type="text" placeholder="如:50mg × 30 片" class="input" />
       </view>
 
       <view class="form-group">
@@ -359,7 +349,7 @@
 
       <view class="form-group">
         <text class="input-label">生产厂家</text>
-        <input v-model="formData.manufacturer" type="text" placeholder="请输入生产厂�? class="input" />
+        <input v-model="formData.manufacturer" type="text" placeholder="请输入生产厂家" class="input" />
       </view>
 
       <view class="form-group">
@@ -371,7 +361,7 @@
         <text class="input-label">用药提醒时间</text>
         <view class="time-inputs">
           <view v-for="(time, index) in formData.times" :key="index" class="time-row">
-            <picker mode="time" :value="time" @change="(e: any) => onTimeChange(e, index)">
+            <picker mode="time" :value="time" @change="(e: any) => onTimeChangeWithIndex(e, index)">
               <view class="input time-picker">{{ time || '选择时间' }}</view>
             </picker>
             <text v-if="formData.times.length > 1" class="remove-time" @click="removeTime(index)">×</text>
@@ -382,7 +372,7 @@
 
       <view class="form-group">
         <text class="input-label">用法说明</text>
-        <textarea v-model="formData.instructions" placeholder="如：饭后半小时服�? class="input textarea" />
+        <textarea v-model="formData.instructions" placeholder="如：饭后半小时服用" class="input textarea" />
       </view>
 
       <view class="form-actions">
@@ -391,7 +381,7 @@
       </view>
     </view>
 
-    <!-- 加载�?-->
+    <!-- 加载中-->
     <view v-if="loading" class="loading-overlay">
       <view class="loading-spinner"></view>
       <text class="loading-text">{{ loadingText }}</text>
@@ -628,11 +618,6 @@ function resetState() {
   searchResults.value = []
 }
 
-function selectMethod(method: string) {
-  selectedMethod.value = method
-  showForm.value = false
-}
-
 // 打开相机
 function openCamera() {
   uni.chooseImage({
@@ -653,7 +638,7 @@ async function processImage(imagePath: string) {
   try {
     const result = await recognizeMedication(imagePath)
     recognizedData.value = result
-    confidence.value = 85 + Math.floor(Math.random() * 15) // 模拟置信�?
+    confidence.value = 85 + Math.floor(Math.random() * 15) // 模拟置信度
     // 填充表单
     formData.name = result.name || ''
     formData.specification = result.specification || ''
@@ -661,7 +646,7 @@ async function processImage(imagePath: string) {
     formData.appearance_desc = result.form || ''
     formData.image_url = imagePath
 
-    speakText(`识别�?{result.name}，请确认是否添加`)
+    speakText(`识别成功{result.name}，请确认是否添加`)
   } catch (error) {
     uni.showToast({ title: '识别失败，请重试', icon: 'none' })
   } finally {
@@ -701,7 +686,7 @@ async function processPrescription(imagePath: string) {
   try {
     const result = await recognizePrescription(imagePath)
     prescriptionData.value = result
-    speakText(`识别�?{result.medications.length}种药品`)
+    speakText(`识别成功{result.medications.length}种药品`)
   } catch (error) {
     uni.showToast({ title: '识别失败', icon: 'none' })
   } finally {
@@ -716,11 +701,11 @@ async function importPrescription() {
   for (const med of prescriptionData.value.medications) {
     formData.name = med.name
     formData.specification = med.dosage
-    formData.instructions = `${med.frequency}，服�?{med.duration}`
+    formData.instructions = `${med.frequency}，服用{med.duration}`
     await submitForm()
   }
 
-  uni.showToast({ title: '已导入全部药�?, icon: 'success' })
+  uni.showToast({ title: '已导入全部药品', icon: 'success' })
   setTimeout(() => {
     uni.switchTab({ url: '/pages/medication-list/medication-list' })
   }, 1500)
@@ -738,7 +723,7 @@ async function startVoiceInput() {
   if (isRecording.value) return
 
   isRecording.value = true
-  speakText('请说出药品名�?)
+  speakText('请说出药品名称')
 
   setTimeout(async () => {
     const result = await recognizeSpeech()
@@ -749,7 +734,7 @@ async function startVoiceInput() {
       searchKeyword.value = result.text
       await searchDrugApiFromVoice(result.text)
     } else {
-      speakText('没有识别到声音，请重�?)
+      speakText('没有识别到声音，请重说')
     }
   }, 2000)
 }
@@ -757,7 +742,7 @@ async function startVoiceInput() {
 // 语音搜索药品
 async function searchDrugApiFromVoice(keyword: string) {
   loading.value = true
-  loadingText.value = '搜索�?..'
+  loadingText.value = '搜索中..'
 
   try {
     const results = await searchDrugApi(keyword)
@@ -765,7 +750,7 @@ async function searchDrugApiFromVoice(keyword: string) {
       searchResults.value = results
       selectDrug(results[0])
     } else {
-      uni.showToast({ title: '未找到相关药�?, icon: 'none' })
+      uni.showToast({ title: '未找到相关药品', icon: 'none' })
     }
   } catch (error) {
     uni.showToast({ title: '搜索失败', icon: 'none' })
@@ -777,12 +762,12 @@ async function searchDrugApiFromVoice(keyword: string) {
 // 搜索药品
 async function searchDrug() {
   if (!searchKeyword.value.trim()) {
-    uni.showToast({ title: '请输入药品名�?, icon: 'none' })
+    uni.showToast({ title: '请输入药品名称', icon: 'none' })
     return
   }
 
   loading.value = true
-  loadingText.value = '搜索�?..'
+  loadingText.value = '搜索中..'
 
   try {
     const results = await searchDrugApi(searchKeyword.value)
@@ -810,7 +795,7 @@ function selectDrug(drug: any) {
 }
 
 // 时间选择
-function onTimeChange(e: any, index: number) {
+function onTimeChangeWithIndex(e: any, index: number) {
   formData.times[index] = e.detail.value
 }
 
@@ -833,7 +818,8 @@ async function uploadCoverImage() {
       const tempFilePath = res.tempFilePaths[0]
       coverImage.value = tempFilePath
 
-      // 上传到云�?      if (authStore.userId) {
+      // 上传到云端
+      if (authStore.userId) {
         try {
           const file = await urlToFile(tempFilePath, 'cover.jpg')
           const publicUrl = await uploadMedicationImage(file, authStore.userId)
@@ -879,7 +865,7 @@ function removeMedicationImage(index: number) {
   medicationImages.value.splice(index, 1)
 }
 
-// �?URL 加载图片�?File 对象
+// URL 加载图片为File 对象
 async function urlToFile(url: string, filename: string): Promise<File> {
   const response = await uni.request({ url, responseType: 'arraybuffer' })
   const blob = new Blob([response.data])
@@ -914,12 +900,12 @@ function resetForm() {
 // 提交表单
 async function submitForm() {
   if (!formData.name.trim()) {
-    uni.showToast({ title: '请输入药品名�?, icon: 'none' })
+    uni.showToast({ title: '请输入药品名称', icon: 'none' })
     return
   }
 
   loading.value = true
-  loadingText.value = '保存�?..'
+  loadingText.value = '保存中..'
 
   try {
     // 添加药品
@@ -939,7 +925,7 @@ async function submitForm() {
         await medicationStore.addSchedule({
           medication_id: result.data.id,
           time_of_day: time,
-          dosage: '1�?,
+          dosage: '1 片',
           instructions: formData.instructions,
           weekdays: [1, 2, 3, 4, 5, 6, 7],
           start_date: new Date().toISOString().split('T')[0]

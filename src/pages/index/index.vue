@@ -70,24 +70,45 @@
     <view class="medications-section">
       <text class="section-title">待用药</text>
       <view v-for="item in todayMedications" :key="item.id" class="medication-item card" :class="{ 'medication-taken': item.taken }">
-        <view class="medication-time">
-          <text class="time-icon">⏰</text>
-          <text class="time-text">{{ item.time_of_day }}</text>
+        <view class="medication-header">
+          <view class="medication-time">
+            <text class="time-icon">⏰</text>
+            <text class="time-text">{{ item.time_of_day }}</text>
+          </view>
+          <view class="medication-action">
+            <button
+              v-if="!item.taken"
+              class="btn btn-primary btn-take"
+              @click="takeMedication(item)"
+            >
+              服用
+            </button>
+            <text v-else class="taken-badge">✓ 已服用</text>
+          </view>
         </view>
-        <view class="medication-info">
-          <text class="medication-name">{{ item.medication?.name }}</text>
-          <text class="medication-dosage">{{ item.dosage }}</text>
-          <text class="medication-instructions">{{ item.instructions }}</text>
-        </view>
-        <view class="medication-action">
-          <button
-            v-if="!item.taken"
-            class="btn btn-primary btn-take"
-            @click="takeMedication(item)"
-          >
-            服用
-          </button>
-          <text v-else class="taken-badge">✓ 已服用</text>
+        <view class="medication-content">
+          <!-- 药片图片 -->
+          <view class="medication-image-wrapper" v-if="item.medication?.image_url">
+            <image
+              class="medication-image"
+              :src="item.medication.image_url"
+              mode="aspectFill"
+              lazy-load
+            />
+            <view class="image-placeholder" v-if="!item.medication.image_url">
+              <text class="placeholder-icon">💊</text>
+            </view>
+          </view>
+          <!-- 药品信息 -->
+          <view class="medication-details">
+            <text class="medication-name">{{ item.medication?.name }}</text>
+            <view class="medication-appearance">
+              <text class="appearance-icon">🔍</text>
+              <text class="appearance-text">{{ item.medication?.appearance_desc }}</text>
+            </view>
+            <text class="medication-dosage">用量：{{ item.dosage }}</text>
+            <text class="medication-instructions">💡 {{ item.instructions }}</text>
+          </view>
         </view>
       </view>
     </view>
@@ -118,13 +139,13 @@ const todayMedications = ref<any[]>([
     medication_id: 'm1',
     time_of_day: '08:00',
     dosage: '1 片',
-    instructions: '早餐后半小时服用',
+    instructions: '早餐后半小时服用，用温水送服',
     taken: false,
     medication: {
       name: '阿司匹林肠溶片',
-      specification: '50mg × 30 片',
-      appearance_desc: '白色圆形药片',
-      image_url: ''
+      specification: '100mg × 30 片',
+      appearance_desc: '白色圆形小药片，直径约 8mm，表面光滑，一面刻有"100"字样',
+      image_url: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop'
     }
   },
   {
@@ -132,27 +153,55 @@ const todayMedications = ref<any[]>([
     medication_id: 'm2',
     time_of_day: '08:00',
     dosage: '1 片',
-    instructions: '与阿司匹林间隔 1 小时',
+    instructions: '与阿司匹林间隔 1 小时，避免空腹服用',
     taken: false,
     medication: {
       name: '硝苯地平缓释片',
-      specification: '20mg × 20 片',
-      appearance_desc: '黄色椭圆形药片',
-      image_url: ''
+      specification: '20mg × 24 片',
+      appearance_desc: '黄色椭圆形薄膜衣片，长约 12mm，表面有光泽，易吸湿',
+      image_url: 'https://images.unsplash.com/photo-1550572017-edd951aa8f72?w=200&h=200&fit=crop'
     }
   },
   {
     id: '3',
     medication_id: 'm3',
+    time_of_day: '12:00',
+    dosage: '1 片',
+    instructions: '午餐后服用，避免与牛奶同服',
+    taken: false,
+    medication: {
+      name: '二甲双胍缓释片',
+      specification: '500mg × 30 片',
+      appearance_desc: '白色至类白色圆形片剂，直径约 10mm，两面凸起，表面有细微颗粒感',
+      image_url: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=200&h=200&fit=crop'
+    }
+  },
+  {
+    id: '4',
+    medication_id: 'm4',
     time_of_day: '20:00',
     dosage: '1 片',
-    instructions: '睡前服用',
+    instructions: '睡前服用，服药后避免饮酒',
     taken: false,
     medication: {
       name: '阿托伐他汀钙片',
       specification: '20mg × 7 片',
-      appearance_desc: '白色薄膜衣片',
-      image_url: ''
+      appearance_desc: '白色椭圆形薄膜衣片，长约 14mm，表面光滑，一面刻有 Pfizer 标志',
+      image_url: 'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200&h=200&fit=crop'
+    }
+  },
+  {
+    id: '5',
+    medication_id: 'm5',
+    time_of_day: '08:00',
+    dosage: '1 粒',
+    instructions: '早餐前 30 分钟服用，整粒吞服',
+    taken: false,
+    medication: {
+      name: '奥美拉唑肠溶胶囊',
+      specification: '20mg × 14 粒',
+      appearance_desc: '透明胶囊，内含白色至淡黄色小丸，胶囊壳印有"20mg"蓝色字样',
+      image_url: 'https://images.unsplash.com/photo-1583912267670-6bdd75a7e1fd?w=200&h=200&fit=crop'
     }
   }
 ])
@@ -280,7 +329,7 @@ onMounted(() => {
 .container {
   min-height: 100vh;
   background-color: #F5F5F5;
-  padding-bottom: 20px;
+  padding-bottom: 140px;
 }
 
 .header-card {
@@ -439,76 +488,148 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   padding: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
 }
 
 .medication-taken {
-  opacity: 0.7;
-  background: #E8F5E9;
+  opacity: 0.75;
+  background: linear-gradient(135deg, #E8F5E9 0%, #F5F5F5 100%);
+}
+
+.medication-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #F0F0F0;
 }
 
 .medication-time {
   display: flex;
   align-items: center;
-  margin-bottom: 12px;
+  gap: 8px;
 }
 
 .time-icon {
   font-size: 18px;
-  margin-right: 8px;
 }
 
 .time-text {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: #2196F3;
 }
 
-.medication-info {
-  margin-bottom: 16px;
-}
-
-.medication-name {
-  display: block;
-  font-size: 18px;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.medication-dosage {
-  display: block;
-  font-size: 16px;
-  color: #666;
-  margin-bottom: 4px;
-}
-
-.medication-instructions {
-  display: block;
-  font-size: 14px;
-  color: #999;
-}
-
 .medication-action {
   display: flex;
-  justify-content: flex-end;
   align-items: center;
 }
 
 .btn-take {
-  padding: 12px 32px;
-  font-size: 18px;
-  min-height: 48px;
-  border-radius: 10px;
+  padding: 10px 28px;
+  font-size: 16px;
+  min-height: 42px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
 }
 
 .taken-badge {
-  font-size: 16px;
+  font-size: 15px;
   color: #4CAF50;
   font-weight: 600;
+  padding: 8px 16px;
+  background: #E8F5E9;
+  border-radius: 16px;
+}
+
+.medication-content {
+  display: flex;
+  gap: 16px;
+}
+
+.medication-image-wrapper {
+  flex-shrink: 0;
+  position: relative;
+}
+
+.medication-image {
+  width: 100px;
+  height: 100px;
+  border-radius: 12px;
+  background: #F5F5F5;
+  object-fit: cover;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.image-placeholder {
+  width: 100px;
+  height: 100px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholder-icon {
+  font-size: 40px;
+}
+
+.medication-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.medication-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  line-height: 1.3;
+}
+
+.medication-appearance {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+  border-radius: 8px;
+  margin: 4px 0;
+}
+
+.appearance-icon {
+  font-size: 14px;
+}
+
+.appearance-text {
+  font-size: 13px;
+  color: #E65100;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.medication-dosage {
+  font-size: 15px;
+  color: #333;
+  font-weight: 500;
+}
+
+.medication-instructions {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+  padding: 8px 10px;
+  background: #F5F5F5;
+  border-radius: 8px;
 }
 
 .empty-state {

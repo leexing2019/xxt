@@ -26,8 +26,7 @@
         <view
           v-for="(option, index) in feelingOptions"
           :key="option.value"
-          :class="`feeling-btn stagger-in-${index + 1}`"
-          :class="{ selected: todayFeeling === option.value }"
+          :class="[`feeling-btn stagger-in-${index + 1}`, { selected: todayFeeling === option.value }]"
           @click="selectFeeling(option.value)"
         >
           <view class="feeling-icon-wrapper">
@@ -184,16 +183,18 @@ onMounted(() => {
 }
 
 .header {
-  background: linear-gradient(135deg, var(--success-color) 0%, var(--success-dark) 100%);
+  background: linear-gradient(135deg, #43A047 0%, #2E7D32 100%);
   padding: 40rpx 32rpx;
   border-radius: 0 0 24rpx 24rpx;
+  box-shadow: 0 4rpx 20rpx rgba(67, 160, 71, 0.4);
 }
 
 .stats-card {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(12px);
   border-radius: 16rpx;
   padding: 32rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.2);
 }
 
 .stat-row {
@@ -205,13 +206,16 @@ onMounted(() => {
 
 .stat-label {
   font-size: 28rpx;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 1);
+  font-weight: 500;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.2);
 }
 
 .stat-value {
   font-size: 56rpx;
   font-weight: bold;
   color: white;
+  text-shadow: 0 4rpx 8rpx rgba(0, 0, 0, 0.25);
 }
 
 .progress-bar {
@@ -250,7 +254,9 @@ onMounted(() => {
 
 .stat-tips {
   font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.95);
+  color: rgba(255, 255, 255, 1);
+  font-weight: 500;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.2);
 }
 
 .today-section {

@@ -1,6 +1,0 @@
-<!-- TabBar Health Icon - Active -->
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M22 12H18C17.4696 12 16.9609 12.2107 16.5858 12.5858C16.2107 12.9609 16 13.4696 16 14V20C16 20.5304 15.7893 21.0391 15.4142 21.4142C15.0391 21.7893 14.5304 22 14 22H10C9.46957 22 8.96086 21.7893 8.58579 21.4142C8.21071 21.0391 8 20.5304 8 20V14C8 13.4696 7.78929 12.9609 7.41421 12.5858C7.03914 12.2107 6.53043 12 6 12H2" stroke="#2196F3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M12 8V16M12 16L9 13M12 16L15 13" stroke="#2196F3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M15 2H9V6H15V2Z" stroke="#2196F3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>

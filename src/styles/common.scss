@@ -593,3 +593,17 @@ page {
   background: var(--border-color);
   margin: 0 24rpx;
 }
+
+/* tabBar 样式优化 - 老年人友好大图标大字体 */
+.uni-tabbar {
+  .uni-tabbar__item {
+    .uni-tabbar__icon {
+      font-size: 50rpx !important;
+      line-height: 50rpx !important;
+    }
+    .uni-tabbar__label {
+      font-size: 22px !important;
+      font-weight: 600 !important;
+    }
+  }
+}

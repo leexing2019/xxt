@@ -472,8 +472,6 @@ onMounted(() => {
 <style scoped>
 .api-settings {
   padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
 .page-header {
@@ -699,7 +697,6 @@ onMounted(() => {
 
 /* 表单 */
 .config-form {
-  max-width: 800px;
 }
 
 .config-form :deep(.el-form-item__label) {

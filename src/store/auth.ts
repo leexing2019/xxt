@@ -89,7 +89,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (data.user) {
         user.value = data.user
-        await fetchProfile()
+        await createProfile() // 注册成功后创建用户资料
       }
 
       return { success: true }

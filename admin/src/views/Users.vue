@@ -118,7 +118,6 @@ onMounted(() => {
 
 <style scoped>
 .users-page {
-  max-width: 1400px;
 }
 
 .page-header {

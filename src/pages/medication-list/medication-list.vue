@@ -25,13 +25,17 @@
     <view class="medication-section">
       <view class="section-header">
         <text class="section-title">我的药品</text>
-        <text class="section-count">共 {{ medications.length }} 种</text>
+        <view class="header-actions">
+          <text class="section-count">共 {{ medications.length }} 种</text>
+          <text class="add-btn" @click="goAddMedication">+</text>
+        </view>
       </view>
 
       <view v-if="medications.length === 0" class="empty-state">
         <text class="empty-icon">💊</text>
         <text class="empty-text">暂无药品</text>
-        <text class="empty-hint">点击右上角添加您的第一种药品</text>
+        <text class="empty-hint">点击下方按钮添加您的第一种药品</text>
+        <button class="add-med-btn" @click="goAddMedication">添加药品</button>
       </view>
 
       <view v-else class="medication-list">

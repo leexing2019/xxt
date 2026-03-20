@@ -1,0 +1,47 @@
+<!-- AI用药助手 - APP启动图标 512x512 -->
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景渐变 -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2196F3"/>
+      <stop offset="100%" style="stop-color:#1976D2"/>
+    </linearGradient>
+    <linearGradient id="pillGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF"/>
+      <stop offset="100%" style="stop-color:#E3F2FD"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- 背景圆形 -->
+  <circle cx="256" cy="256" r="256" fill="url(#bgGrad)"/>
+  
+  <!-- 药丸图标 -->
+  <g transform="translate(106, 136)">
+    <!-- 药丸主体 - 左半圆 -->
+    <path d="M0,120 A60,60 0 0,1 120,120 L120,180 L0,180 Z" fill="url(#pillGrad)"/>
+    
+    <!-- 药丸主体 - 右半圆 -->
+    <path d="M120,120 A60,60 0 0,1 0,120 L0,60 L120,60 Z" fill="#FFFFFF"/>
+    
+    <!-- 分割线 -->
+    <line x1="0" y1="120" x2="120" y2="120" stroke="#2196F3" stroke-width="6"/>
+    
+    <!-- 高光 -->
+    <ellipse cx="30" cy="80" rx="15" ry="8" fill="#FFFFFF" opacity="0.8"/>
+  </g>
+  
+  <!-- AI 标签 -->
+  <g transform="translate(330, 340)">
+    <circle cx="50" cy="50" r="50" fill="rgba(255,255,255,0.95)"/>
+    <text x="50" y="58" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#2196F3">AI</text>
+  </g>
+  
+  <!-- 装饰星星 -->
+  <circle cx="420" cy="120" r="8" fill="white" opacity="0.9"/>
+  <circle cx="90" cy="420" r="6" fill="white" opacity="0.7"/>
+  <circle cx="450" cy="320" r="5" fill="white" opacity="0.8"/>
+  <circle cx="60" cy="180" r="4" fill="white" opacity="0.6"/>
+  
+  <!-- 底部波纹装饰 -->
+  <path d="M0,470 Q128,450 256,470 T512,470 L512,512 L0,512 Z" fill="rgba(255,255,255,0.1)"/>
+</svg>
