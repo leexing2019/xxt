@@ -215,6 +215,88 @@
       </view>
     </view>
 
+
+    <!-- 药品详情确认 -->
+    <view v-if="selectedDrug" class="drug-detail-section">
+      <view class="detail-header">
+        <text class="detail-title">确认药品信息</text>
+        <button class="btn-close" @click="closeDetail">×</button>
+      </view>
+
+      <!-- 药品大图 -->
+      <view class="drug-preview">
+        <image :src="selectedDrug.image" class="preview-image" mode="aspectFill" />
+        <view class="preview-overlay">
+          <text class="preview-hint">这是药品参考图片</text>
+        </view>
+      </view>
+
+      <!-- 药品信息 -->
+      <view class="drug-info">
+        <view class="info-row">
+          <text class="info-label">药品名称</text>
+          <text class="info-value">{{ selectedDrug.name }}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">通用名</text>
+          <text class="info-value">{{ selectedDrug.genericName }}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">外观描述</text>
+          <text class="info-value appearance">{{ selectedDrug.appearanceDesc }}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">主要用途</text>
+          <text class="info-value">{{ selectedDrug.indications }}</text>
+        </view>
+      </view>
+
+      <!-- 用药时间设置 -->
+      <view class="time-section">
+        <text class="time-label">什么时候吃药？</text>
+        <view class="time-quick-select">
+          <text
+            class="time-tag"
+            :class="{ active: selectedTime === '08:00' }"
+            @click="setTime('08:00')"
+          >
+            早上
+          </text>
+          <text
+            class="time-tag"
+            :class="{ active: selectedTime === '12:00' }"
+            @click="setTime('12:00')"
+          >
+            中午
+          </text>
+          <text
+            class="time-tag"
+            :class="{ active: selectedTime === '18:00' }"
+            @click="setTime('18:00')"
+          >
+            晚上
+          </text>
+          <text
+            class="time-tag"
+            :class="{ active: selectedTime === '21:00' }"
+            @click="setTime('21:00')"
+          >
+            睡前
+          </text>
+        </view>
+        <picker mode="time" :value="selectedTime" @change="onTimeChange">
+          <view class="time-picker">
+            {{ selectedTime || '选择具体时间' }}
+          </view>
+        </picker>
+      </view>
+
+      <!-- 确认按钮 -->
+      <button class="btn-confirm-large" @click="confirmAdd">
+        确认添加
+      </button>
+    </view>
+
     <!-- 药品信息表单 -->
     <view v-if="showForm" class="medication-form">
       <view class="form-header">
@@ -1207,6 +1289,161 @@ async function submitForm() {
   font-size: 24rpx;
   color: #999;
   margin-top: 6rpx;
+}
+
+// ===== 药品详情确认组件样式 =====
+.drug-detail-section {
+  background: white;
+  border-radius: 20rpx;
+  padding: 32rpx;
+  margin-top: 24rpx;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.detail-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #333;
+}
+
+.btn-close {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: #F5F5F5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  color: #666;
+  padding: 0;
+  line-height: 1;
+}
+
+.drug-preview {
+  position: relative;
+  width: 100%;
+  height: 300rpx;
+  background: #F5F5F5;
+  border-radius: 16rpx;
+  overflow: hidden;
+  margin-bottom: 24rpx;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 16rpx 24rpx;
+}
+
+.preview-hint {
+  font-size: 24rpx;
+  color: white;
+}
+
+.drug-info {
+  margin-bottom: 32rpx;
+}
+
+.info-row {
+  display: flex;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #F0F0F0;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.info-label {
+  font-size: 26rpx;
+  color: #999;
+  width: 180rpx;
+  flex-shrink: 0;
+}
+
+.info-value {
+  font-size: 28rpx;
+  color: #333;
+  flex: 1;
+
+  &.appearance {
+    color: #E65100;
+    background: #FFF3E0;
+    padding: 8rpx 16rpx;
+    border-radius: 8rpx;
+    display: inline-block;
+  }
+}
+
+.time-section {
+  margin-bottom: 32rpx;
+}
+
+.time-label {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  display: block;
+  margin-bottom: 20rpx;
+}
+
+.time-quick-select {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.time-tag {
+  flex: 1;
+  padding: 20rpx 0;
+  text-align: center;
+  font-size: 28rpx;
+  color: #666;
+  background: #F5F5F5;
+  border-radius: 12rpx;
+  transition: all 0.2s;
+
+  &.active {
+    background: #2196F3;
+    color: white;
+    font-weight: 600;
+  }
+}
+
+.time-picker {
+  padding: 24rpx;
+  font-size: 28rpx;
+  color: #333;
+  background: #F5F5F5;
+  border-radius: 12rpx;
+  text-align: center;
+}
+
+.btn-confirm-large {
+  width: 100%;
+  height: 80rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(76, 175, 80, 0.3);
 }
 
 .medication-form {
