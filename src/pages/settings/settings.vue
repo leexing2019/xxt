@@ -148,10 +148,14 @@ const emergencyContact = ref('')
 const emergencyPhone = ref('')
 
 // 页面加载时读取紧急联系人数据
-onMounted(() => {
-  if (profile.value) {
-    emergencyContact.value = profile.value.emergency_contact || ''
-    emergencyPhone.value = profile.value.emergency_phone || ''
+onMounted(async () => {
+  // 确保 profile 已加载
+  if (!authStore.profile) {
+    await authStore.fetchProfile()
+  }
+  if (authStore.profile) {
+    emergencyContact.value = authStore.profile.emergency_contact || ''
+    emergencyPhone.value = authStore.profile.emergency_phone || ''
   }
 })
 
@@ -177,35 +181,54 @@ function editProfile() {
   })
 }
 
-// 设置紧急联系人
-function setEmergencyContact() {
-  uni.showModal({
-    title: '设置紧急联系人',
-    editable: true,
-    placeholderText: '请输入紧急联系人姓名',
-    success: (res) => {
-      if (res.confirm && res.content) {
-        // 输入姓名后，再输入手机号
-        uni.showModal({
-          title: '联系人电话',
-          editable: true,
-          placeholderText: '请输入联系人手机号',
-          success: (res2) => {
-            if (res2.confirm && res2.content) {
-              emergencyContact.value = res2.content
-              emergencyPhone.value = res2.content
-              // 保存到数据库
-              authStore.updateProfile({
-                emergency_contact: res.content,
-                emergency_phone: res2.content
-              })
-              uni.showToast({ title: '已保存', icon: 'success' })
-            }
-          }
-        })
-      }
-    }
+// 设置紧急联系人 - 分两步输入
+async function setEmergencyContact() {
+  // 第一步：输入姓名
+  const nameResult = await new Promise((resolve) => {
+    uni.showModal({
+      title: '联系人姓名',
+      editable: true,
+      placeholderText: '请输入紧急联系人姓名',
+      success: (res) => resolve(res)
+    })
   })
+
+  if (!nameResult || !('confirm' in nameResult) || !nameResult.confirm || !nameResult.content) {
+    return
+  }
+
+  // 第二步：输入手机号
+  const phoneResult = await new Promise((resolve) => {
+    uni.showModal({
+      title: '联系人电话',
+      editable: true,
+      placeholderText: '请输入手机号',
+      success: (res) => resolve(res)
+    })
+  })
+
+  if (!phoneResult || !('confirm' in phoneResult) || !phoneResult.confirm || !phoneResult.content) {
+    return
+  }
+
+  // 保存数据
+  const contactName = nameResult.content
+  const contactPhone = phoneResult.content
+
+  emergencyContact.value = contactName
+  emergencyPhone.value = contactPhone
+
+  // 保存到数据库并刷新
+  const result = await authStore.updateProfile({
+    emergency_contact: contactName,
+    emergency_phone: contactPhone
+  })
+
+  if (result.success) {
+    uni.showToast({ title: '已保存', icon: 'success' })
+  } else {
+    uni.showToast({ title: '保存失败', icon: 'error' })
+  }
 }
 
 // 提醒设置
