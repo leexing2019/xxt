@@ -349,19 +349,20 @@ onMounted(() => {
 
 .save-btn {
   margin-top: 16rpx;
-  background: linear-gradient(135deg, var(--success-color) 0%, var(--success-dark) 100%);
+  background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
   color: white;
   border: none;
   border-radius: 12rpx;
-  padding: 20rpx;
-  font-size: 28rpx;
-  font-weight: bold;
-  box-shadow: 0 4rpx 12rpx rgba(76, 175, 80, 0.3);
+  padding: 24rpx 48rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  box-shadow: 0 6rpx 16rpx rgba(76, 175, 80, 0.4);
   transition: all 0.2s ease;
+  letter-spacing: 1px;
 
   &:active {
-    transform: scale(0.98);
-    box-shadow: 0 2rpx 8rpx rgba(76, 175, 80, 0.2);
+    transform: scale(0.96);
+    box-shadow: 0 3rpx 10rpx rgba(76, 175, 80, 0.3);
   }
 }
 
