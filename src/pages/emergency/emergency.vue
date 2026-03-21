@@ -43,7 +43,7 @@
         </view>
       </view>
 
-      <view v-else class="empty-contact" @click="setEmergencyContact">
+      <view v-else class="empty-contact" @click="goToSettings">
         <text class="empty-icon">👤</text>
         <text class="empty-text">点击设置紧急联系人</text>
       </view>
@@ -115,7 +115,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import { emergencyDatabase, sendEmergencySMS, getNearbyHospitals } from '@/services/emergency'
 import { speakText } from '@/services/voice'
@@ -127,9 +127,24 @@ const currentScenario = ref<any>(null)
 
 const emergencyScenarios = emergencyDatabase.slice(0, 4)
 
-const emergencyContact = ref({
-  name: '家人',
-  phone: '13800138000'
+// 从 store 读取真实的紧急联系人数据
+const emergencyContact = computed(() => {
+  const profile = authStore.profile
+  if (profile?.emergency_contact && profile?.emergency_phone) {
+    return {
+      name: profile.emergency_contact,
+      phone: profile.emergency_phone
+    }
+  }
+  return null
+})
+
+// 页面加载时读取用户数据
+onMounted(() => {
+  // 确保用户数据已加载
+  if (!authStore.profile) {
+    authStore.fetchProfile()
+  }
 })
 
 // 返回上一页
@@ -194,18 +209,9 @@ async function sendLocation() {
   })
 }
 
-// 设置紧急联系人
-function setEmergencyContact() {
-  uni.showModal({
-    title: '设置紧急联系人',
-    content: '请在设置页面中配置紧急联系人',
-    confirmText: '去设置',
-    success: (res) => {
-      if (res.confirm) {
-        uni.navigateTo({ url: '/pages/settings/settings' })
-      }
-    }
-  })
+// 设置紧急联系人 - 跳转到设置页面
+function goToSettings() {
+  uni.navigateTo({ url: '/pages/settings/settings' })
 }
 
 // 显示场景详情

@@ -22,7 +22,7 @@
         <text class="setting-icon">👥</text>
         <view class="setting-info">
           <text class="setting-title">紧急联系人</text>
-          <text class="setting-desc">{{ emergencyContact || '未设置' }}</text>
+          <text class="setting-desc">{{ emergencyContact || '未设置' }} {{ emergencyPhone ? ' (' + emergencyPhone + ')' : '' }}</text>
         </view>
         <text class="setting-arrow">></text>
       </view>
@@ -135,7 +135,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/store/auth'
 
 const authStore = useAuthStore()
@@ -146,6 +146,14 @@ const userId = computed(() => authStore.userId)
 // 紧急联系人
 const emergencyContact = ref('')
 const emergencyPhone = ref('')
+
+// 页面加载时读取紧急联系人数据
+onMounted(() => {
+  if (profile.value) {
+    emergencyContact.value = profile.value.emergency_contact || ''
+    emergencyPhone.value = profile.value.emergency_phone || ''
+  }
+})
 
 // 提醒设置
 const reminderAdvance = ref(10)
@@ -177,13 +185,24 @@ function setEmergencyContact() {
     placeholderText: '请输入紧急联系人姓名',
     success: (res) => {
       if (res.confirm && res.content) {
-        emergencyContact.value = res.content
-        // 保存到数据库
-        authStore.updateProfile({
-          emergency_contact: res.content,
-          emergency_phone: emergencyPhone.value
+        // 输入姓名后，再输入手机号
+        uni.showModal({
+          title: '联系人电话',
+          editable: true,
+          placeholderText: '请输入联系人手机号',
+          success: (res2) => {
+            if (res2.confirm && res2.content) {
+              emergencyContact.value = res2.content
+              emergencyPhone.value = res2.content
+              // 保存到数据库
+              authStore.updateProfile({
+                emergency_contact: res.content,
+                emergency_phone: res2.content
+              })
+              uni.showToast({ title: '已保存', icon: 'success' })
+            }
+          }
         })
-        uni.showToast({ title: '已保存', icon: 'success' })
       }
     }
   })
