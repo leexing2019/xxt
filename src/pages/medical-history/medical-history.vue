@@ -320,7 +320,18 @@ async function downloadQrCode() {
 // 编辑报告
 function editReport() {
   showReport.value = false
-  currentIndex.value = 0
+
+  // 找到第一个未回答的问题
+  let firstUnansweredIndex = 0
+  for (let i = 0; i < totalQuestions.value; i++) {
+    const question = visibleQuestions.value[i]
+    if (!answers.value[question.id]) {
+      firstUnansweredIndex = i
+      break
+    }
+  }
+
+  currentIndex.value = firstUnansweredIndex
   currentAnswer.value = answers.value[currentQuestion.value.id] || ''
 }
 
@@ -342,13 +353,25 @@ function formatDate(dateStr: string): string {
 onMounted(async () => {
   // 加载已有答案
   await healthStore.fetchMedicalHistoryAnswers()
-  
+
   const existingAnswers: Record<string, string> = {}
   healthStore.medicalHistoryAnswers.forEach(a => {
     existingAnswers[a.question_id] = a.answer
   })
   answers.value = existingAnswers
-  currentAnswer.value = existingAnswers[visibleQuestions.value[0]?.id] || ''
+
+  // 检查是否有完整的答案（所有问题都已回答）
+  const answeredCount = Object.keys(existingAnswers).length
+  if (answeredCount >= totalQuestions.value && answeredCount > 0) {
+    // 已有完整答案，直接生成报告
+    medicalReport.value = healthStore.generateMedicalHistoryReport()
+    showReport.value = true
+    currentIndex.value = 0
+    currentAnswer.value = ''
+  } else {
+    // 答案不完整，从第一个问题开始
+    currentAnswer.value = existingAnswers[visibleQuestions.value[0]?.id] || ''
+  }
 })
 </script>
 
