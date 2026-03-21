@@ -10,16 +10,18 @@
         completed: current > index + 1
       }"
     >
-      <view class="step-circle" :class="{
-        'step-active': current === index + 1,
-        'step-completed': current > index + 1
-      }">
-        <text v-if="current > index + 1" class="step-checkmark">✓</text>
-        <text v-else class="step-number">{{ index + 1 }}</text>
+      <view class="step-content-wrapper">
+        <view class="step-circle" :class="{
+          'step-active': current === index + 1,
+          'step-completed': current > index + 1
+        }">
+          <text v-if="current > index + 1" class="step-checkmark">✓</text>
+          <text v-else class="step-number">{{ index + 1 }}</text>
+        </view>
+        <text class="step-label" :class="{
+          'label-active': current === index + 1 || current > index + 1
+        }">{{ step }}</text>
       </view>
-      <text class="step-label" :class="{
-        'label-active': current === index + 1 || current > index + 1
-      }">{{ step }}</text>
       <view v-if="index < steps.length - 1" class="step-line" :class="{
         'line-active': current > index + 1
       }"></view>
@@ -53,6 +55,15 @@ defineProps<{
   position: relative;
 }
 
+.step-content-wrapper {
+  display: flex;
+  align-items: center;
+  z-index: 1;
+  position: relative;
+  background: white;
+  padding-right: 16rpx;
+}
+
 .step-circle {
   width: 64rpx;
   height: 64rpx;
@@ -66,7 +77,6 @@ defineProps<{
   color: #999;
   transition: all 0.3s;
   flex-shrink: 0;
-  z-index: 1;
 }
 
 .step-active {
@@ -91,6 +101,8 @@ defineProps<{
   margin-left: 12rpx;
   transition: all 0.3s;
   white-space: nowrap;
+  background: white;
+  padding-left: 4rpx;
 }
 
 .label-active {
@@ -100,13 +112,14 @@ defineProps<{
 
 .step-line {
   position: absolute;
-  left: 32rpx;
+  left: 50%;
   top: 50%;
   width: calc(100% - 64rpx);
   height: 4rpx;
   background: #F0F0F0;
   transform: translateY(-50%);
   transition: all 0.3s;
+  z-index: 0;
 }
 
 .line-active {
