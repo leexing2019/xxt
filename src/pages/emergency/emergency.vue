@@ -2,8 +2,15 @@
   <view class="emergency-page">
     <!-- 顶部警告 -->
     <view class="emergency-header">
-      <text class="emergency-title">紧急求助</text>
-      <text class="emergency-subtitle">如遇紧急情况，请保持冷静</text>
+      <view class="header-left">
+        <view class="back-btn" @click="goBack">
+          <text class="back-icon">←</text>
+        </view>
+      </view>
+      <view class="header-center">
+        <text class="emergency-title">紧急求助</text>
+        <text class="emergency-subtitle">如遇紧急情况，请保持冷静</text>
+      </view>
     </view>
 
     <!-- 大号紧急按钮 -->
@@ -125,6 +132,19 @@ const emergencyContact = ref({
   phone: '13800138000'
 })
 
+// 返回上一页
+function goBack() {
+  // 尝试返回上一页，如果失败则跳转到首页
+  uni.navigateBack({
+    fail: () => {
+      // 如果没有上一页（如从 tabBar 直接进入），跳转到首页
+      uni.switchTab({
+        url: '/pages/index/index'
+      })
+    }
+  })
+}
+
 // 获取严重程度标签
 function getSeverityLabel(severity: string): string {
   const labels: Record<string, string> = {
@@ -207,10 +227,49 @@ function closeDetail() {
 }
 
 .emergency-header {
-  background: linear-gradient(135deg, var(--danger-color) 0%, var(--danger-dark) 100%);
+  background: linear-gradient(135deg, #FF6B6B 0%, #C62828 100%);
   padding: 48rpx 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4rpx 24rpx rgba(255, 107, 107, 0.4);
+}
+
+.header-left {
+  width: 64rpx;
+  flex-shrink: 0;
+}
+
+.back-btn {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:active {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(0.9);
+  }
+}
+
+.back-icon {
+  font-size: 40rpx;
+  color: white;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.header-center {
+  flex: 1;
   text-align: center;
-  box-shadow: 0 4rpx 24rpx rgba(244, 67, 54, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .emergency-title {
@@ -234,11 +293,11 @@ function closeDetail() {
 
 /* SOS 紧急按钮 - 更大更明显 */
 .emergency-btn-large {
-  background: linear-gradient(135deg, var(--danger-color) 0%, var(--danger-dark) 100%);
+  background: linear-gradient(135deg, #FF6B6B 0%, #C62828 100%);
   border-radius: 32rpx;
   padding: 72rpx 48rpx;
   text-align: center;
-  box-shadow: 0 12rpx 40rpx rgba(244, 67, 54, 0.5);
+  box-shadow: 0 12rpx 40rpx rgba(255, 107, 107, 0.5);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -257,7 +316,7 @@ function closeDetail() {
 
   &:active {
     transform: scale(0.95);
-    box-shadow: 0 6rpx 20rpx rgba(244, 67, 54, 0.4);
+    box-shadow: 0 6rpx 20rpx rgba(255, 107, 107, 0.4);
   }
 
   &:active::before {
@@ -316,7 +375,7 @@ function closeDetail() {
     content: '';
     width: 6rpx;
     height: 32rpx;
-    background: linear-gradient(180deg, var(--danger-color) 0%, var(--danger-dark) 100%);
+    background: linear-gradient(180deg, #FF6B6B 0%, #C62828 100%);
     border-radius: 3rpx;
     margin-right: 12rpx;
   }
@@ -331,7 +390,7 @@ function closeDetail() {
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.1);
-  border-left: 6rpx solid var(--danger-color);
+  border-left: 6rpx solid #FF6B6B;
   transition: all 0.2s ease;
 
   &:active {
@@ -457,7 +516,7 @@ function closeDetail() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--danger-bg) 0%, rgba(244, 67, 54, 0.1) 100%);
+  background: linear-gradient(135deg, #FFEBEE 0%, rgba(255, 107, 107, 0.1) 100%);
   border-radius: 20rpx;
   flex-shrink: 0;
 }
@@ -483,8 +542,8 @@ function closeDetail() {
   font-weight: 600;
 
   &.critical {
-    background: var(--danger-bg);
-    color: var(--danger-color);
+    background: #FFEBEE;
+    color: #C62828;
   }
 
   &.high {
@@ -540,7 +599,7 @@ function closeDetail() {
   align-items: center;
   padding: 36rpx 32rpx;
   border-bottom: 1px solid var(--border-color);
-  background: linear-gradient(90deg, var(--danger-bg) 0%, transparent 100%);
+  background: linear-gradient(90deg, #FFEBEE 0%, transparent 100%);
 }
 
 .detail-title {
@@ -564,8 +623,8 @@ function closeDetail() {
   transition: all 0.2s ease;
 
   &:active {
-    background: var(--danger-bg);
-    color: var(--danger-color);
+    background: #FFEBEE;
+    color: #C62828;
     transform: scale(0.9);
   }
 }
