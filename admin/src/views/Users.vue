@@ -118,6 +118,8 @@ onMounted(() => {
 
 <style scoped>
 .users-page {
+  width: 100%;
+  max-width: 100%;
 }
 
 .page-header {
@@ -129,6 +131,8 @@ onMounted(() => {
 
 .page-header h2 {
   margin: 0;
-  color: #303133;
+  color: #1e293b;
+  font-size: 20px;
+  font-weight: 700;
 }
 </style>

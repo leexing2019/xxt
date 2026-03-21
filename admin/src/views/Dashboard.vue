@@ -238,11 +238,12 @@ onMounted(() => {
 
 <style scoped>
 .dashboard {
-  padding: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .page-header {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .header-content {
@@ -275,14 +276,15 @@ onMounted(() => {
 
 /* 统计卡片 */
 .stats-cards {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .stat-card {
-  height: 130px;
+  height: 140px;
   border: 2px solid transparent;
   transition: all 0.3s ease;
   overflow: visible;
+  width: 100%;
 }
 
 .stat-card:hover {

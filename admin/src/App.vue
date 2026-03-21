@@ -122,6 +122,7 @@ function toggleSidebar() {
   border-right: 1px solid #334155;
   transition: width 0.3s ease;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .logo {
@@ -188,6 +189,7 @@ function toggleSidebar() {
   justify-content: space-between;
   padding: 0 24px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
 }
 
 .header-left {
@@ -243,12 +245,15 @@ function toggleSidebar() {
 
 .main-content {
   flex: 1;
-  background: #f8fafc;
+  background: #f1f5f9;
   overflow-y: auto;
-  padding: 0;
+  padding: 24px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .main-content > * {
-  min-height: 100%;
+  width: 100%;
+  max-width: 100%;
 }
 </style>
