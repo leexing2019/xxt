@@ -113,8 +113,9 @@
 
     <!-- 退出登录 -->
     <view class="logout-section">
-      <button class="btn btn-outline logout-btn" @click="logout">
-        退出登录
+      <button class="btn btn-danger logout-btn" @click="logout">
+        <text class="btn-icon">🚪</text>
+        <text class="btn-text">退出登录</text>
       </button>
     </view>
 
@@ -470,20 +471,33 @@ function logout() {
 
 .logout-btn {
   width: 100%;
-  background: linear-gradient(135deg, var(--danger-color) 0%, var(--danger-dark) 100%);
+  height: 96rpx;
+  background: linear-gradient(135deg, #EF5350 0%, #C62828 100%);
   color: white;
   border: none;
   border-radius: 16rpx;
-  padding: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
   font-size: 32rpx;
   font-weight: 600;
-  box-shadow: 0 8rpx 24rpx rgba(244, 67, 54, 0.3);
+  box-shadow: 0 8rpx 24rpx rgba(239, 83, 80, 0.35);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .logout-btn:active {
   transform: scale(0.96);
-  box-shadow: 0 4rpx 12rpx rgba(244, 67, 54, 0.2);
+  box-shadow: 0 4rpx 12rpx rgba(239, 83, 80, 0.25);
+}
+
+.logout-btn .btn-icon {
+  font-size: 36rpx;
+  line-height: 1;
+}
+
+.logout-btn .btn-text {
+  white-space: nowrap;
 }
 
 .safe-area-bottom {
