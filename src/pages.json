@@ -85,6 +85,14 @@
       }
     },
     {
+      "path": "pages/admin/index",
+      "style": {
+        "navigationBarTitleText": "管理后台",
+        "navigationBarBackgroundColor": "#2196F3",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
       "path": "pages/admin/medication-list",
       "style": {
         "navigationBarTitleText": "用药计划管理",

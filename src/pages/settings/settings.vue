@@ -90,6 +90,16 @@
         </view>
         <text class="setting-arrow">></text>
       </view>
+
+      <!-- 管理后台入口 -->
+      <view class="setting-item" @click="goToAdmin">
+        <text class="setting-icon">👨‍💼</text>
+        <view class="setting-info">
+          <text class="setting-title">管理后台</text>
+          <text class="setting-desc">用药计划管理和 API 配置</text>
+        </view>
+        <text class="setting-arrow">></text>
+      </view>
     </view>
 
     <!-- 关于 -->
@@ -237,6 +247,13 @@ function logout() {
         uni.redirectTo({ url: '/pages/login/login' })
       }
     }
+  })
+}
+
+// 跳转到管理后台
+function goToAdmin() {
+  uni.navigateTo({
+    url: '/pages/admin/index'
   })
 }
 </script>
