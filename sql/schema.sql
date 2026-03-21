@@ -93,6 +93,35 @@ CREATE TABLE IF NOT EXISTS medical_history_answers (
   UNIQUE(user_id, question_id)
 );
 
+-- 管理员用户表（管理后台使用）
+CREATE TABLE IF NOT EXISTS admin_users (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT DEFAULT 'admin',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 应用配置表（存储 API 配置等全局设置）
+CREATE TABLE IF NOT EXISTS app_settings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  key TEXT UNIQUE NOT NULL,
+  value JSONB NOT NULL,
+  description TEXT,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 药物相互作用表
+CREATE TABLE IF NOT EXISTS drug_interactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  drug_a UUID REFERENCES medications(id) ON DELETE CASCADE,
+  drug_b UUID REFERENCES medications(id) ON DELETE CASCADE,
+  severity TEXT CHECK (severity IN ('mild', 'moderate', 'severe')),
+  description TEXT,
+  recommendation TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- 创建索引
 CREATE INDEX IF NOT EXISTS idx_medications_user_id ON medications(user_id);
 CREATE INDEX IF NOT EXISTS idx_medication_schedules_user_id ON medication_schedules(user_id);
@@ -101,6 +130,9 @@ CREATE INDEX IF NOT EXISTS idx_medication_logs_schedule_id ON medication_logs(sc
 CREATE INDEX IF NOT EXISTS idx_medication_logs_user_id ON medication_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_health_records_user_id ON health_records(user_id);
 CREATE INDEX IF NOT EXISTS idx_medical_history_answers_user_id ON medical_history_answers(user_id);
+CREATE INDEX IF NOT EXISTS idx_app_settings_key ON app_settings(key);
+CREATE INDEX IF NOT EXISTS idx_drug_interactions_drug_a ON drug_interactions(drug_a);
+CREATE INDEX IF NOT EXISTS idx_drug_interactions_drug_b ON drug_interactions(drug_b);
 
 -- 启用RLS (行级安全策略)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -185,8 +217,8 @@ CREATE TRIGGER update_profiles_updated_at
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, phone)
-  VALUES (NEW.id, NEW.phone);
+  INSERT INTO profiles (id, username)
+  VALUES (NEW.id, NEW.raw_user_meta_data->>'username');
   RETURN NEW;
 END;
 $$ language 'plpgsql';
@@ -195,3 +227,34 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION handle_new_user();
+
+-- admin_users: 管理员可访问
+CREATE POLICY "Admin users can view admin_users" ON admin_users
+  FOR SELECT USING (true);
+
+-- app_settings: 所有用户可读，仅管理员可写
+CREATE POLICY "Anyone can view app_settings" ON app_settings
+  FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can insert app_settings" ON app_settings
+  FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "Authenticated users can update app_settings" ON app_settings
+  FOR UPDATE USING (auth.uid() IS NOT NULL);
+
+-- drug_interactions: 所有人可读
+CREATE POLICY "Anyone can view drug_interactions" ON drug_interactions
+  FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can insert drug_interactions" ON drug_interactions
+  FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "Authenticated users can update drug_interactions" ON drug_interactions
+  FOR UPDATE USING (auth.uid() IS NOT NULL);
+
+-- 为 app_settings 和 drug_interactions 添加自动更新触发器
+CREATE TRIGGER update_app_settings_updated_at
+  BEFORE UPDATE ON app_settings
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_drug_interactions_updated_at
+  BEFORE UPDATE ON drug_interactions
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
