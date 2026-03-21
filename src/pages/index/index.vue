@@ -66,8 +66,22 @@
       </view>
     </view>
 
+    <!-- 加载中 -->
+    <view v-if="medicationStore.loading" class="loading-state">
+      <text class="loading-icon">⏳</text>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <!-- 空状态 - 没有用药计划 -->
+    <view v-else-if="todayMedications.length === 0" class="empty-state">
+      <text class="empty-state-icon">💊</text>
+      <text class="empty-state-text">暂无用药计划</text>
+      <text class="empty-state-hint">添加您的第一个服药计划吧</text>
+      <button class="btn btn-primary mt-20" @click="goAddMedication">添加服药计划</button>
+    </view>
+
     <!-- 用药列表 -->
-    <view class="medications-section">
+    <view v-else class="medications-section">
       <text class="section-title">待用药</text>
       <view v-for="item in todayMedications" :key="item.id" class="medication-item card" :class="{ 'medication-taken': item.taken }">
         <view class="medication-header">
@@ -94,10 +108,13 @@
               :src="item.medication.image_url"
               mode="aspectFill"
               lazy-load
+              @error="handleImageError"
             />
-            <view class="image-placeholder" v-if="!item.medication.image_url">
-              <text class="placeholder-icon">💊</text>
-            </view>
+          </view>
+          <!-- 药片图片占位符 -->
+          <view class="medication-image-placeholder" v-else>
+            <text class="placeholder-icon">💊</text>
+            <text class="placeholder-text">{{ item.medication?.name?.charAt(0) || '药' }}</text>
           </view>
           <!-- 药品信息 -->
           <view class="medication-details">
@@ -112,13 +129,6 @@
         </view>
       </view>
     </view>
-
-    <!-- 空状态 -->
-    <view v-if="todayMedications.length === 0" class="empty-state">
-      <text class="empty-state-icon">💊</text>
-      <text class="empty-state-text">今天没有用药计划</text>
-      <button class="btn btn-primary mt-20" @click="goAddMedication">添加药品</button>
-    </view>
   </view>
 </template>
 
@@ -128,83 +138,25 @@ import { useAuthStore } from '@/store/auth'
 import { useMedicationStore } from '@/store/medication'
 import { speakText, recognizeSpeech } from '@/services/voice'
 import { showImmediateNotification, vibrate } from '@/services/reminder'
+import type { MedicationSchedule } from '@/store/medication'
 
 const authStore = useAuthStore()
 const medicationStore = useMedicationStore()
 
-// 今日待用药（模拟数据）
-const todayMedications = ref<any[]>([
-  {
-    id: '1',
-    medication_id: 'm1',
-    time_of_day: '08:00',
-    dosage: '1 片',
-    instructions: '早餐后半小时服用，用温水送服',
-    taken: false,
-    medication: {
-      name: '阿司匹林肠溶片',
-      specification: '100mg × 30 片',
-      appearance_desc: '白色圆形小药片，直径约 8mm，表面光滑，一面刻有"100"字样',
-      image_url: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop'
-    }
-  },
-  {
-    id: '2',
-    medication_id: 'm2',
-    time_of_day: '08:00',
-    dosage: '1 片',
-    instructions: '与阿司匹林间隔 1 小时，避免空腹服用',
-    taken: false,
-    medication: {
-      name: '硝苯地平缓释片',
-      specification: '20mg × 24 片',
-      appearance_desc: '黄色椭圆形薄膜衣片，长约 12mm，表面有光泽，易吸湿',
-      image_url: 'https://images.unsplash.com/photo-1550572017-edd951aa8f72?w=200&h=200&fit=crop'
-    }
-  },
-  {
-    id: '3',
-    medication_id: 'm3',
-    time_of_day: '12:00',
-    dosage: '1 片',
-    instructions: '午餐后服用，避免与牛奶同服',
-    taken: false,
-    medication: {
-      name: '二甲双胍缓释片',
-      specification: '500mg × 30 片',
-      appearance_desc: '白色至类白色圆形片剂，直径约 10mm，两面凸起，表面有细微颗粒感',
-      image_url: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=200&h=200&fit=crop'
-    }
-  },
-  {
-    id: '4',
-    medication_id: 'm4',
-    time_of_day: '20:00',
-    dosage: '1 片',
-    instructions: '睡前服用，服药后避免饮酒',
-    taken: false,
-    medication: {
-      name: '阿托伐他汀钙片',
-      specification: '20mg × 7 片',
-      appearance_desc: '白色椭圆形薄膜衣片，长约 14mm，表面光滑，一面刻有 Pfizer 标志',
-      image_url: 'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200&h=200&fit=crop'
-    }
-  },
-  {
-    id: '5',
-    medication_id: 'm5',
-    time_of_day: '08:00',
-    dosage: '1 粒',
-    instructions: '早餐前 30 分钟服用，整粒吞服',
-    taken: false,
-    medication: {
-      name: '奥美拉唑肠溶胶囊',
-      specification: '20mg × 14 粒',
-      appearance_desc: '透明胶囊，内含白色至淡黄色小丸，胶囊壳印有"20mg"蓝色字样',
-      image_url: 'https://images.unsplash.com/photo-1583912267670-6bdd75a7e1fd?w=200&h=200&fit=crop'
-    }
-  }
-])
+// 从 store 加载真实数据
+const todayMedications = computed(() => {
+  if (!medicationStore.schedules.length) return []
+
+  const now = new Date()
+  const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay() // 周一=1, 周日=7
+
+  return medicationStore.schedules
+    .filter(s => s.is_active && s.weekdays.includes(dayOfWeek))
+    .map(schedule => ({
+      ...schedule,
+      taken: !!medicationStore.todayLogs.find(log => log.schedule_id === schedule.id && log.status === 'taken')
+    }))
+})
 
 // 计算属性
 const greeting = computed(() => {
@@ -253,13 +205,17 @@ async function takeMedication(item: any) {
         vibrate()
         uni.vibrateShort()
 
-        await medicationStore.logMedication(item.id, 'taken')
+        // 创建或更新日志
+        const existingLog = medicationStore.todayLogs.find(log => log.schedule_id === item.id)
+        if (!existingLog) {
+          await medicationStore.logMedication(item.id, 'taken')
+        }
 
-        if (takenCount.value === totalCount.value) {
+        if (takenCount.value + 1 === totalCount.value) {
           speakText('太棒了！今日用药已全部完成')
           showImmediateNotification('🎉 今日完成', '您已完成今日所有用药计划')
         } else {
-          speakText(`已记录。还剩${totalCount.value - takenCount.value}次用药`)
+          speakText(`已记录。还剩${totalCount.value - takenCount.value - 1}次用药`)
         }
 
         uni.showToast({ title: '已确认服药', icon: 'success' })
@@ -305,6 +261,12 @@ function goEmergency() {
 // 跳转添加药品
 function goAddMedication() {
   uni.navigateTo({ url: '/pages/add-medication/add-medication' })
+}
+
+// 图片加载错误处理
+function handleImageError() {
+  // 图片加载失败时静默处理，显示占位符
+  console.log('药品图片加载失败，显示占位符')
 }
 
 onMounted(() => {
@@ -567,18 +529,27 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.image-placeholder {
+.medication-image-placeholder {
   width: 100px;
   height: 100px;
   border-radius: 12px;
   background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .placeholder-icon {
-  font-size: 40px;
+  font-size: 32px;
+  margin-bottom: 4px;
+}
+
+.placeholder-text {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1976D2;
 }
 
 .medication-details {
@@ -667,5 +638,58 @@ onMounted(() => {
 
 .mt-20 {
   margin-top: 20px;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.loading-icon {
+  font-size: 64px;
+  display: block;
+  margin-bottom: 16px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.loading-text {
+  font-size: 18px;
+  color: #666;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.empty-state-icon {
+  font-size: 64px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.empty-state-text {
+  font-size: 18px;
+  color: #666;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.empty-state-hint {
+  font-size: 14px;
+  color: #999;
+  display: block;
+  margin-bottom: 20px;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
 }
 </style>

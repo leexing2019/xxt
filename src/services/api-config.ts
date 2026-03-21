@@ -2,6 +2,7 @@
  * API 配置服务 - 从后端获取 API 配置
  *
  * 前端通过此服务从 Supabase 获取 API 配置
+ * 配置存储在 app_settings 表中
  */
 import { supabase } from './supabase'
 
@@ -29,28 +30,38 @@ export async function getApiConfigFromBackend(): Promise<ApiConfig | null> {
   }
 
   try {
-    const { data, error } = await supabase
-      .from('api_config')
-      .select('*')
-      .eq('id', 1)
+    // 从 app_settings 表读取配置
+    const { data: speechData, error: speechError } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'baidu_speech_config')
       .single()
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // 记录不存在，返回 null
-        return null
-      }
-      throw error
-    }
+    const { data: ocrData, error: ocrError } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'baidu_ocr_config')
+      .single()
+
+    const { data: drugData, error: drugError } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'drug_api_config')
+      .single()
+
+    // 忽略 PGRST116 错误（记录不存在）
+    if (speechError && speechError.code !== 'PGRST116') throw speechError
+    if (ocrError && ocrError.code !== 'PGRST116') throw ocrError
+    if (drugError && drugError.code !== 'PGRST116') throw drugError
 
     const config: ApiConfig = {
-      baiduOcrApiKey: data?.baidu_ocr_api_key || '',
-      baiduOcrSecretKey: data?.baidu_ocr_secret || '',
-      baiduSpeechAppId: data?.baidu_speech_app_id || '',
-      baiduSpeechApiKey: data?.baidu_speech_api_key || '',
-      baiduSpeechSecretKey: data?.baidu_speech_secret || '',
-      drugApiBaseUrl: data?.drug_api_base_url || '',
-      drugApiKey: data?.drug_api_key || ''
+      baiduOcrApiKey: (ocrData?.value as any)?.apiKey || '',
+      baiduOcrSecretKey: (ocrData?.value as any)?.secretKey || '',
+      baiduSpeechAppId: (speechData?.value as any)?.appId || '',
+      baiduSpeechApiKey: (speechData?.value as any)?.apiKey || '',
+      baiduSpeechSecretKey: (speechData?.value as any)?.secretKey || '',
+      drugApiBaseUrl: (drugData?.value as any)?.baseUrl || '',
+      drugApiKey: (drugData?.value as any)?.apiKey || ''
     }
 
     cachedConfig = config

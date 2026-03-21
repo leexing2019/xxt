@@ -18,23 +18,25 @@
       <!-- 用户名输入 -->
       <view class="input-group">
         <text class="input-label">用户名</text>
-        <input
-          v-model="username"
-          type="text"
-          placeholder="请设置用户名"
-          class="input"
-        />
+        <view class="input-wrapper">
+          <input
+            v-model="username"
+            type="text"
+            placeholder="请设置用户名"
+            class="input"
+          />
+        </view>
       </view>
 
       <!-- 密码输入 -->
       <view class="input-group">
         <text class="input-label">密码</text>
-        <view class="password-input">
+        <view class="input-wrapper password-wrapper">
           <input
             v-model="password"
             :type="showPassword ? 'text' : 'password'"
             placeholder="请设置密码（至少 6 位）"
-            class="input password-field"
+            class="input"
             maxlength="20"
           />
           <text class="toggle-password" @click="togglePassword">
@@ -65,12 +67,12 @@
       <!-- 确认密码 -->
       <view class="input-group">
         <text class="input-label">确认密码</text>
-        <view class="password-input">
+        <view class="input-wrapper password-wrapper">
           <input
             v-model="confirmPassword"
             :type="showConfirmPassword ? 'text' : 'password'"
             placeholder="请再次输入密码"
-            class="input password-field"
+            class="input"
             maxlength="20"
           />
           <text class="toggle-password" @click="toggleConfirmPassword">
@@ -247,51 +249,60 @@ function showPrivacy() {
   flex: 1;
   background: white;
   border-radius: 40rpx 40rpx 0 0;
-  padding: 48rpx 40rpx;
+  padding: 40rpx 40rpx 30rpx;
+  overflow-y: auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .form-title {
   text-align: center;
-  margin-bottom: 48rpx;
+  margin-bottom: 36rpx;
 }
 
 .input-group {
-  margin-bottom: 40rpx;
+  margin-bottom: 28rpx;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .input-label {
   display: block;
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: #666;
-  margin-bottom: 16rpx;
+  margin-bottom: 12rpx;
 }
 
-.input {
+.input-wrapper {
   width: 100%;
-  padding: 24rpx 32rpx;
-  background: #F5F5F5;
-  border-radius: 16rpx;
-  font-size: 32rpx;
-  color: #333;
-}
-
-.password-input {
   display: flex;
   align-items: center;
   background: #F5F5F5;
   border-radius: 16rpx;
   padding: 0 24rpx;
+  box-sizing: border-box;
 }
 
-.password-field {
+.input {
   flex: 1;
   padding: 24rpx 0;
+  background: transparent;
+  font-size: 30rpx;
+  color: #333;
+  height: 48rpx;
+  line-height: 48rpx;
+}
+
+.password-wrapper {
+  justify-content: space-between;
 }
 
 .toggle-password {
   font-size: 36rpx;
-  padding: 24rpx;
+  padding: 12rpx 0;
+  margin-left: 16rpx;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 /* 密码强度指示器 */
@@ -338,19 +349,19 @@ function showPrivacy() {
 }
 
 .btn-large {
-  margin-top: 48rpx;
+  margin-top: 36rpx;
 }
 
 .login-hint {
   text-align: center;
-  margin-top: 32rpx;
-  font-size: 28rpx;
+  margin-top: 24rpx;
+  font-size: 26rpx;
 }
 
 .disclaimer {
   text-align: center;
-  padding: 24rpx 40rpx 40rpx;
-  font-size: 22rpx;
+  padding: 20rpx 40rpx 30rpx;
+  font-size: 20rpx;
 }
 
 .text-primary {

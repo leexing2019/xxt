@@ -89,7 +89,10 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (data.user) {
         user.value = data.user
-        await createProfile() // 注册成功后创建用户资料
+        // 数据库触发器会自动创建 profile，无需手动创建
+        // 等待一小段时间确保触发器执行完成后再获取 profile
+        await new Promise(resolve => setTimeout(resolve, 100))
+        await fetchProfile()
       }
 
       return { success: true }

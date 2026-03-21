@@ -25,10 +25,13 @@
     <view class="medication-section">
       <view class="section-header">
         <text class="section-title">我的药品</text>
-        <view class="header-actions">
-          <text class="section-count">共 {{ medications.length }} 种</text>
-          <text class="add-btn" @click="goAddMedication">+</text>
-        </view>
+        <text class="section-count">共 {{ medications.length }} 种</text>
+      </view>
+      <view class="add-btn-wrapper">
+        <button class="add-medication-btn" @click="goAddMedication">
+          <text class="btn-icon">➕</text>
+          <text class="btn-text">添加药品</text>
+        </button>
       </view>
 
       <view v-if="medications.length === 0" class="empty-state">
@@ -68,14 +71,21 @@
       </view>
     </view>
 
-    <!-- 药物禁忌提醒 -->
-    <view v-if="contraindications.length > 0" class="contraindication-section">
+    <!-- 药物相互作用提醒 -->
+    <view class="contraindication-section">
       <view class="section-header">
         <text class="section-title">⚠️ 药物相互作用提醒</text>
       </view>
-      <view v-for="(item, index) in contraindications" :key="index" class="contraindication-card">
-        <text class="contraindication-drugs">{{ item.drugs }}</text>
-        <text class="contraindication-desc">{{ item.description }}</text>
+      <view v-if="contraindications.length > 0">
+        <view v-for="(item, index) in contraindications" :key="index" class="contraindication-card">
+          <text class="contraindication-drugs">{{ item.drugs }}</text>
+          <text class="contraindication-desc">{{ item.description }}</text>
+        </view>
+      </view>
+      <view v-else class="safe-state">
+        <text class="safe-icon">✅</text>
+        <text class="safe-text">暂无用药风险</text>
+        <text class="safe-hint">当前药品组合未发现相互作用</text>
       </view>
     </view>
   </view>
@@ -84,20 +94,26 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useMedicationStore } from '@/store/medication'
-import { getInteractions } from '@/services/medication'
+import { checkDrugInteractions } from '@/data/drug-interactions'
 
 const medicationStore = useMedicationStore()
 
 const medications = computed(() => medicationStore.medications)
 const schedules = computed(() => medicationStore.schedules)
 
-// 禁忌警告（模拟数据）
-const contraindications = ref<any[]>([
-  {
-    drugs: '阿司匹林 + 布洛芬',
-    description: '同时使用可能增加胃肠道出血风险'
-  }
-])
+// 药物相互作用警告
+const contraindications = ref<any[]>([])
+
+// 检查药物相互作用
+function checkInteractions() {
+  const drugNames = medications.value.map(m => m.name)
+  const interactions = checkDrugInteractions(drugNames)
+
+  contraindications.value = interactions.map(int => ({
+    drugs: `${int.drug1} + ${int.drug2}`,
+    description: int.description
+  }))
+}
 
 // 获取药品的用药计划
 function getSchedules(medicationId: string) {
@@ -145,9 +161,9 @@ onMounted(async () => {
   await medicationStore.fetchMedications()
   await medicationStore.fetchSchedules()
 
-  const drugNames = medications.value.map(m => m.name)
-  if (drugNames.length > 1) {
-    await getInteractions(drugNames)
+  // 检查药物相互作用
+  if (medications.value.length > 1) {
+    checkInteractions()
   }
 })
 </script>
@@ -220,7 +236,7 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24rpx;
+  margin-bottom: 16rpx;
 }
 
 .section-title {
@@ -232,6 +248,38 @@ onMounted(async () => {
 .section-count {
   font-size: 24rpx;
   color: var(--text-secondary);
+}
+
+.add-btn-wrapper {
+  margin-bottom: 24rpx;
+}
+
+.add-medication-btn {
+  width: 100%;
+  height: 88rpx;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  box-shadow: 0 4px 12px rgba(30, 136, 229, 0.3);
+  border: none;
+
+  &:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 6px rgba(30, 136, 229, 0.2);
+  }
+}
+
+.btn-icon {
+  font-size: 32rpx;
+}
+
+.btn-text {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: white;
 }
 
 .empty-state {
@@ -393,6 +441,34 @@ onMounted(async () => {
 }
 
 .contraindication-desc {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+  display: block;
+}
+
+.safe-state {
+  text-align: center;
+  padding: 60rpx 40rpx;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.05) 100%);
+  border-radius: 16rpx;
+  border: 2rpx solid rgba(76, 175, 80, 0.2);
+}
+
+.safe-icon {
+  font-size: 80rpx;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.safe-text {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: var(--primary-color);
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.safe-hint {
   font-size: 24rpx;
   color: var(--text-secondary);
   display: block;

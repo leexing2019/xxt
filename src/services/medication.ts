@@ -180,7 +180,10 @@ export async function recognizePrescription(imagePath: string): Promise<any> {
   })
 }
 
-// 药品数据库搜索
+// 药品数据库搜索 - 使用扩展的 50 种药品数据库
+import { COMMON_MEDICATIONS } from '@/data/common-medications'
+import { DRUG_INTERACTIONS, getDrugInteractions as getInteractionsFromDB } from '@/data/drug-interactions'
+
 export interface DrugInfo {
   name: string
   genericName: string
@@ -191,35 +194,54 @@ export interface DrugInfo {
   interactions: string[]
 }
 
-const drugDatabase: DrugInfo[] = [
-  {
-    name: '阿司匹林肠溶片',
-    genericName: 'Aspirin',
-    indications: '解热镇痛、抗血小板聚集',
-    dosage: '50-100mg，每日一次',
-    contraindications: ['对阿司匹林过敏', '活动性消化道溃疡', '血友病'],
-    sideEffects: ['胃肠道不适', '出血风险', '过敏反应'],
-    interactions: ['华法林', '布洛芬', 'ACEI 类降压药']
-  },
-  {
-    name: '硝苯地平缓释片',
-    genericName: 'Nifedipine',
-    indications: '高血压、冠心病心绞痛',
-    dosage: '20mg，每日两次',
-    contraindications: ['严重低血压', '心源性休克', '主动脉瓣狭窄'],
-    sideEffects: ['头痛', '踝部水肿', '面色潮红'],
-    interactions: ['地高辛', '奎尼丁', '西咪替丁']
-  },
-  {
-    name: '二甲双胍',
-    genericName: 'Metformin',
-    indications: '2 型糖尿病',
-    dosage: '500mg，每日两次',
-    contraindications: ['严重肝肾功能不全', '酗酒', '妊娠'],
-    sideEffects: ['胃肠道反应', '维生素 B12 缺乏'],
-    interactions: ['碘造影剂', '酒精']
+// 将 COMMON_MEDICATIONS 转换为 DrugInfo 格式
+const drugDatabase: DrugInfo[] = COMMON_MEDICATIONS.map(med => ({
+  name: med.name,
+  genericName: med.genericName,
+  indications: med.indications,
+  dosage: med.usage,
+  contraindications: getContraindicationsForDrug(med.name),
+  sideEffects: getSideEffectsForDrug(med.name),
+  interactions: getInteractionsFromDB(med.name)
+}))
+
+// 获取药品禁忌症（简化版）
+function getContraindicationsForDrug(drugName: string): string[] {
+  const contraindicationsMap: Record<string, string[]> = {
+    '阿司匹林': ['对阿司匹林过敏', '活动性消化道溃疡', '血友病', '妊娠晚期'],
+    '布洛芬': ['对 NSAIDs 过敏', '活动性消化道溃疡', '严重心衰', '妊娠晚期'],
+    '华法林': ['活动性出血', '严重肝病', '妊娠', '严重高血压'],
+    '二甲双胍': ['严重肝肾功能不全', '酗酒', '妊娠', '急性代谢性酸中毒'],
+    '硝苯地平': ['严重低血压', '心源性休克', '主动脉瓣狭窄'],
+    '美托洛尔': ['心动过缓', '房室传导阻滞', '严重心衰', '支气管哮喘'],
+    '奥美拉唑': ['对 PPIs 过敏', '与氯吡格雷合用']
   }
-]
+  for (const [drug, contras] of Object.entries(contraindicationsMap)) {
+    if (drugName.includes(drug) || drug.includes(drugName)) {
+      return contras
+    }
+  }
+  return []
+}
+
+// 获取药品副作用（简化版）
+function getSideEffectsForDrug(drugName: string): string[] {
+  const sideEffectsMap: Record<string, string[]> = {
+    '阿司匹林': ['胃肠道不适', '出血风险', '过敏反应'],
+    '布洛芬': ['胃肠道不适', '头痛', '眩晕'],
+    '华法林': ['出血风险', '皮肤坏死', '肝功能异常'],
+    '二甲双胍': ['胃肠道反应', '维生素 B12 缺乏', '乳酸酸中毒'],
+    '硝苯地平': ['头痛', '踝部水肿', '面色潮红'],
+    '美托洛尔': ['乏力', '心动过缓', '四肢冰冷'],
+    '奥美拉唑': ['头痛', '腹泻', '维生素 B12 缺乏']
+  }
+  for (const [drug, effects] of Object.entries(sideEffectsMap)) {
+    if (drugName.includes(drug) || drug.includes(drugName)) {
+      return effects
+    }
+  }
+  return []
+}
 
 export async function searchDrug(name: string): Promise<DrugInfo[]> {
   return new Promise((resolve) => {

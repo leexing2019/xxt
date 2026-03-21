@@ -74,6 +74,39 @@
         "navigationBarBackgroundColor": "#2196F3",
         "navigationBarTextStyle": "white"
       }
+    },
+    {
+      "path": "pages/register/register",
+      "style": {
+        "navigationBarTitleText": "注册",
+        "navigationBarBackgroundColor": "#2196F3",
+        "navigationBarTextStyle": "white",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/admin/medication-list",
+      "style": {
+        "navigationBarTitleText": "用药计划管理",
+        "navigationBarBackgroundColor": "#2196F3",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/admin/stats-report",
+      "style": {
+        "navigationBarTitleText": "统计报告",
+        "navigationBarBackgroundColor": "#2196F3",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/admin/api-config",
+      "style": {
+        "navigationBarTitleText": "API 配置",
+        "navigationBarBackgroundColor": "#2196F3",
+        "navigationBarTextStyle": "white"
+      }
     }
   ],
   "globalStyle": {
@@ -87,25 +120,34 @@
     "selectedColor": "#1E88E5",
     "backgroundColor": "#FFFFFF",
     "borderStyle": "black",
-    "height": "140rpx",
-    "fontSize": "22px",
-    "iconSize": "50rpx",
+    "height": "64px",
+    "fontSize": "12px",
+    "iconWidth": "24px",
+    "iconHeight": "24px",
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "🏠 首页"
+        "text": "首页",
+        "iconPath": "/static/tabbar/home.svg",
+        "selectedIconPath": "/static/tabbar/home-active.svg"
       },
       {
         "pagePath": "pages/medication-list/medication-list",
-        "text": "💊 药品"
+        "text": "药品",
+        "iconPath": "/static/tabbar/medicine.svg",
+        "selectedIconPath": "/static/tabbar/medicine-active.svg"
       },
       {
         "pagePath": "pages/health-records/health-records",
-        "text": "📊 健康"
+        "text": "健康",
+        "iconPath": "/static/tabbar/health.svg",
+        "selectedIconPath": "/static/tabbar/health-active.svg"
       },
       {
         "pagePath": "pages/settings/settings",
-        "text": "⚙️ 设置"
+        "text": "设置",
+        "iconPath": "/static/tabbar/settings.svg",
+        "selectedIconPath": "/static/tabbar/settings-active.svg"
       }
     ]
   },

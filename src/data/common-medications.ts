@@ -10,6 +10,89 @@ export interface CommonMedication {
   appearanceDesc: string // 外观描述
   image: string          // 标准图片 URL
   usage: string          // 常用法用量
+  pinyin?: string        // 拼音首字母
+  pinyinFull?: string    // 完整拼音
+}
+
+// 常见同音字/近音字映射（用于语音识别纠错）
+const SIMILAR_SOUND_MAP: Record<string, string[]> = {
+  '门': ['孟', '蒙', '锰'],
+  '冬': ['东', '冬', '董'],
+  '氨': ['安', '氨', '胺'],
+  '氯': ['绿', '氯', '吕'],
+  '硝': ['消', '硝', '小'],
+  '厄': ['饿', '厄', '恶'],
+  '缬': ['协', '缬', '谢'],
+  '吲': ['引', '吲', '隐'],
+  '格': ['哥', '格', '革'],
+  '阿卡波糖': ['阿卡波糖', '阿卡宝糖', '阿卡博糖'],
+  '二甲双胍': ['二甲双胍', '二甲双瓜', '二甲双瓜'],
+  '阿司匹林': ['阿司匹林', '阿四匹林', '阿司比林'],
+  '奥美拉唑': ['奥美拉唑', '奥美拉错', '傲美拉唑'],
+  '布洛芬': ['布洛芬', '布洛分', '不落芬'],
+  '对乙酰氨基酚': ['对乙酰氨基酚', '对已先氨基酚', '对乙酰安基酚']
+}
+
+// 拼音首字母映射（简化版，覆盖常用药）
+const PINYIN_MAP: Record<string, string> = {
+  '硝苯地平缓释片': 'xbdp',
+  '氨氯地平片': 'aldp',
+  '厄贝沙坦片': 'ebst',
+  '缬沙坦胶囊': 'xstjn',
+  '美托洛尔缓释片': 'mtle',
+  '非洛地平缓释片': 'fldp',
+  '吲达帕胺片': 'ydaa',
+  '氯沙坦钾片': 'cstk',
+  '替米沙坦片': 'tmst',
+  '比索洛尔片': 'bsle',
+  '二甲双胍片': 'emsg',
+  '格列美脲片': 'glmh',
+  '阿卡波糖片': 'akbt',
+  '格列齐特缓释片': 'glqt',
+  '瑞格列奈片': 'rgln',
+  '西格列汀片': 'xglt',
+  '沙格列汀片': 'sglt',
+  '达格列净片': 'dglj',
+  '恩格列净片': 'eglj',
+  '利拉鲁肽注射液': 'lllt',
+  '阿托伐他汀钙片': 'atvt',
+  '瑞舒伐他汀钙片': 'rsvt',
+  '辛伐他汀片': 'xvt',
+  '普伐他汀钠片': 'pvtn',
+  '非诺贝特胶囊': 'fnbt',
+  '依折麦布片': 'yzmb',
+  '普罗布考片': 'plbk',
+  '血脂康胶囊': 'xzk',
+  '阿司匹林肠溶片': 'aspl',
+  '氯吡格雷片': 'cpls',
+  '华法林钠片': 'hfln',
+  '单硝酸异山梨酯片': 'dxss',
+  '硝酸甘油片': 'xgy',
+  '奥美拉唑肠溶胶囊': 'amlz',
+  '雷贝拉唑钠肠溶片': 'lblz',
+  '泮托拉唑钠肠溶片': 'ptlz',
+  '兰索拉唑肠溶胶囊': 'lslz',
+  '铝碳酸镁咀嚼片': 'ltsm',
+  '氨溴索片': 'axs',
+  '溴己新片': 'xjx',
+  '右美沙芬片': 'ymsf',
+  '喷托维林片': 'ptwl',
+  '布洛芬缓释胶囊': 'blf',
+  '对乙酰氨基酚片': 'dyxa',
+  '双氯芬酸钠肠溶片': 'slfs',
+  '塞来昔布胶囊': 'slxb',
+  '复合维生素片': 'fhws',
+  '碳酸钙 D3 片': 'tgs',
+  '维生素 B1 片': 'ws',
+  '甲钴胺片': 'jga'
+}
+
+// 生成药品占位图 URL - 使用不同的背景色区分
+function getPlaceholderImage(name: string, index: number): string {
+  const colors = ['4CAF50', '2196F3', 'FF9800', 'E91E63', '9C27B0', '00BCD4', 'FFC107', '795548']
+  const color = colors[index % colors.length]
+  const text = encodeURIComponent(name.charAt(0))
+  return `https://via.placeholder.com/200x200/${color}/ffffff?text=${text}`
 }
 
 export const COMMON_MEDICATIONS: CommonMedication[] = [
@@ -21,7 +104,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降压药',
     indications: '降血压',
     appearanceDesc: '黄色椭圆形薄膜衣片，长约 12mm',
-    image: 'https://images.unsplash.com/photo-1550572017-edd951aa8f72?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('硝', 0),
     usage: '每次 1 片，每日 2 次'
   },
   {
@@ -31,7 +114,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降压药',
     indications: '降血压',
     appearanceDesc: '白色圆形片剂，直径约 9mm',
-    image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('氨', 1),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -41,7 +124,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降压药',
     indications: '降血压',
     appearanceDesc: '白色椭圆形片剂，一面刻有标识',
-    image: 'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('厄', 2),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -51,7 +134,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降压药',
     indications: '降血压',
     appearanceDesc: '蓝白胶囊，内含白色颗粒',
-    image: 'https://images.unsplash.com/photo-1583912267670-6bdd75a7e1fd?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('缬', 3),
     usage: '每次 1 粒，每日 1 次'
   },
   {
@@ -61,7 +144,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降压药',
     indications: '降血压/心率',
     appearanceDesc: '淡黄色圆形片剂',
-    image: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('美', 4),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -71,7 +154,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降压药',
     indications: '降血压',
     appearanceDesc: '白色椭圆形薄膜衣片',
-    image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('非', 5),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -81,7 +164,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降压药',
     indications: '降血压',
     appearanceDesc: '白色片剂',
-    image: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('吲', 6),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -91,7 +174,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降压药',
     indications: '降血压',
     appearanceDesc: '白色椭圆形薄膜衣片',
-    image: 'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('氯', 7),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -101,7 +184,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降压药',
     indications: '降血压',
     appearanceDesc: '淡黄色圆形片剂',
-    image: 'https://images.unsplash.com/photo-1550572017-edd951aa8f72?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('替', 0),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -111,7 +194,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降压药',
     indications: '降血压/心率',
     appearanceDesc: '淡黄色圆形薄膜衣片',
-    image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('比', 1),
     usage: '每次 1 片，每日 1 次'
   },
 
@@ -123,7 +206,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降糖药',
     indications: '降血糖',
     appearanceDesc: '白色圆形片剂，直径约 10mm',
-    image: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('二', 2),
     usage: '每次 1 片，每日 2 次，餐中服用'
   },
   {
@@ -133,7 +216,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降糖药',
     indications: '降血糖',
     appearanceDesc: '粉红色椭圆形片剂',
-    image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('格', 3),
     usage: '每次 1 片，每日 1 次，早餐前'
   },
   {
@@ -143,7 +226,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降糖药',
     indications: '降餐后血糖',
     appearanceDesc: '白色类圆形片剂',
-    image: 'https://images.unsplash.com/photo-1550572017-edd951aa8f72?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('阿', 4),
     usage: '每次 1 片，每日 3 次，餐前服用'
   },
   {
@@ -153,7 +236,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降糖药',
     indications: '降血糖',
     appearanceDesc: '白色椭圆形片剂',
-    image: 'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('列', 5),
     usage: '每次 1 片，每日 1 次，早餐时'
   },
   {
@@ -163,7 +246,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降糖药',
     indications: '降餐后血糖',
     appearanceDesc: '白色圆形片剂',
-    image: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('瑞', 6),
     usage: '每次 1 片，每日 3 次，餐前 15 分钟'
   },
   {
@@ -173,7 +256,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降糖药',
     indications: '降血糖',
     appearanceDesc: '淡粉色圆形薄膜衣片',
-    image: 'https://images.unsplash.com/photo-1550572017-edd951aa8f72?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('西', 7),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -183,7 +266,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降糖药',
     indications: '降血糖',
     appearanceDesc: '淡黄色圆形片剂',
-    image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('沙', 0),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -193,7 +276,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降糖药',
     indications: '降血糖',
     appearanceDesc: '黄色椭圆形薄膜衣片',
-    image: 'https://images.unsplash.com/photo-1550572017-edd951aa8f72?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('达', 1),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -203,7 +286,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降糖药',
     indications: '降血糖',
     appearanceDesc: '淡黄色椭圆形片剂',
-    image: 'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('恩', 2),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -213,7 +296,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降糖药',
     indications: '降血糖',
     appearanceDesc: '无色澄明注射液',
-    image: 'https://images.unsplash.com/photo-1583912267670-6bdd75a7e1fd?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('利', 3),
     usage: '每日 1 次，皮下注射'
   },
 
@@ -225,7 +308,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降脂药',
     indications: '降胆固醇',
     appearanceDesc: '白色椭圆形薄膜衣片，长约 14mm',
-    image: 'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('阿', 4),
     usage: '每次 1 片，每日 1 次，睡前服用'
   },
   {
@@ -235,7 +318,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降脂药',
     indications: '降血脂',
     appearanceDesc: '粉色圆形片剂',
-    image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('瑞', 5),
     usage: '每次 1 片，每日 1 次，睡前服用'
   },
   {
@@ -245,7 +328,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降脂药',
     indications: '降血脂',
     appearanceDesc: '白色或类白色片剂',
-    image: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('辛', 6),
     usage: '每次 1 片，每日 1 次，晚上服用'
   },
   {
@@ -255,7 +338,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降脂药',
     indications: '降血脂',
     appearanceDesc: '淡橙色椭圆形片剂',
-    image: 'https://images.unsplash.com/photo-1550572017-edd951aa8f72?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('普', 7),
     usage: '每次 1 片，每日 1 次，睡前服用'
   },
   {
@@ -265,7 +348,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降脂药',
     indications: '降甘油三酯',
     appearanceDesc: '黄白相间胶囊',
-    image: 'https://images.unsplash.com/photo-1583912267670-6bdd75a7e1fd?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('非', 0),
     usage: '每次 1 粒，每日 1 次'
   },
   {
@@ -275,7 +358,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降脂药',
     indications: '降胆固醇',
     appearanceDesc: '白色椭圆形片剂',
-    image: 'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('依', 1),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -285,7 +368,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降脂药',
     indications: '降血脂',
     appearanceDesc: '白色片剂',
-    image: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('普', 2),
     usage: '每次 1 片，每日 2 次'
   },
   {
@@ -295,7 +378,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '降脂药',
     indications: '降血脂',
     appearanceDesc: '紫红色胶囊',
-    image: 'https://images.unsplash.com/photo-1583912267670-6bdd75a7e1fd?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('血', 3),
     usage: '每次 2 粒，每日 2 次'
   },
 
@@ -307,7 +390,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '心血管药',
     indications: '预防血栓',
     appearanceDesc: '白色圆形小药片，直径约 8mm，刻有"100"',
-    image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('阿', 4),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -317,7 +400,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '心血管药',
     indications: '预防血栓',
     appearanceDesc: '黄色圆形片剂',
-    image: 'https://images.unsplash.com/photo-1550572017-edd951aa8f72?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('氯', 5),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -327,7 +410,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '心血管药',
     indications: '抗凝血',
     appearanceDesc: '白色片剂，有不同颜色标识',
-    image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('华', 6),
     usage: '遵医嘱，每日 1 次'
   },
   {
@@ -337,7 +420,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '心血管药',
     indications: '心绞痛',
     appearanceDesc: '白色圆形片剂',
-    image: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('单', 7),
     usage: '每次 1 片，每日 2 次'
   },
   {
@@ -347,7 +430,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '心血管药',
     indications: '心绞痛急救',
     appearanceDesc: '白色小片剂',
-    image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('硝', 0),
     usage: '舌下含服，需要时使用'
   },
 
@@ -359,7 +442,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '胃药',
     indications: '抑制胃酸',
     appearanceDesc: '透明胶囊，内含白色小丸',
-    image: 'https://images.unsplash.com/photo-1583912267670-6bdd75a7e1fd?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('奥', 1),
     usage: '每次 1 粒，每日 1 次，早餐前'
   },
   {
@@ -369,7 +452,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '胃药',
     indications: '抑制胃酸',
     appearanceDesc: '黄色薄膜衣片',
-    image: 'https://images.unsplash.com/photo-1550572017-edd951aa8f72?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('雷', 2),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -379,7 +462,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '胃药',
     indications: '抑制胃酸',
     appearanceDesc: '类白色肠溶衣片',
-    image: 'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('泮', 3),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -389,7 +472,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '胃药',
     indications: '抑制胃酸',
     appearanceDesc: '透明胶囊，内含白色颗粒',
-    image: 'https://images.unsplash.com/photo-1583912267670-6bdd75a7e1fd?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('兰', 4),
     usage: '每次 1 粒，每日 1 次'
   },
   {
@@ -399,7 +482,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '胃药',
     indications: '中和胃酸',
     appearanceDesc: '白色或类白色片剂',
-    image: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('铝', 5),
     usage: '每次 1-2 片，嚼服，每日 3 次'
   },
 
@@ -411,7 +494,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '止咳药',
     indications: '化痰止咳',
     appearanceDesc: '白色圆形片剂',
-    image: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('氨', 6),
     usage: '每次 1 片，每日 3 次'
   },
   {
@@ -421,7 +504,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '止咳药',
     indications: '化痰',
     appearanceDesc: '白色片剂',
-    image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('溴', 7),
     usage: '每次 1 片，每日 3 次'
   },
   {
@@ -431,7 +514,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '止咳药',
     indications: '止咳',
     appearanceDesc: '白色片剂',
-    image: 'https://images.unsplash.com/photo-1550572017-edd951aa8f72?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('右', 0),
     usage: '每次 1 片，每日 3 次'
   },
   {
@@ -441,7 +524,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '止咳药',
     indications: '止咳',
     appearanceDesc: '白色片剂',
-    image: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('喷', 1),
     usage: '每次 1 片，每日 3 次'
   },
 
@@ -453,7 +536,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '止痛药',
     indications: '止痛退烧',
     appearanceDesc: '透明胶囊，内含白色粉末',
-    image: 'https://images.unsplash.com/photo-1583912267670-6bdd75a7e1fd?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('布', 2),
     usage: '每次 1 粒，每日 2 次'
   },
   {
@@ -463,7 +546,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '止痛药',
     indications: '止痛退烧',
     appearanceDesc: '白色圆形片剂',
-    image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('对', 3),
     usage: '每次 1 片，需要时服用'
   },
   {
@@ -473,7 +556,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '止痛药',
     indications: '止痛消炎',
     appearanceDesc: '肠溶衣片',
-    image: 'https://images.unsplash.com/photo-1550572017-edd951aa8f72?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('双', 4),
     usage: '每次 1 片，每日 3 次'
   },
   {
@@ -483,7 +566,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '止痛药',
     indications: '止痛消炎',
     appearanceDesc: '蓝白胶囊',
-    image: 'https://images.unsplash.com/photo-1583912267670-6bdd75a7e1fd?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('塞', 5),
     usage: '每次 1 粒，每日 1-2 次'
   },
 
@@ -495,7 +578,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '维生素',
     indications: '补充维生素',
     appearanceDesc: '橙色椭圆形片剂',
-    image: 'https://images.unsplash.com/photo-1550572017-edd951aa8f72?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('复', 6),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -505,7 +588,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '钙片',
     indications: '补钙',
     appearanceDesc: '白色或类白色片剂',
-    image: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('碳', 7),
     usage: '每次 1 片，每日 1-2 次'
   },
   {
@@ -515,7 +598,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '维生素',
     indications: '补充维生素 B1',
     appearanceDesc: '白色片剂',
-    image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('维', 0),
     usage: '每次 1 片，每日 3 次'
   },
   {
@@ -525,7 +608,7 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     category: '维生素',
     indications: '营养神经',
     appearanceDesc: '淡红色圆形糖衣片',
-    image: 'https://images.unsplash.com/photo-1550572017-edd951aa8f72?w=200&h=200&fit=crop',
+    image: getPlaceholderImage('甲', 1),
     usage: '每次 1 片，每日 3 次'
   }
 ]
@@ -555,16 +638,127 @@ export function getMedicationsByCategory(categoryId: string): CommonMedication[]
 }
 
 /**
- * 搜索药品
+ * 搜索药品 - 支持拼音、模糊匹配、同音字
  */
 export function searchMedications(keyword: string): CommonMedication[] {
   const kw = keyword.toLowerCase().trim()
   if (!kw) return []
 
-  return COMMON_MEDICATIONS.filter(med =>
-    med.name.toLowerCase().includes(kw) ||
-    med.genericName.toLowerCase().includes(kw) ||
-    med.category.toLowerCase().includes(kw) ||
-    med.indications.toLowerCase().includes(kw)
-  )
+  const scoredResults: Array<{ med: CommonMedication; score: number }> = []
+
+  for (const med of COMMON_MEDICATIONS) {
+    let score = 0
+
+    // 1. 精确匹配药名
+    if (med.name === keyword) {
+      score += 100
+    }
+
+    // 2. 药名包含关键词
+    if (med.name.toLowerCase().includes(kw)) {
+      score += 50
+    }
+
+    // 3. 通用名包含关键词
+    if (med.genericName.toLowerCase().includes(kw)) {
+      score += 40
+    }
+
+    // 4. 分类包含关键词
+    if (med.category.toLowerCase().includes(kw)) {
+      score += 30
+    }
+
+    // 5. 适应症包含关键词
+    if (med.indications.toLowerCase().includes(kw)) {
+      score += 20
+    }
+
+    // 6. 拼音首字母匹配
+    const pinyinFirst = PINYIN_MAP[med.name]
+    if (pinyinFirst && pinyinFirst.toLowerCase().includes(kw)) {
+      score += 45
+    }
+
+    // 7. 药名单字拼音首字母匹配
+    const namePinyin = med.name.split('').map(c => PINYIN_MAP_SIMPLE[c] || '').join('')
+    if (namePinyin.toLowerCase().includes(kw)) {
+      score += 35
+    }
+
+    // 8. 同音字/近音字匹配
+    for (const [correct, sounds] of Object.entries(SIMILAR_SOUND_MAP)) {
+      if (sounds.some(s => keyword.includes(s))) {
+        if (med.name.includes(correct) || med.genericName.includes(correct)) {
+          score += 25
+        }
+      }
+    }
+
+    // 9. 常见药品别名匹配
+    const aliases = getMedicationAliases(med.name)
+    if (aliases.some(alias => alias.toLowerCase().includes(kw))) {
+      score += 30
+    }
+
+    if (score > 0) {
+      scoredResults.push({ med, score })
+    }
+  }
+
+  // 按分数排序
+  scoredResults.sort((a, b) => b.score - a.score)
+
+  // 返回前 10 个结果
+  return scoredResults.slice(0, 10).map(r => r.med)
+}
+
+/**
+ * 获取药品常见别名
+ */
+function getMedicationAliases(name: string): string[] {
+  const aliasMap: Record<string, string[]> = {
+    '阿司匹林肠溶片': ['阿司匹林', '阿斯匹林', '阿四匹林', 'ASP'],
+    '硝苯地平缓释片': ['硝苯地平', '心痛定'],
+    '二甲双胍片': ['二甲双胍', '二甲双瓜', '降糖片'],
+    '阿托伐他汀钙片': ['阿托伐他汀', '立普妥'],
+    '瑞舒伐他汀钙片': ['瑞舒伐他汀', '可定'],
+    '奥美拉唑肠溶胶囊': ['奥美拉唑', '洛赛克'],
+    '布洛芬缓释胶囊': ['布洛芬', '芬必得'],
+    '对乙酰氨基酚片': ['对乙酰氨基酚', '扑热息痛', '泰诺'],
+    '氨氯地平片': ['氨氯地平', '络活喜'],
+    '厄贝沙坦片': ['厄贝沙坦', '安博维'],
+    '缬沙坦胶囊': ['缬沙坦', '代文'],
+    '美托洛尔缓释片': ['美托洛尔', '倍他乐克'],
+    '格列美脲片': ['格列美脲', '亚莫利'],
+    '阿卡波糖片': ['阿卡波糖', '拜唐苹'],
+    '氯吡格雷片': ['氯吡格雷', '波立维'],
+    '硝酸甘油片': ['硝酸甘油', '救心丸']
+  }
+
+  return aliasMap[name] || [name]
+}
+
+// 单个汉字的简单拼音首字母
+const PINYIN_MAP_SIMPLE: Record<string, string> = {
+  '阿': 'a', '氨': 'a', '奥': 'a', '安': 'a',
+  '苯': 'b', '贝': 'b', '比': 'b', '布': 'b', '白': 'b',
+  '碳': 't', '替': 't', '托': 't', '特': 't',
+  '达': 'd', '单': 'd', '地': 'd',
+  '厄': 'e', '恩': 'e',
+  '非': 'f', '法': 'f', '伐': 'f', '复': 'f', '芬': 'f',
+  '格': 'g', '甘': 'g', '钙': 'g', '硅': 'g',
+  '华': 'h',
+  '氯': 'l', '洛': 'l', '拉': 'l', '铝': 'l', '利': 'l', '列': 'l', '兰': 'l', '雷': 'l',
+  '美': 'm', '麦': 'm', '蒙': 'm', '门': 'm',
+  '硝': 'x', '西': 'x', '辛': 'x', '血': 'x', '沙': 's', '塞': 's', '泮': 'p', '喷': 'p',
+  '吲': 'y', '依': 'y', '右': 'y', '异': 'y',
+  '普': 'p',
+  '瑞': 'r',
+  '缬': 'x', '消': 'x',
+  '甲': 'j', '剂': 'j',
+  '维': 'w',
+  '酮': 't', '肽': 't',
+  '磺': 'h', '环': 'h',
+  '左': 'z', '唑': 'z', '净': 'j', '汀': 't', '脲': 'n', '酯': 'z', '钾': 'j', '溴': 'x'
 }

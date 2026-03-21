@@ -18,23 +18,25 @@
       <!-- 用户名输入 -->
       <view class="input-group">
         <text class="input-label">用户名</text>
-        <input
-          v-model="username"
-          type="text"
-          placeholder="请输入用户名"
-          class="input"
-        />
+        <view class="input-wrapper">
+          <input
+            v-model="username"
+            type="text"
+            placeholder="请输入用户名"
+            class="input"
+          />
+        </view>
       </view>
 
       <!-- 密码输入 -->
       <view class="input-group">
         <text class="input-label">密码</text>
-        <view class="password-input">
+        <view class="input-wrapper password-wrapper">
           <input
             v-model="password"
             :type="showPassword ? 'text' : 'password'"
             placeholder="请输入密码"
-            class="input password-field"
+            class="input"
           />
           <text class="toggle-password" @click="togglePassword">
             {{ showPassword ? '👁️' : '👁️‍🗨️' }}
@@ -67,9 +69,7 @@
       </view>
 
       <!-- 语音登录提示 -->
-      <view class="voice-hint">
-        <text class="text-secondary">💡 也可以点击底部麦克风图标，用语音输入</text>
-      </view>
+      <!-- 已移除：底部麦克风图标语音输入提示 -->
     </view>
 
     <!-- 免责声明 -->
@@ -200,7 +200,7 @@ function goEmergency() {
 }
 
 .header {
-  padding: 80rpx 40rpx 60rpx;
+  padding: 60rpx 40rpx 40rpx;
   text-align: center;
 }
 
@@ -213,20 +213,21 @@ function goEmergency() {
 .logo {
   width: 160rpx;
   height: 160rpx;
-  background: white;
-  border-radius: 40rpx;
-  margin-bottom: 24rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 30rpx;
+  margin-bottom: 20rpx;
+  backdrop-filter: blur(10px);
 }
 
 .app-name {
-  font-size: 48rpx;
+  font-size: 44rpx;
   font-weight: bold;
   color: white;
-  margin-bottom: 16rpx;
+  margin-bottom: 12rpx;
 }
 
 .slogan {
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: rgba(255, 255, 255, 0.9);
 }
 
@@ -234,66 +235,71 @@ function goEmergency() {
   flex: 1;
   background: white;
   border-radius: 40rpx 40rpx 0 0;
-  padding: 48rpx 40rpx;
+  padding: 40rpx 40rpx 30rpx;
+  overflow-y: auto;
 }
 
 .form-title {
   text-align: center;
-  margin-bottom: 48rpx;
+  margin-bottom: 36rpx;
 }
 
 .input-group {
-  margin-bottom: 40rpx;
+  margin-bottom: 28rpx;
 }
 
 .input-label {
   display: block;
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: #666;
-  margin-bottom: 16rpx;
+  margin-bottom: 12rpx;
 }
 
-.input {
+.input-wrapper {
   width: 100%;
-  padding: 24rpx 32rpx;
-  background: #F5F5F5;
-  border-radius: 16rpx;
-  font-size: 32rpx;
-  color: #333;
-}
-
-.password-input {
   display: flex;
   align-items: center;
   background: #F5F5F5;
   border-radius: 16rpx;
   padding: 0 24rpx;
+  box-sizing: border-box;
 }
 
-.password-field {
+.input-wrapper.password-wrapper {
+  justify-content: space-between;
+}
+
+.input {
   flex: 1;
   padding: 24rpx 0;
+  background: transparent;
+  font-size: 30rpx;
+  color: #333;
+  height: 48rpx;
+  line-height: 48rpx;
 }
 
 .toggle-password {
   font-size: 36rpx;
-  padding: 24rpx;
+  padding: 12rpx 0;
+  margin-left: 16rpx;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .btn-large {
-  margin-top: 48rpx;
+  margin-top: 36rpx;
 }
 
 .register-hint {
   text-align: center;
-  margin-top: 32rpx;
-  font-size: 28rpx;
+  margin-top: 24rpx;
+  font-size: 26rpx;
 }
 
 .demo-login-section {
-  margin-top: 40rpx;
-  padding: 24rpx;
+  margin-top: 28rpx;
+  padding: 20rpx 24rpx;
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
   border-radius: 20rpx;
   text-align: center;
@@ -303,7 +309,7 @@ function goEmergency() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 20rpx 40rpx;
+  padding: 16rpx 32rpx;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 32rpx;
   cursor: pointer;
@@ -317,13 +323,13 @@ function goEmergency() {
 }
 
 .demo-icon {
-  font-size: 32rpx;
+  font-size: 28rpx;
   margin-right: 8rpx;
 }
 
 .demo-text {
   color: white;
-  font-size: 26rpx;
+  font-size: 24rpx;
   font-weight: 500;
 }
 
@@ -331,19 +337,15 @@ function goEmergency() {
   display: block;
   margin-top: 8rpx;
   color: #999;
-  font-size: 22rpx;
+  font-size: 20rpx;
 }
 
-.voice-hint {
-  text-align: center;
-  margin-top: 32rpx;
-  font-size: 24rpx;
-}
+/* 语音提示样式已移除 */
 
 .disclaimer {
   text-align: center;
-  padding: 24rpx 40rpx 40rpx;
-  font-size: 22rpx;
+  padding: 20rpx 40rpx 30rpx;
+  font-size: 20rpx;
 }
 
 .emergency-section {

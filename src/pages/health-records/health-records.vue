@@ -511,7 +511,8 @@ onMounted(() => {
   }
 
   &.emergency {
-    background: linear-gradient(135deg, var(--danger-color) 0%, var(--danger-dark) 100%);
+    background: linear-gradient(135deg, #FF6B6B 0%, #C62828 100%);
+    box-shadow: 0 4rpx 16rpx rgba(255, 107, 107, 0.3);
 
     .quick-icon,
     .quick-label {
