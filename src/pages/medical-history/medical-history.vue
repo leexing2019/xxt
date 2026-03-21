@@ -91,17 +91,38 @@
         <text class="report-text">{{ medicalReport }}</text>
       </view>
       <view class="report-actions">
-        <button class="btn btn-outline" @click="shareReport">
-          <text>📤</text> 分享报告
+        <button class="btn btn-outline share-btn" @click="shareReport">
+          <text class="btn-icon">📤</text>
+          <text class="btn-label">分享报告</text>
         </button>
-        <button class="btn btn-primary" @click="editReport">
-          <text>✏️</text> 继续编辑
+        <button class="btn btn-primary edit-btn" @click="editReport">
+          <text class="btn-icon">✏️</text>
+          <text class="btn-label">继续编辑</text>
         </button>
       </view>
     </view>
 
+    <!-- 二维码弹窗 -->
+    <view v-if="showQrModal" class="qr-overlay" @click="closeQrModal">
+      <view class="qr-modal" @click.stop>
+        <view class="qr-header">
+          <text class="qr-title">扫描二维码查看报告</text>
+          <text class="qr-close" @click="closeQrModal">×</text>
+        </view>
+        <view class="qr-content">
+          <image v-if="qrCodeUrl" :src="qrCodeUrl" class="qr-image" mode="widthFix" />
+          <view v-else class="qr-loading">正在生成二维码...</view>
+        </view>
+        <view class="qr-footer">
+          <button class="btn btn-primary" @click="downloadQrCode">
+            保存图片
+          </button>
+        </view>
+      </view>
+    </view>
+
     <!-- 底部导航 -->
-    <view class="bottom-nav">
+    <view class="bottom-nav" :class="{ hidden: showReport }">
       <button class="btn btn-large btn-outline" @click="goBack">
         返回
       </button>
@@ -121,6 +142,8 @@ const currentAnswer = ref('')
 const answers = ref<Record<string, string>>({})
 const showReport = ref(false)
 const medicalReport = ref('')
+const qrCodeUrl = ref('')
+const showQrModal = ref(false)
 
 const visibleQuestions = computed(() => medicalHistoryQuestions)
 const totalQuestions = computed(() => visibleQuestions.value.length)
@@ -190,23 +213,108 @@ async function generateReport() {
 }
 
 // 分享报告
-function shareReport() {
+async function shareReport() {
+  // 生成报告数据的 JSON
+  const reportData = {
+    report: medicalReport.value,
+    date: new Date().toISOString(),
+    answers: answers.value
+  }
+
+  // 将数据编码为 URL-safe 字符串
+  const encodedData = encodeURIComponent(JSON.stringify(reportData))
+  // 生成包含报告数据的 URL（实际部署时替换为真实域名）
+  const reportUrl = `https://your-domain.com/report?data=${encodedData}`
+
+  // 使用 uni-app 生成二维码
+  // #ifdef H5
+  // H5 端使用第三方二维码生成库
+  await generateQrCode(reportUrl)
+  // #endif
+
+  // #ifndef H5
+  // 小程序和 App 端使用原生 API
   uni.showModal({
     title: '分享报告',
-    content: '是否将报告分享给医生？',
-    confirmText: '分享',
+    content: '扫描二维码即可查看报告',
+    confirmText: '生成二维码',
     success: (res) => {
       if (res.confirm) {
-        // 复制到剪贴板
-        uni.setClipboardData({
-          data: medicalReport.value,
-          success: () => {
-            uni.showToast({ title: '已复制到剪贴板', icon: 'success' })
-          }
-        })
+        generateQrCode(reportUrl)
       }
     }
   })
+  // #endif
+}
+
+// 生成二维码
+function generateQrCode(url: string) {
+  // 使用 qr-code-stitch 或类似库生成二维码
+  // 这里使用一个简单的二维码生成 API 作为示例
+  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`
+
+  qrCodeUrl.value = qrApiUrl
+  showQrModal.value = true
+
+  speakText('二维码已生成，其他人可以扫码查看报告')
+}
+
+// 关闭二维码弹窗
+function closeQrModal() {
+  showQrModal.value = false
+}
+
+// 下载二维码图片
+async function downloadQrCode() {
+  if (!qrCodeUrl.value) return
+
+  // #ifdef H5
+  // H5 端下载图片
+  try {
+    const response = await fetch(qrCodeUrl.value)
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = '病史报告二维码.png'
+    link.click()
+    window.URL.revokeObjectURL(url)
+    uni.showToast({ title: '已保存', icon: 'success' })
+  } catch (e) {
+    // 如果下载失败，尝试长按保存
+    uni.showToast({ title: '请长按图片保存', icon: 'none' })
+  }
+  // #endif
+
+  // #ifdef APP-PLUS
+  // App 端保存图片到相册
+  uni.downloadFile({
+    url: qrCodeUrl.value,
+    success: (res) => {
+      uni.saveImageToPhotosAlbum({
+        filePath: res.tempFilePath,
+        success: () => {
+          uni.showToast({ title: '已保存到相册', icon: 'success' })
+        }
+      })
+    }
+  })
+  // #endif
+
+  // #ifdef MP-WEIXIN
+  // 小程序端保存图片
+  uni.downloadFile({
+    url: qrCodeUrl.value,
+    success: (res) => {
+      uni.saveImageToPhotosAlbum({
+        filePath: res.tempFilePath,
+        success: () => {
+          uni.showToast({ title: '已保存到相册', icon: 'success' })
+        }
+      })
+    }
+  })
+  // #endif
 }
 
 // 编辑报告
@@ -248,7 +356,7 @@ onMounted(async () => {
 .history-page {
   min-height: 100vh;
   background: #F5F5F5;
-  padding-bottom: 120rpx;
+  padding-bottom: 40rpx;
 }
 
 .page-header {
@@ -374,6 +482,8 @@ onMounted(async () => {
 
 .report-card {
   margin-top: 40rpx;
+  margin-bottom: 40rpx;
+  padding-bottom: 32rpx;
 }
 
 .report-header {
@@ -413,6 +523,7 @@ onMounted(async () => {
 .report-actions {
   display: flex;
   gap: 20rpx;
+  margin-bottom: 40rpx;
 }
 
 .report-actions .btn {
@@ -421,6 +532,19 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   gap: 8rpx;
+  white-space: nowrap;
+}
+
+.report-actions .btn-icon {
+  flex-shrink: 0;
+  font-size: 32rpx;
+  line-height: 1;
+}
+
+.report-actions .btn-label {
+  flex-shrink: 0;
+  font-size: 28rpx;
+  white-space: nowrap;
 }
 
 .bottom-nav {
@@ -432,5 +556,98 @@ onMounted(async () => {
   padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
   background: white;
   box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.08);
+  z-index: 100;
+}
+
+.bottom-nav.hidden {
+  display: none;
+}
+
+/* 二维码弹窗 */
+.qr-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32rpx;
+}
+
+.qr-modal {
+  background: white;
+  border-radius: 24rpx;
+  width: 100%;
+  max-width: 400rpx;
+  overflow: hidden;
+  animation: fadeIn 0.3s ease;
+}
+
+.qr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 28rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.qr-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.qr-close {
+  font-size: 40rpx;
+  color: #999;
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-content {
+  padding: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-image {
+  width: 100%;
+  height: auto;
+  border-radius: 12rpx;
+}
+
+.qr-loading {
+  font-size: 28rpx;
+  color: #999;
+}
+
+.qr-footer {
+  padding: 24rpx 28rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+}
+
+.qr-footer .btn {
+  width: 100%;
+  height: 88rpx;
+  font-size: 30rpx;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 </style>
