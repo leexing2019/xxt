@@ -7,7 +7,7 @@
     </view>
 
     <!-- 进度指示 -->
-    <view class="progress-section">
+    <view class="progress-section" v-if="!showReport">
       <view
         v-for="(question, index) in visibleQuestions"
         :key="question.id"
@@ -17,7 +17,7 @@
     </view>
 
     <!-- 当前问题 -->
-    <view class="question-card card" v-if="currentQuestion">
+    <view class="question-card card" v-if="currentQuestion && !showReport">
       <view class="question-header">
         <text class="question-number">问题 {{ currentIndex + 1 }}/{{ totalQuestions }}</text>
         <text class="question-type">{{ getQuestionTypeLabel(currentQuestion.type) }}</text>
