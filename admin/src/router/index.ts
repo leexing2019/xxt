@@ -1,51 +1,60 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import type { RouteRecordRaw } from 'vue-router'
+import type { RouteRecordRaw, Router } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
-const routes: RouteRecordRaw[] = [
+export const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'Login',
-    component: () => import('@/views/Login.vue')
+    component: () => import('@/views/Login.vue'),
+    meta: { title: '登录' }
   },
   {
     path: '/',
+    redirect: '/dashboard'
+  },
+  {
+    path: '/dashboard',
     name: 'Dashboard',
     component: () => import('@/views/Dashboard.vue'),
-    meta: { requiresAuth: true }
+    meta: { title: '数据统计', requiresAuth: true }
   },
   {
     path: '/users',
     name: 'Users',
     component: () => import('@/views/Users.vue'),
-    meta: { requiresAuth: true }
+    meta: { title: '用户管理', requiresAuth: true }
   },
   {
     path: '/medications',
     name: 'Medications',
     component: () => import('@/views/Medications.vue'),
-    meta: { requiresAuth: true }
+    meta: { title: '药品库管理', requiresAuth: true }
   },
   {
     path: '/api-settings',
     name: 'ApiSettings',
     component: () => import('@/views/ApiSettings.vue'),
-    meta: { requiresAuth: true }
+    meta: { title: 'API 配置', requiresAuth: true }
   }
 ]
 
-export const router = createRouter({
-  history: createWebHistory(),
-  routes
-})
+// 路由守卫
+export function setupRouterGuard(router: Router) {
+  router.beforeEach((to, from, next) => {
+    const authStore = useAuthStore()
 
-router.beforeEach((to, from, next) => {
-  const isAuthenticated = localStorage.getItem('admin_token')
+    // 设置页面标题
+    if (to.meta.title) {
+      document.title = `${to.meta.title} - 用药助手后台`
+    }
 
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/login')
-  } else if (to.path === '/login' && isAuthenticated) {
-    next('/')
-  } else {
-    next()
-  }
-})
+    // 检查是否需要登录
+    if (to.meta.requiresAuth && !authStore.isLoggedIn) {
+      next('/login')
+    } else if (to.path === '/login' && authStore.isLoggedIn) {
+      next('/dashboard')
+    } else {
+      next()
+    }
+  })
+}

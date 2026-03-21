@@ -1,66 +1,73 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/services/supabase'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<any>(null)
   const loading = ref(false)
+  const sidebarCollapsed = ref(false)
 
-  const isAuthenticated = computed(() => !!user.value)
+  const isLoggedIn = computed(() => !!user.value)
 
+  // 管理员登录
   async function login(email: string, password: string) {
     loading.value = true
     try {
-      const { data, error } = await supabase
-        .from('admin_users')
-        .select('*')
-        .eq('email', email)
-        .single()
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
 
-      if (error || !data) {
-        throw new Error('邮箱或密码错误')
+      if (error) {
+        // 开发模式：如果 Supabase 未配置，允许模拟登录
+        if (import.meta.env.DEV && email && password) {
+          console.warn('Supabase 登录失败，使用模拟登录（仅开发模式）')
+          user.value = {
+            id: 'dev-user-id',
+            email: email,
+            app_metadata: { role: 'admin' }
+          }
+          return { success: true, mock: true }
+        }
+        throw error
       }
 
-      // 简单密码验证（实际应该使用 bcrypt 等加密验证）
-      if (data.password_hash !== password) {
-        throw new Error('邮箱或密码错误')
+      if (data.user) {
+        user.value = data.user
+        // 简单权限检查 - 生产环境应该检查用户角色
+        if (!email.includes('admin')) {
+          await logout()
+          return { success: false, error: '无权访问，仅限管理员账号' }
+        }
       }
-
-      user.value = { id: data.id, email: data.email, role: data.role }
-      localStorage.setItem('admin_token', data.id)
-      localStorage.setItem('admin_user', JSON.stringify(user.value))
 
       return { success: true }
     } catch (error: any) {
+      console.error('登录失败:', error)
       return { success: false, error: error.message }
     } finally {
       loading.value = false
     }
   }
 
+  // 退出登录
   async function logout() {
+    await supabase.auth.signOut()
     user.value = null
-    localStorage.removeItem('admin_token')
-    localStorage.removeItem('admin_user')
   }
 
-  async function checkAuth() {
-    const token = localStorage.getItem('admin_token')
-    const userData = localStorage.getItem('admin_user')
-
-    if (token && userData) {
-      user.value = JSON.parse(userData)
-    }
-
-    return !!user.value
+  // 切换侧边栏
+  function toggleSidebar() {
+    sidebarCollapsed.value = !sidebarCollapsed.value
   }
 
   return {
     user,
     loading,
-    isAuthenticated,
+    sidebarCollapsed,
+    isLoggedIn,
     login,
     logout,
-    checkAuth
+    toggleSidebar
   }
 })
