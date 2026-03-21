@@ -11,8 +11,19 @@ const searchKeyword = ref('')
 const userDetailDialogVisible = ref(false)
 const medicationDialogVisible = ref(false)
 const pushDialogVisible = ref(false)
+const addUserDialogVisible = ref(false)
 const currentUser = ref<any>(null)
 const currentPlan = ref<any>(null)
+
+// 新建用户表单
+const newUserForm = ref({
+  username: '',
+  phone: '',
+  email: '',
+  password: '123456',
+  emergency_contact: '',
+  emergency_phone: ''
+})
 
 // 用户用药计划相关
 const userMedications = ref<any[]>([])
@@ -240,6 +251,66 @@ async function confirmPush() {
   }
 }
 
+// 打开新建用户对话框
+function handleAddUser() {
+  newUserForm.value = {
+    username: '',
+    phone: '',
+    email: '',
+    password: '123456',
+    emergency_contact: '',
+    emergency_phone: ''
+  }
+  addUserDialogVisible.value = true
+}
+
+// 创建新用户
+async function handleCreateUser() {
+  if (!newUserForm.value.email || !newUserForm.value.password) {
+    ElMessage.warning('邮箱和密码为必填项')
+    return
+  }
+
+  try {
+    // 1. 通过 Supabase Auth 创建用户
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: newUserForm.value.email,
+      password: newUserForm.value.password,
+      email_confirm: true, // 跳过邮箱验证
+      user_metadata: {
+        username: newUserForm.value.username,
+        phone: newUserForm.value.phone
+      }
+    })
+
+    if (authError) throw authError
+
+    // 2. 触发器会自动创建 profiles 记录，我们更新额外的信息
+    if (authData.user) {
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          username: newUserForm.value.username,
+          phone: newUserForm.value.phone,
+          emergency_contact: newUserForm.value.emergency_contact,
+          emergency_phone: newUserForm.value.emergency_phone
+        })
+        .eq('id', authData.user.id)
+
+      if (updateError) {
+        console.error('更新 profile 失败:', updateError)
+      }
+    }
+
+    ElMessage.success('用户创建成功')
+    addUserDialogVisible.value = false
+    await fetchUsers()
+  } catch (error: any) {
+    console.error('创建用户失败:', error)
+    ElMessage.error('创建失败：' + error.message)
+  }
+}
+
 onMounted(() => {
   fetchUsers()
 })
@@ -249,17 +320,22 @@ onMounted(() => {
   <div class="users-page">
     <div class="page-header">
       <h2>用户管理</h2>
-      <el-input
-        v-model="searchKeyword"
-        placeholder="搜索用户名或手机号"
-        style="width: 300px"
-        clearable
-        @input="searchKeyword = $event.target.value"
-      >
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-      </el-input>
+      <div style="display: flex; gap: 12px">
+        <el-button type="primary" @click="handleAddUser" :icon="Plus">
+          新建用户
+        </el-button>
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索用户名或手机号"
+          style="width: 300px"
+          clearable
+          @input="searchKeyword = $event.target.value"
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
+      </div>
     </div>
 
     <el-card>
@@ -507,6 +583,61 @@ onMounted(() => {
         <el-button @click="pushDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmPush">
           确认推送
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 新建用户对话框 -->
+    <el-dialog
+      v-model="addUserDialogVisible"
+      title="新建用户"
+      width="500px"
+    >
+      <el-form :model="newUserForm" label-width="100px">
+        <el-form-item label="邮箱" required>
+          <el-input
+            v-model="newUserForm.email"
+            type="email"
+            placeholder="用户邮箱"
+          />
+        </el-form-item>
+        <el-form-item label="用户名">
+          <el-input
+            v-model="newUserForm.username"
+            placeholder="用户名"
+          />
+        </el-form-item>
+        <el-form-item label="手机号">
+          <el-input
+            v-model="newUserForm.phone"
+            placeholder="手机号"
+          />
+        </el-form-item>
+        <el-form-item label="默认密码" required>
+          <el-input
+            v-model="newUserForm.password"
+            type="password"
+            placeholder="默认密码"
+          />
+        </el-form-item>
+        <el-form-item label="紧急联系人">
+          <el-input
+            v-model="newUserForm.emergency_contact"
+            placeholder="紧急联系人姓名"
+          />
+        </el-form-item>
+        <el-form-item label="紧急电话">
+          <el-input
+            v-model="newUserForm.emergency_phone"
+            placeholder="紧急联系电话"
+          />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="addUserDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleCreateUser">
+          创建用户
         </el-button>
       </template>
     </el-dialog>
