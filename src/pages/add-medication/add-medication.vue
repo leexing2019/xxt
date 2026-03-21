@@ -279,7 +279,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useMedicationStore } from '@/store/medication'
 import { useAuthStore } from '@/store/auth'
 import { recognizeMedication } from '@/services/medication'
