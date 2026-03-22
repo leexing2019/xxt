@@ -309,7 +309,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import type { NodeJS } from 'node'
 import { useMedicationStore } from '@/store/medication'
 import { useAuthStore } from '@/store/auth'
@@ -319,6 +319,7 @@ import {
   fetchCommonMedications,
   getMedicationsByCategory as getCategoryMedications,
   searchMedications as searchCommonMedications,
+  toPinyinFirst,
   type CommonMedication as DbCommonMedication,
   type DisplayMedication as CommonMedication
 } from '@/services/common-medications'
@@ -491,8 +492,7 @@ function handleBlur() {
 
 // 获取药品名称的拼音首字母快捷方式
 function getPinyinShortcut(name: string): string {
-  // 临时实现，显示药名首字
-  return name.charAt(0)
+  return toPinyinFirst(name)
 }
 
 // 选择建议项
@@ -849,6 +849,14 @@ onMounted(async () => {
   setTimeout(() => {
     speakText('欢迎添加药品，请选择药品开始')
   }, 500)
+})
+
+onUnmounted(() => {
+  // 清除定时器，防止内存泄漏
+  if (debounceTimer.value) {
+    clearTimeout(debounceTimer.value)
+    debounceTimer.value = null
+  }
 })
 </script>
 

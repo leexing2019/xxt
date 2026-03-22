@@ -113,6 +113,128 @@ export async function getMedicationsByCategory(categoryId: string): Promise<Disp
 }
 
 /**
+ * 药品名称转拼音首字母映射表（覆盖常用药品）
+ */
+const MEDICATION_PINYIN_MAP: Record<string, string> = {
+  '硝苯地平缓释片': 'xbdp',
+  '氨氯地平片': 'aldp',
+  '厄贝沙坦片': 'ebst',
+  '缬沙坦胶囊': 'xstjn',
+  '美托洛尔缓释片': 'mtle',
+  '非洛地平缓释片': 'fldp',
+  '吲达帕胺片': 'ydaa',
+  '氯沙坦钾片': 'cstk',
+  '替米沙坦片': 'tmst',
+  '比索洛尔片': 'bsle',
+  '二甲双胍片': 'emsg',
+  '格列美脲片': 'glmh',
+  '阿卡波糖片': 'akbt',
+  '格列齐特缓释片': 'glqt',
+  '瑞格列奈片': 'rgln',
+  '西格列汀片': 'xglt',
+  '沙格列汀片': 'sglt',
+  '达格列净片': 'dglj',
+  '恩格列净片': 'eglj',
+  '利拉鲁肽注射液': 'lllt',
+  '阿托伐他汀钙片': 'atvt',
+  '瑞舒伐他汀钙片': 'rsvt',
+  '辛伐他汀片': 'xvt',
+  '普伐他汀钠片': 'pvtn',
+  '非诺贝特胶囊': 'fnbt',
+  '依折麦布片': 'yzmb',
+  '普罗布考片': 'plbk',
+  '血脂康胶囊': 'xzk',
+  '阿司匹林肠溶片': 'aspl',
+  '氯吡格雷片': 'cpls',
+  '华法林钠片': 'hfln',
+  '单硝酸异山梨酯片': 'dxss',
+  '硝酸甘油片': 'xgy',
+  '奥美拉唑肠溶胶囊': 'amlz',
+  '雷贝拉唑钠肠溶片': 'lblz',
+  '泮托拉唑钠肠溶片': 'ptlz',
+  '兰索拉唑肠溶胶囊': 'lslz',
+  '铝碳酸镁咀嚼片': 'ltsm',
+  '氨溴索片': 'axs',
+  '溴己新片': 'xjx',
+  '右美沙芬片': 'ymsf',
+  '喷托维林片': 'ptwl',
+  '布洛芬缓释胶囊': 'blf',
+  '对乙酰氨基酚片': 'dyxa',
+  '双氯芬酸钠肠溶片': 'slfs',
+  '塞来昔布胶囊': 'slxb',
+  '复合维生素片': 'fhws',
+  '碳酸钙 D3 片': 'tgs',
+  '维生素 B1 片': 'ws',
+  '甲钴胺片': 'jga'
+}
+
+/**
+ * 将中文文本转换为拼音首字母（简易版）
+ */
+export function toPinyinFirst(text: string): string {
+  // 先检查完整映射
+  const fullMatch = MEDICATION_PINYIN_MAP[text]
+  if (fullMatch) return fullMatch
+
+  // 逐字转换
+  const pinyinMap: Record<string, string> = {
+    '华': 'h', '法': 'f', '林': 'l', '钠': 'n', '片': 'p',
+    '硝': 'x', '苯': 'b', '地': 'd', '平': 'p', '缓': 'h', '释': 's',
+    '氨': 'a', '氯': 'l', '地': 'd', '平': 'p',
+    '厄': 'e', '贝': 'b', '沙': 's', '坦': 't',
+    '缬': 'x', '沙': 's', '坦': 't',
+    '美': 'm', '托': 't', '洛': 'l', '尔': 'e',
+    '非': 'f', '洛': 'l', '地': 'd', '平': 'p',
+    '吲': 'y', '达': 'd', '帕': 'p', '胺': 'a',
+    '替': 't', '米': 'm', '沙': 's', '坦': 't',
+    '比': 'b', '索': 's', '洛': 'l', '尔': 'e',
+    '二': 'e', '甲': 'j', '双': 's', '胍': 'g',
+    '格': 'g', '列': 'l', '美': 'm', '脲': 'n',
+    '阿': 'a', '卡': 'k', '波': 'b', '糖': 't',
+    '瑞': 'r', '格': 'g', '列': 'l', '奈': 'n',
+    '西': 'x', '格': 'g', '列': 'l', '汀': 't',
+    '沙': 's', '格': 'g', '列': 'l', '汀': 't',
+    '达': 'd', '格': 'g', '列': 'l', '净': 'j',
+    '恩': 'e', '格': 'g', '列': 'l', '净': 'j',
+    '利': 'l', '拉': 'l', '鲁': 'l', '肽': 't',
+    '托': 't', '伐': 'f', '他': 't', '汀': 't',
+    '舒': 's', '伐': 'f', '他': 't', '汀': 't',
+    '辛': 'x', '伐': 'f', '他': 't', '汀': 't',
+    '普': 'p', '伐': 'f', '他': 't', '汀': 't',
+    '诺': 'n', '贝': 'b', '特': 't',
+    '依': 'y', '折': 'z', '麦': 'm', '布': 'b',
+    '普': 'p', '罗': 'l', '布': 'b', '考': 'k',
+    '血': 'x', '脂': 'z', '康': 'k',
+    '司': 's', '匹': 'p', '林': 'l',
+    '吡': 'b', '雷': 'l',
+    '单': 'd', '硝': 'x', '酸': 's', '异': 'y', '山': 's', '梨': 'l', '酯': 'z',
+    '硝': 'x', '酸': 's', '甘': 'g', '油': 'y',
+    '奥': 'a', '美': 'm', '拉': 'l', '唑': 'z',
+    '雷': 'l', '贝': 'b', '拉': 'l', '唑': 'z',
+    '泮': 'p', '托': 't', '拉': 'l', '唑': 'z',
+    '兰': 'l', '索': 's', '拉': 'l', '唑': 'z',
+    '铝': 'l', '碳': 't', '酸': 's', '镁': 'm',
+    '溴': 'x', '己': 'j', '新': 'x',
+    '右': 'y', '美': 'm', '沙': 's', '芬': 'f',
+    '喷': 'p', '托': 't', '维': 'w',
+    '布': 'b', '洛': 'l', '芬': 'f',
+    '对': 'd', '乙': 'y', '酰': 'x', '氨': 'a', '基': 'j', '酚': 'f',
+    '双': 's', '氯': 'l', '芬': 'f',
+    '塞': 's', '来': 'l', '昔': 'x',
+    '复': 'f', '合': 'h', '维': 'w', '生': 's',
+    '碳': 't', '酸': 's', '钙': 'g',
+    '维': 'w', '生': 's', '素': 's',
+    '甲': 'j', '钴': 'g', '胺': 'a'
+  }
+
+  let result = ''
+  for (const char of text) {
+    result += pinyinMap[char] || ''
+  }
+  return result
+}
+
+/**
  * 搜索药品（支持中文、拼音首字母搜索）
  */
 export async function searchMedications(keyword: string): Promise<DisplayMedication[]> {
@@ -134,6 +256,14 @@ export async function searchMedications(keyword: string): Promise<DisplayMedicat
       return true
     }
     if (med.generic_name && PinyinMatch.match(med.generic_name, keyword)) {
+      return true
+    }
+
+    // 本地拼音首字母映射匹配（支持 hfln -> 华法林钠片）
+    const namePinyin = toPinyinFirst(med.name).toLowerCase()
+    const genericPinyin = med.genericName ? toPinyinFirst(med.genericName).toLowerCase() : ''
+
+    if (namePinyin.includes(kw) || genericPinyin.includes(kw)) {
       return true
     }
 
