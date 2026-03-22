@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { supabase } from '@/services/supabase'
 import type { User } from '@supabase/supabase-js'
-import { Search, Plus, Clock, Bell } from '@element-plus/icons-vue'
+import { Search, Plus, Clock, Bell, Goods } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const users = ref<any[]>([])
@@ -27,8 +27,14 @@ const newUserForm = ref({
 
 // 用户用药计划相关
 const userMedications = ref<any[]>([])
+const userMedicationsDialogVisible = ref(false)
 const medicationsLoading = ref(false)
 const medications = ref<any[]>([])
+
+// 用户个人药品库相关
+const userPersonalMedications = ref<any[]>([])
+const userPersonalMedicationsDialogVisible = ref(false)
+const personalMedsLoading = ref(false)
 
 // 新增用药计划表单
 const newPlanForm = ref({
@@ -106,6 +112,58 @@ async function handleMedications(user: any) {
   medicationDialogVisible.value = true
   await fetchUserMedications(user.id)
   await fetchMedicationsList()
+}
+
+// 打开用户个人药品库对话框
+async function handlePersonalMedications(user: any) {
+  currentUser.value = user
+  userPersonalMedicationsDialogVisible.value = true
+  await fetchUserPersonalMedications(user.id)
+}
+
+// 获取用户的个人药品库
+async function fetchUserPersonalMedications(userId: string) {
+  personalMedsLoading.value = true
+  try {
+    const { data, error } = await supabase
+      .from('medications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    userPersonalMedications.value = data || []
+  } catch (error) {
+    console.error('获取用户药品失败:', error)
+    ElMessage.error('加载失败')
+  } finally {
+    personalMedsLoading.value = false
+  }
+}
+
+// 删除用户个人药品
+async function handleDeletePersonalMedication(medication: any) {
+  try {
+    await ElMessageBox.confirm(`确定要删除药品"${medication.name}"吗？`, '警告', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    const { error } = await supabase
+      .from('medications')
+      .delete()
+      .eq('id', medication.id)
+
+    if (error) throw error
+
+    ElMessage.success('删除成功')
+    await fetchUserPersonalMedications(currentUser.value.id)
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败：' + error.message)
+    }
+  }
 }
 
 // 获取用户的用药计划列表
@@ -357,8 +415,16 @@ onMounted(() => {
             {{ new Date(row.created_at).toLocaleString('zh-CN') }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column label="操作" width="360" fixed="right">
           <template #default="{ row }">
+            <el-button
+              link
+              type="success"
+              @click="handlePersonalMedications(row)"
+              :icon="Goods"
+            >
+              用户药品库
+            </el-button>
             <el-button
               link
               type="primary"
@@ -585,6 +651,45 @@ onMounted(() => {
           确认推送
         </el-button>
       </template>
+    </el-dialog>
+
+    <!-- 用户药品库对话框 -->
+    <el-dialog
+      v-model="userPersonalMedicationsDialogVisible"
+      :title="(currentUser?.username || '用户') + ' - 个人药品库'"
+      width="900px"
+    >
+      <el-table
+        :data="userPersonalMedications"
+        v-loading="personalMedsLoading"
+        style="width: 100%"
+      >
+        <el-table-column prop="name" label="药品名称" />
+        <el-table-column prop="generic_name" label="通用名" />
+        <el-table-column prop="manufacturer" label="生产厂家" />
+        <el-table-column prop="specification" label="规格" />
+        <el-table-column prop="form" label="剂型" width="100" />
+        <el-table-column prop="dosage_unit" label="单位" width="80" />
+        <el-table-column prop="appearance_desc" label="外观描述" width="180" />
+        <el-table-column prop="created_at" label="添加时间" width="160">
+          <template #default="{ row }">
+            {{ new Date(row.created_at).toLocaleDateString('zh-CN') }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100" fixed="right">
+          <template #default="{ row }">
+            <el-button
+              link
+              type="danger"
+              size="small"
+              @click="handleDeletePersonalMedication(row)"
+            >
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-empty v-if="userPersonalMedications.length === 0 && !personalMedsLoading" description="该用户暂无个人药品" />
     </el-dialog>
 
     <!-- 新建用户对话框 -->

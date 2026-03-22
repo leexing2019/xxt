@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { supabase } from '@/services/supabase'
-import { Search, Plus, Goods, Download, Switch } from '@element-plus/icons-vue'
+import { Search, Plus, Goods, Download } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 
 interface CommonMedication {
@@ -19,33 +19,8 @@ interface CommonMedication {
   updated_at: string
 }
 
-interface UserMedication {
-  id: string
-  user_id: string
-  name: string
-  generic_name?: string
-  manufacturer?: string
-  specification?: string
-  form?: string
-  appearance_desc?: string
-  dosage_unit?: string
-  color?: string
-  shape?: string
-  barcode?: string
-  image_url?: string
-  created_at: string
-}
-
-// 当前选中的标签页
-const activeTab = ref('common')
-
-// 公共药品库相关
 const commonMedications = ref<CommonMedication[]>([])
 const commonLoading = ref(true)
-
-// 用户药品库相关
-const userMedications = ref<UserMedication[]>([])
-const userLoading = ref(true)
 
 // 搜索和筛选
 const searchKeyword = ref('')
@@ -53,17 +28,12 @@ const categoryFilter = ref('')
 const categories = ref<string[]>([])
 
 // 对话框
-const commonDialogVisible = ref(false)
-const userDialogVisible = ref(false)
+const dialogVisible = ref(false)
 const editMode = ref(false)
-
-// 当前编辑的药品
-const currentCommonMedication = ref<Partial<CommonMedication>>({})
-const currentUserMedication = ref<Partial<UserMedication>>({})
+const currentMedication = ref<Partial<CommonMedication>>({})
 
 // 表单引用
-const commonFormRef = ref()
-const userFormRef = ref()
+const formRef = ref()
 
 // 表单验证规则
 const formRules = {
@@ -236,21 +206,21 @@ async function fetchCommonMedications() {
   }
 }
 
-function handleAddCommon() {
+function handleAdd() {
   editMode.value = false
-  currentCommonMedication.value = {
+  currentMedication.value = {
     is_active: true
   }
-  commonDialogVisible.value = true
+  dialogVisible.value = true
 }
 
-function handleEditCommon(medication: CommonMedication) {
+function handleEdit(medication: CommonMedication) {
   editMode.value = true
-  currentCommonMedication.value = { ...medication }
-  commonDialogVisible.value = true
+  currentMedication.value = { ...medication }
+  dialogVisible.value = true
 }
 
-async function handleDeleteCommon(medication: CommonMedication) {
+async function handleDelete(medication: CommonMedication) {
   if (!confirm(`确定要删除药品"${medication.name}"吗？`)) return
 
   try {
@@ -269,27 +239,27 @@ async function handleDeleteCommon(medication: CommonMedication) {
   }
 }
 
-async function handleSubmitCommon() {
+async function handleSubmit() {
   try {
-    await commonFormRef.value?.validate()
+    await formRef.value?.validate()
 
-    if (editMode.value && currentCommonMedication.value.id) {
+    if (editMode.value && currentMedication.value.id) {
       // 更新药品
       const { error } = await supabase
         .from('common_medications')
         .update({
-          name: currentCommonMedication.value.name,
-          generic_name: currentCommonMedication.value.generic_name,
-          category: currentCommonMedication.value.category,
-          manufacturer: currentCommonMedication.value.manufacturer,
-          specification: currentCommonMedication.value.specification,
-          form: currentCommonMedication.value.form,
-          appearance_desc: currentCommonMedication.value.appearance_desc,
-          dosage_unit: currentCommonMedication.value.dosage_unit,
-          is_active: currentCommonMedication.value.is_active,
+          name: currentMedication.value.name,
+          generic_name: currentMedication.value.generic_name,
+          category: currentMedication.value.category,
+          manufacturer: currentMedication.value.manufacturer,
+          specification: currentMedication.value.specification,
+          form: currentMedication.value.form,
+          appearance_desc: currentMedication.value.appearance_desc,
+          dosage_unit: currentMedication.value.dosage_unit,
+          is_active: currentMedication.value.is_active,
           updated_at: new Date().toISOString()
         })
-        .eq('id', currentCommonMedication.value.id)
+        .eq('id', currentMedication.value.id)
 
       if (error) throw error
       ElMessage.success('药品已更新')
@@ -298,361 +268,150 @@ async function handleSubmitCommon() {
       const { error } = await supabase
         .from('common_medications')
         .insert([{
-          name: currentCommonMedication.value.name,
-          generic_name: currentCommonMedication.value.generic_name,
-          category: currentCommonMedication.value.category,
-          manufacturer: currentCommonMedication.value.manufacturer,
-          specification: currentCommonMedication.value.specification,
-          form: currentCommonMedication.value.form,
-          appearance_desc: currentCommonMedication.value.appearance_desc,
-          dosage_unit: currentCommonMedication.value.dosage_unit,
-          is_active: currentCommonMedication.value.is_active ?? true
+          name: currentMedication.value.name,
+          generic_name: currentMedication.value.generic_name,
+          category: currentMedication.value.category,
+          manufacturer: currentMedication.value.manufacturer,
+          specification: currentMedication.value.specification,
+          form: currentMedication.value.form,
+          appearance_desc: currentMedication.value.appearance_desc,
+          dosage_unit: currentMedication.value.dosage_unit,
+          is_active: currentMedication.value.is_active ?? true
         }])
 
       if (error) throw error
       ElMessage.success('药品已添加')
     }
 
-    commonDialogVisible.value = false
+    dialogVisible.value = false
     await fetchCommonMedications()
   } catch (error) {
     console.error('保存药品失败:', error)
   }
 }
 
-// =====================================================
-// 用户药品库操作
-// =====================================================
-
-async function fetchUserMedications() {
-  userLoading.value = true
-
-  try {
-    const { data, error } = await supabase
-      .from('medications')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(100)
-
-    if (error) throw error
-    userMedications.value = data || []
-  } catch (error) {
-    console.error('获取用户药品列表失败:', error)
-  } finally {
-    userLoading.value = false
-  }
-}
-
-function handleAddUser() {
-  editMode.value = false
-  currentUserMedication.value = {}
-  userDialogVisible.value = true
-}
-
-function handleEditUser(medication: UserMedication) {
-  editMode.value = true
-  currentUserMedication.value = { ...medication }
-  userDialogVisible.value = true
-}
-
-async function handleDeleteUser(medication: UserMedication) {
-  if (!confirm(`确定要删除药品"${medication.name}"吗？`)) return
-
-  try {
-    const { error } = await supabase
-      .from('medications')
-      .delete()
-      .eq('id', medication.id)
-
-    if (error) throw error
-
-    ElMessage.success('药品已删除')
-    await fetchUserMedications()
-  } catch (error) {
-    console.error('删除药品失败:', error)
-    ElMessage.error('删除失败')
-  }
-}
-
-async function handleSubmitUser() {
-  try {
-    await userFormRef.value?.validate()
-
-    // 获取当前用户 ID
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      ElMessage.error('未登录')
-      return
-    }
-
-    if (editMode.value && currentUserMedication.value.id) {
-      // 更新药品
-      const { error } = await supabase
-        .from('medications')
-        .update({
-          name: currentUserMedication.value.name,
-          generic_name: currentUserMedication.value.generic_name,
-          manufacturer: currentUserMedication.value.manufacturer,
-          specification: currentUserMedication.value.specification,
-          form: currentUserMedication.value.form,
-          appearance_desc: currentUserMedication.value.appearance_desc,
-          dosage_unit: currentUserMedication.value.dosage_unit,
-          color: currentUserMedication.value.color,
-          shape: currentUserMedication.value.shape,
-          barcode: currentUserMedication.value.barcode,
-          image_url: currentUserMedication.value.image_url
-        })
-        .eq('id', currentUserMedication.value.id)
-
-      if (error) throw error
-      ElMessage.success('药品已更新')
-    } else {
-      // 添加新药品
-      const { error } = await supabase
-        .from('medications')
-        .insert([{
-          user_id: user.id,
-          name: currentUserMedication.value.name!,
-          generic_name: currentUserMedication.value.generic_name,
-          manufacturer: currentUserMedication.value.manufacturer,
-          specification: currentUserMedication.value.specification,
-          form: currentUserMedication.value.form,
-          appearance_desc: currentUserMedication.value.appearance_desc,
-          dosage_unit: currentUserMedication.value.dosage_unit,
-          color: currentUserMedication.value.color,
-          shape: currentUserMedication.value.shape,
-          barcode: currentUserMedication.value.barcode,
-          image_url: currentUserMedication.value.image_url
-        }])
-
-      if (error) throw error
-      ElMessage.success('药品已添加')
-    }
-
-    userDialogVisible.value = false
-    await fetchUserMedications()
-  } catch (error) {
-    console.error('保存药品失败:', error)
-  }
-}
-
-// =====================================================
-// 通用操作
-// =====================================================
-
 function handleClearFilter() {
   searchKeyword.value = ''
   categoryFilter.value = ''
-  if (activeTab.value === 'common') {
-    fetchCommonMedications()
-  } else {
-    fetchUserMedications()
-  }
-}
-
-function handleTabChange() {
-  searchKeyword.value = ''
-  categoryFilter.value = ''
-  if (activeTab.value === 'common') {
-    fetchCommonMedications()
-  } else {
-    fetchUserMedications()
-  }
+  fetchCommonMedications()
 }
 
 onMounted(() => {
   fetchCommonMedications()
-  fetchUserMedications()
 })
 </script>
 
 <template>
   <div class="medications-page">
     <div class="page-header">
-      <h2>药品库管理</h2>
+      <h2>公共药品库管理</h2>
+      <div style="display: flex; gap: 12px">
+        <el-button type="success" @click="handleImportCommonMedications">
+          <el-icon><Download /></el-icon>
+          导入常用药品
+        </el-button>
+        <el-button type="primary" @click="handleAdd">
+          <el-icon><Plus /></el-icon>
+          添加药品
+        </el-button>
+      </div>
     </div>
 
-    <!-- 标签页切换 -->
-    <el-tabs v-model="activeTab" @tab-change="handleTabChange" style="margin-bottom: 20px">
-      <el-tab-pane label="公共药品库" name="common">
-        <template #label>
-          <span>
-            <el-icon><Goods /></el-icon>
-            公共药品库
-            <el-tag size="small" type="success" style="margin-left: 8px">{{ commonMedications.length }} 种</el-tag>
-          </span>
-        </template>
-      </el-tab-pane>
-      <el-tab-pane label="用户药品库" name="user">
-        <template #label>
-          <span>
-            <el-icon><Switch /></el-icon>
-            用户药品库
-            <el-tag size="small" type="primary" style="margin-left: 8px">{{ userMedications.length }} 种</el-tag>
-          </span>
-        </template>
-      </el-tab-pane>
-    </el-tabs>
-
-    <!-- 公共药品库 -->
-    <template v-if="activeTab === 'common'">
-      <!-- 操作栏 -->
-      <el-card class="filter-card">
-        <div class="filter-row">
-          <el-button type="success" @click="handleImportCommonMedications">
-            <el-icon><Download /></el-icon>
-            导入常用药品
-          </el-button>
-          <el-button type="primary" @click="handleAddCommon">
-            <el-icon><Plus /></el-icon>
-            添加药品
-          </el-button>
-
-          <div style="flex: 1" />
-
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索药品名称或通用名"
-            style="width: 300px"
-            clearable
-            @clear="fetchCommonMedications"
-          >
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
-
-          <el-select
-            v-model="categoryFilter"
-            placeholder="全部分类"
-            style="width: 200px; margin-left: 12px"
-            clearable
-            @change="fetchCommonMedications"
-          >
-            <el-option label="全部分类" value="" />
-            <el-option
-              v-for="cat in categories"
-              :key="cat"
-              :label="cat"
-              :value="cat"
-            />
-          </el-select>
-
-          <el-button @click="handleClearFilter" style="margin-left: 12px">重置</el-button>
-        </div>
-      </el-card>
-
-      <!-- 药品列表 -->
-      <el-card>
-        <el-table
-          :data="commonMedications"
-          v-loading="commonLoading"
-          style="width: 100%"
+    <!-- 搜索和筛选 -->
+    <el-card class="filter-card">
+      <div class="filter-row">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索药品名称或通用名"
+          style="width: 300px"
+          clearable
+          @clear="fetchCommonMedications"
         >
-          <el-table-column prop="name" label="药品名称" />
-          <el-table-column prop="generic_name" label="通用名称" />
-          <el-table-column prop="category" label="分类" width="120">
-            <template #default="{ row }">
-              <el-tag size="small">{{ row.category }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="manufacturer" label="生产厂家" />
-          <el-table-column prop="specification" label="规格" width="120" />
-          <el-table-column prop="form" label="剂型" width="100" />
-          <el-table-column prop="is_active" label="状态" width="80">
-            <template #default="{ row }">
-              <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
-                {{ row.is_active ? '在用' : '停用' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="created_at" label="添加时间" width="180">
-            <template #default="{ row }">
-              {{ new Date(row.created_at).toLocaleDateString('zh-CN') }}
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="200" fixed="right">
-            <template #default="{ row }">
-              <el-button link type="primary" @click="handleEditCommon(row)">编辑</el-button>
-              <el-button link type="danger" @click="handleDeleteCommon(row)">删除</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
-    </template>
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
 
-    <!-- 用户药品库 -->
-    <template v-if="activeTab === 'user'">
-      <!-- 操作栏 -->
-      <el-card class="filter-card">
-        <div class="filter-row">
-          <el-button type="primary" @click="handleAddUser">
-            <el-icon><Plus /></el-icon>
-            添加药品
-          </el-button>
-        </div>
-      </el-card>
-
-      <!-- 药品列表 -->
-      <el-card>
-        <el-table
-          :data="userMedications"
-          v-loading="userLoading"
-          style="width: 100%"
+        <el-select
+          v-model="categoryFilter"
+          placeholder="全部分类"
+          style="width: 200px"
+          clearable
+          @change="fetchCommonMedications"
         >
-          <el-table-column prop="image_url" label="图片" width="80">
-            <template #default="{ row }">
-              <el-avatar
-                v-if="row.image_url"
-                :src="row.image_url"
-                :size="50"
-                shape="square"
-              />
-              <el-avatar v-else :size="50" icon="Goods" shape="square" />
-            </template>
-          </el-table-column>
-          <el-table-column prop="name" label="药品名称" />
-          <el-table-column prop="generic_name" label="通用名称" />
-          <el-table-column prop="manufacturer" label="生产厂家" />
-          <el-table-column prop="specification" label="规格" width="120" />
-          <el-table-column prop="dosage_unit" label="单位" width="80" />
-          <el-table-column prop="created_at" label="添加时间" width="180">
-            <template #default="{ row }">
-              {{ new Date(row.created_at).toLocaleDateString('zh-CN') }}
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="200" fixed="right">
-            <template #default="{ row }">
-              <el-button link type="primary" @click="handleEditUser(row)">编辑</el-button>
-              <el-button link type="danger" @click="handleDeleteUser(row)">删除</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
-    </template>
+          <el-option label="全部分类" value="" />
+          <el-option
+            v-for="cat in categories"
+            :key="cat"
+            :label="cat"
+            :value="cat"
+          />
+        </el-select>
 
-    <!-- 公共药品添加/编辑对话框 -->
+        <el-button @click="handleClearFilter" style="margin-left: 12px">重置</el-button>
+      </div>
+    </el-card>
+
+    <!-- 药品列表 -->
+    <el-card>
+      <el-table
+        :data="commonMedications"
+        v-loading="commonLoading"
+        style="width: 100%"
+      >
+        <el-table-column prop="name" label="药品名称" />
+        <el-table-column prop="generic_name" label="通用名称" />
+        <el-table-column prop="category" label="分类" width="120">
+          <template #default="{ row }">
+            <el-tag size="small">{{ row.category }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="manufacturer" label="生产厂家" />
+        <el-table-column prop="specification" label="规格" width="120" />
+        <el-table-column prop="form" label="剂型" width="100" />
+        <el-table-column prop="is_active" label="状态" width="80">
+          <template #default="{ row }">
+            <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
+              {{ row.is_active ? '在用' : '停用' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="created_at" label="添加时间" width="180">
+          <template #default="{ row }">
+            {{ new Date(row.created_at).toLocaleDateString('zh-CN') }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="200" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
+    <!-- 添加/编辑对话框 -->
     <el-dialog
-      v-model="commonDialogVisible"
+      v-model="dialogVisible"
       :title="editMode ? '编辑药品' : '添加药品'"
       width="700px"
-      @closed="commonFormRef?.resetFields()"
+      @closed="formRef?.resetFields()"
     >
       <el-form
-        ref="commonFormRef"
-        :model="currentCommonMedication"
+        ref="formRef"
+        :model="currentMedication"
         :rules="formRules"
         label-width="100px"
       >
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="药品名称" prop="name">
-              <el-input v-model="currentCommonMedication.name" placeholder="如：阿司匹林肠溶片" />
+              <el-input v-model="currentMedication.name" placeholder="如：阿司匹林肠溶片" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="通用名称">
-              <el-input v-model="currentCommonMedication.generic_name" placeholder="如：Acetylsalicylic Acid" />
+              <el-input v-model="currentMedication.generic_name" placeholder="如：Acetylsalicylic Acid" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -660,7 +419,7 @@ onMounted(() => {
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="药品分类" prop="category">
-              <el-select v-model="currentCommonMedication.category" placeholder="请选择分类" style="width: 100%">
+              <el-select v-model="currentMedication.category" placeholder="请选择分类" style="width: 100%">
                 <el-option label="降压药" value="降压药" />
                 <el-option label="降糖药" value="降糖药" />
                 <el-option label="降脂药" value="降脂药" />
@@ -677,7 +436,7 @@ onMounted(() => {
           </el-col>
           <el-col :span="12">
             <el-form-item label="生产厂家">
-              <el-input v-model="currentCommonMedication.manufacturer" placeholder="如：拜耳医药" />
+              <el-input v-model="currentMedication.manufacturer" placeholder="如：拜耳医药" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -685,12 +444,12 @@ onMounted(() => {
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="规格">
-              <el-input v-model="currentCommonMedication.specification" placeholder="如：100mg*30 片" />
+              <el-input v-model="currentMedication.specification" placeholder="如：100mg*30 片" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="剂型">
-              <el-select v-model="currentCommonMedication.form" placeholder="请选择剂型" style="width: 100%">
+              <el-select v-model="currentMedication.form" placeholder="请选择剂型" style="width: 100%">
                 <el-option label="片剂" value="片剂" />
                 <el-option label="胶囊" value="胶囊" />
                 <el-option label="缓释片" value="缓释片" />
@@ -707,19 +466,19 @@ onMounted(() => {
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="剂量单位">
-              <el-input v-model="currentCommonMedication.dosage_unit" placeholder="如：片、粒、ml" style="width: 120px" />
+              <el-input v-model="currentMedication.dosage_unit" placeholder="如：片、粒、ml" style="width: 120px" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="状态">
-              <el-switch v-model="currentCommonMedication.is_active" active-text="在用" inactive-text="停用" />
+              <el-switch v-model="currentMedication.is_active" active-text="在用" inactive-text="停用" />
             </el-form-item>
           </el-col>
         </el-row>
 
         <el-form-item label="外观描述">
           <el-input
-            v-model="currentCommonMedication.appearance_desc"
+            v-model="currentMedication.appearance_desc"
             type="textarea"
             :rows="2"
             placeholder="如：黄色椭圆形薄膜衣片"
@@ -728,106 +487,8 @@ onMounted(() => {
       </el-form>
 
       <template #footer>
-        <el-button @click="commonDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmitCommon">保存</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- 用户药品添加/编辑对话框 -->
-    <el-dialog
-      v-model="userDialogVisible"
-      :title="editMode ? '编辑药品' : '添加药品'"
-      width="700px"
-      @closed="userFormRef?.resetFields()"
-    >
-      <el-form
-        ref="userFormRef"
-        :model="currentUserMedication"
-        :rules="formRules"
-        label-width="100px"
-      >
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="药品名称" prop="name">
-              <el-input v-model="currentUserMedication.name" placeholder="如：阿司匹林肠溶片" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="通用名称">
-              <el-input v-model="currentUserMedication.generic_name" placeholder="如：Acetylsalicylic Acid" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="生产厂家">
-              <el-input v-model="currentUserMedication.manufacturer" placeholder="如：拜耳医药" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="规格">
-              <el-input v-model="currentUserMedication.specification" placeholder="如：100mg*30 片" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="剂型">
-              <el-select v-model="currentUserMedication.form" placeholder="请选择剂型" style="width: 100%">
-                <el-option label="片剂" value="片剂" />
-                <el-option label="胶囊" value="胶囊" />
-                <el-option label="缓释片" value="缓释片" />
-                <el-option label="肠溶片" value="肠溶片" />
-                <el-option label="注射液" value="注射液" />
-                <el-option label="散剂" value="散剂" />
-                <el-option label="丸剂" value="丸剂" />
-                <el-option label="其他" value="其他" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="剂量单位">
-              <el-input v-model="currentUserMedication.dosage_unit" placeholder="如：片、粒、ml" style="width: 120px" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="颜色">
-              <el-input v-model="currentUserMedication.color" placeholder="如：白色、黄色" style="width: 120px" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="形状">
-              <el-input v-model="currentUserMedication.shape" placeholder="如：圆形、椭圆形" style="width: 120px" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-form-item label="外观描述">
-          <el-input
-            v-model="currentUserMedication.appearance_desc"
-            type="textarea"
-            :rows="2"
-            placeholder="如：黄色椭圆形薄膜衣片"
-          />
-        </el-form-item>
-
-        <el-form-item label="条形码">
-          <el-input v-model="currentUserMedication.barcode" placeholder="如：6901234567890" />
-        </el-form-item>
-
-        <el-form-item label="图片 URL">
-          <el-input v-model="currentUserMedication.image_url" placeholder="输入图片 URL 或留空" />
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <el-button @click="userDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmitUser">保存</el-button>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmit">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -860,11 +521,6 @@ onMounted(() => {
 .filter-row {
   display: flex;
   gap: 16px;
-  align-items: center;
-}
-
-:deep(.el-tabs__label) {
-  display: flex;
   align-items: center;
 }
 </style>
