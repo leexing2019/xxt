@@ -18,8 +18,38 @@
             class="search-input"
             placeholder-class="search-placeholder"
             @confirm="handleSearch"
+            @input="debouncedSearch"
+            @focus="showDropdown = true"
+            @blur="handleBlur"
           />
           <button class="search-btn" @click="handleSearch">搜索</button>
+        </view>
+
+        <!-- 搜索下拉建议 -->
+        <view v-if="showDropdown" class="search-dropdown">
+          <!-- 匹配结果列表 -->
+          <view v-if="searchSuggestions.length > 0" class="suggestion-list">
+            <view
+              v-for="med in searchSuggestions"
+              :key="med.id"
+              class="suggestion-item"
+              @click="selectSuggestion(med)"
+            >
+              <text class="suggestion-name">{{ med.name }}</text>
+              <text class="suggestion-pinyin">{{ getPinyinShortcut(med.name) }}</text>
+            </view>
+          </view>
+
+          <!-- 空状态 - 添加新药入口 -->
+          <view v-if="showEmptyAction" class="empty-action">
+            <text class="empty-icon">🔍</text>
+            <text class="empty-text">未找到 "{{ searchKeyword }}" 相关的药品</text>
+            <view class="empty-btn" @click="addNewMedication">
+              <text class="empty-btn-icon">+</text>
+              <text class="empty-btn-text">添加新药 "{{ searchKeyword }}"</text>
+              <text class="empty-btn-hint">只需输入药名，其他信息后续补充</text>
+            </view>
+          </view>
         </view>
       </view>
 
@@ -449,6 +479,53 @@ function debouncedSearch() {
       loading.value = false
     }
   }, 300)
+}
+
+// 处理失焦
+function handleBlur() {
+  // 延迟关闭下拉框，允许点击下拉项
+  setTimeout(() => {
+    showDropdown.value = false
+  }, 200)
+}
+
+// 获取药品名称的拼音首字母快捷方式
+function getPinyinShortcut(name: string): string {
+  // 临时实现，显示药名首字
+  return name.charAt(0)
+}
+
+// 选择建议项
+function selectSuggestion(med: CommonMedication) {
+  searchKeyword.value = med.name
+  searchSuggestions.value = []
+  showDropdown.value = false
+  showEmptyAction.value = false
+  selectMedication(med)
+}
+
+// 添加新药
+function addNewMedication() {
+  if (!searchKeyword.value.trim()) return
+
+  // 创建临时药品对象（仅包含名称）
+  const tempMed: CommonMedication = {
+    id: 'temp_' + Date.now(),
+    name: searchKeyword.value.trim(),
+    genericName: searchKeyword.value.trim(),
+    category: '其他',
+    indications: '请确认用途',
+    appearanceDesc: '',
+    image: '',
+    usage: '每次 1 片，每日 1 次'
+  }
+
+  showDropdown.value = false
+  showEmptyAction.value = false
+  searchSuggestions.value = []
+
+  selectMedication(tempMed)
+  speakText(`已添加新药${tempMed.name}，请确认信息`)
 }
 
 // 选择分类
