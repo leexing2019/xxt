@@ -280,6 +280,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import type { NodeJS } from 'node'
 import { useMedicationStore } from '@/store/medication'
 import { useAuthStore } from '@/store/auth'
 import { recognizeMedication } from '@/services/medication'
@@ -322,6 +323,14 @@ const schedule = reactive<Schedule>({
 // 搜索
 const searchKeyword = ref('')
 const searchResults = ref<CommonMedication[]>([])
+
+// 下拉建议
+const showDropdown = ref(false)
+const searchSuggestions = ref<CommonMedication[]>([])
+const debounceTimer = ref<NodeJS.Timeout | null>(null)
+
+// 空状态动作
+const showEmptyAction = ref(false)
 
 // 语音识别
 const voiceRecognized = ref(false)
@@ -380,6 +389,24 @@ const loadingText = ref('')
 const selectedWeekdaysText = computed(() => {
   const days = schedule.weekdays.sort((a, b) => a - b)
   return days.map(d => weekdays.find(w => w.value === d)?.label || '').join('、')
+})
+
+// 判断是否为拼音输入（2 个或以上字母）
+const isPinyinInput = computed(() => {
+  const trimmed = searchKeyword.value.trim()
+  return trimmed.length >= 2 && /^[a-zA-Z]+$/.test(trimmed)
+})
+
+// 判断是否为中文输入（1 个或以上中文字符）
+const isChineseInput = computed(() => {
+  const trimmed = searchKeyword.value.trim()
+  return trimmed.length >= 1 && /[\u4e00-\u9fa5]/.test(trimmed)
+})
+
+// 是否应该触发搜索
+const shouldTriggerSearch = computed(() => {
+  if (!searchKeyword.value.trim()) return false
+  return isPinyinInput.value || isChineseInput.value
 })
 
 // 选择分类
