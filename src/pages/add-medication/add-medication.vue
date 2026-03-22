@@ -409,6 +409,48 @@ const shouldTriggerSearch = computed(() => {
   return isPinyinInput.value || isChineseInput.value
 })
 
+// 防抖搜索
+function debouncedSearch() {
+  // 清除之前的定时器
+  if (debounceTimer.value) {
+    clearTimeout(debounceTimer.value)
+    debounceTimer.value = null
+  }
+
+  // 检查是否应该触发搜索
+  if (!shouldTriggerSearch.value) {
+    showDropdown.value = false
+    searchSuggestions.value = []
+    showEmptyAction.value = false
+    return
+  }
+
+  // 设置新的定时器（300ms 防抖）
+  debounceTimer.value = setTimeout(async () => {
+    loading.value = true
+
+    try {
+      const results = await searchCommonMedications(searchKeyword.value)
+      searchSuggestions.value = results
+
+      // 判断是否显示空状态
+      if (results.length === 0) {
+        showEmptyAction.value = true
+      } else {
+        showEmptyAction.value = false
+      }
+
+      showDropdown.value = true
+    } catch (error) {
+      console.error('搜索失败:', error)
+      searchSuggestions.value = []
+      showDropdown.value = false
+    } finally {
+      loading.value = false
+    }
+  }, 300)
+}
+
 // 选择分类
 function selectCategory(categoryId: string) {
   activeCategory.value = categoryId
