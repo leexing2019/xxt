@@ -285,12 +285,12 @@ import { useAuthStore } from '@/store/auth'
 import { recognizeMedication } from '@/services/medication'
 import { recognizeSpeech, speakText } from '@/services/voice'
 import {
-  COMMON_MEDICATIONS,
-  MEDICATION_CATEGORIES,
-  getMedicationsByCategory,
-  searchMedications,
-  type CommonMedication
-} from '@/data/common-medications'
+  fetchCommonMedications,
+  getMedicationsByCategory as getCategoryMedications,
+  searchMedications as searchCommonMedications,
+  type CommonMedication as DbCommonMedication,
+  type DisplayMedication as CommonMedication
+} from '@/services/common-medications'
 import StepIndicator from '@/components/StepIndicator.vue'
 
 const medicationStore = useMedicationStore()
@@ -329,11 +329,29 @@ const voiceText = ref('')
 
 // 分类
 const activeCategory = ref('all')
-const categories = MEDICATION_CATEGORIES
+const categories = ref([
+  { id: 'all', name: '全部' },
+  { id: '降压药', name: '降压药' },
+  { id: '降糖药', name: '降糖药' },
+  { id: '降脂药', name: '降脂药' },
+  { id: '心血管药', name: '心血管' },
+  { id: '胃药', name: '胃药' },
+  { id: '止咳药', name: '止咳药' },
+  { id: '止痛药', name: '止痛药' },
+  { id: '维生素', name: '维生素' },
+  { id: '钙片', name: '钙片' }
+])
+
+// 公共药品库数据
+const commonMedications = ref<CommonMedication[]>([])
+const loadingDrugs = ref(false)
 
 // 筛选后的药品
 const filteredDrugs = computed(() => {
-  return getMedicationsByCategory(activeCategory.value)
+  if (activeCategory.value === 'all') {
+    return commonMedications.value
+  }
+  return commonMedications.value.filter(med => med.category === activeCategory.value)
 })
 
 // 用药频率
@@ -386,7 +404,7 @@ function selectMedication(drug: CommonMedication) {
 }
 
 // 搜索药品
-function handleSearch() {
+async function handleSearch() {
   if (!searchKeyword.value.trim()) {
     uni.showToast({ title: '请输入药品名称', icon: 'none' })
     return
@@ -396,7 +414,7 @@ function handleSearch() {
   loadingText.value = '搜索中...'
 
   try {
-    searchResults.value = searchMedications(searchKeyword.value)
+    searchResults.value = await searchCommonMedications(searchKeyword.value)
 
     if (searchResults.value.length === 0) {
       uni.showToast({ title: '未找到相关药品', icon: 'none' })
@@ -473,7 +491,7 @@ async function processImageRecognition(imagePath: string) {
 
     if (result.name) {
       // 尝试在常用药中匹配
-      const matched = searchMedications(result.name)
+      const matched = await searchCommonMedications(result.name)
       if (matched.length > 0) {
         selectMedication(matched[0])
         speakText(`识别成功，${matched[0].name}`)
@@ -675,8 +693,13 @@ function resetState() {
   dosageUnitIndex.value = 0
 }
 
-// 页面加载时语音提示
-onMounted(() => {
+// 页面加载时语音提示并加载公共药品库
+onMounted(async () => {
+  // 加载公共药品库数据
+  loadingDrugs.value = true
+  commonMedications.value = await fetchCommonMedications()
+  loadingDrugs.value = false
+
   setTimeout(() => {
     speakText('欢迎添加药品，请选择药品开始')
   }, 500)
