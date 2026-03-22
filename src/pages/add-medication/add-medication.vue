@@ -902,6 +902,109 @@ onMounted(async () => {
   padding: 0;
 }
 
+// ===== 搜索下拉框 =====
+.search-dropdown {
+  position: relative;
+  top: 8rpx;
+  background: white;
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.12);
+  max-height: 400rpx;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.suggestion-list {
+  padding: 8rpx 0;
+}
+
+.suggestion-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 32rpx;
+  gap: 16rpx;
+  transition: background 0.15s;
+
+  &:active {
+    background: #F5F5F5;
+  }
+}
+
+.suggestion-name {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-pinyin {
+  font-size: 24rpx;
+  color: #999;
+  background: #F5F5F5;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  flex-shrink: 0;
+}
+
+// 空状态
+.empty-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48rpx 32rpx;
+  gap: 24rpx;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  opacity: 0.5;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #666;
+  text-align: center;
+}
+
+.empty-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
+  border: 2rpx solid #2196F3;
+  border-radius: 24rpx;
+  padding: 32rpx 24rpx;
+  width: 100%;
+  gap: 8rpx;
+  transition: all 0.2s;
+
+  &:active {
+    transform: scale(0.98);
+    background: #BBDEFB;
+  }
+}
+
+.empty-btn-icon {
+  font-size: 48rpx;
+  color: #2196F3;
+  font-weight: 700;
+}
+
+.empty-btn-text {
+  font-size: 30rpx;
+  color: #1976D2;
+  font-weight: 600;
+}
+
+.empty-btn-hint {
+  font-size: 24rpx;
+  color: #666;
+}
+
 // ===== 功能按钮 =====
 .action-buttons {
   margin-bottom: 32rpx;
