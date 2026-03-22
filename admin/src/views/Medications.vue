@@ -1,47 +1,85 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { supabase } from '@/services/supabase'
-import { Search, Plus, Goods, Download } from '@element-plus/icons-vue'
+import { Search, Plus, Goods, Download, Switch } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 
-interface Medication {
+interface CommonMedication {
   id: string
   name: string
   generic_name?: string
   category: string
   manufacturer?: string
   specification?: string
-  dosage_instructions?: string
-  contraindications?: string
-  side_effects?: string
-  image_url?: string
+  form?: string
+  appearance_desc?: string
+  dosage_unit?: string
   is_active: boolean
   created_at: string
   updated_at: string
 }
 
-const medications = ref<Medication[]>([])
-const loading = ref(true)
-const dialogVisible = ref(false)
-const editMode = ref(false)
-const currentMedication = ref<Partial<Medication>>({})
+interface UserMedication {
+  id: string
+  user_id: string
+  name: string
+  generic_name?: string
+  manufacturer?: string
+  specification?: string
+  form?: string
+  appearance_desc?: string
+  dosage_unit?: string
+  color?: string
+  shape?: string
+  barcode?: string
+  image_url?: string
+  created_at: string
+}
+
+// 当前选中的标签页
+const activeTab = ref('common')
+
+// 公共药品库相关
+const commonMedications = ref<CommonMedication[]>([])
+const commonLoading = ref(true)
+
+// 用户药品库相关
+const userMedications = ref<UserMedication[]>([])
+const userLoading = ref(true)
 
 // 搜索和筛选
 const searchKeyword = ref('')
 const categoryFilter = ref('')
 const categories = ref<string[]>([])
 
-// 表单数据
-const formRef = ref()
+// 对话框
+const commonDialogVisible = ref(false)
+const userDialogVisible = ref(false)
+const editMode = ref(false)
+
+// 当前编辑的药品
+const currentCommonMedication = ref<Partial<CommonMedication>>({})
+const currentUserMedication = ref<Partial<UserMedication>>({})
+
+// 表单引用
+const commonFormRef = ref()
+const userFormRef = ref()
+
+// 表单验证规则
 const formRules = {
   name: [{ required: true, message: '请输入药品名称', trigger: 'blur' }],
   category: [{ required: true, message: '请选择药品分类', trigger: 'change' }]
 }
 
+// =====================================================
+// 公共药品库操作
+// =====================================================
+
 // 导入常用药品数据
 async function handleImportCommonMedications() {
   try {
     await ElMessageBox.confirm(
-      '此操作将导入 50 种常用药品到药品库，是否继续？',
+      '此操作将导入 50 种常用药品到公共药品库，所有用户都能看到，是否继续？',
       '导入常用药品',
       {
         confirmButtonText: '确定',
@@ -57,20 +95,13 @@ async function handleImportCommonMedications() {
     })
 
     try {
-      // 首先创建系统用户（如果不存在）
-      await supabase.from('profiles').upsert({
-        id: '00000000-0000-0000-0000-000000000001',
-        username: 'system',
-        phone: '000000000000'
-      })
-
-      // 导入常用药品数据
-      const commonMedications = [
+      // 导入常用药品数据到 common_medications 表
+      const commonMedicationsData = [
         // 降压药
-        { name: '硝苯地平缓释片', generic_name: '硝苯地平', manufacturer: '拜耳医药', specification: '30mg×14 片', form: '缓释片', appearance_desc: '黄色椭圆形薄膜衣片', dosage_unit: '片', category: '降压药' },
-        { name: '氨氯地平片', generic_name: '苯磺酸氨氯地平', manufacturer: '辉瑞制药', specification: '5mg×7 片', form: '片剂', appearance_desc: '白色圆形片剂', dosage_unit: '片', category: '降压药' },
-        { name: '厄贝沙坦片', generic_name: '厄贝沙坦', manufacturer: '赛诺菲制药', specification: '150mg×7 片', form: '片剂', appearance_desc: '白色椭圆形片剂', dosage_unit: '片', category: '降压药' },
-        { name: '缬沙坦胶囊', generic_name: '缬沙坦', manufacturer: '诺华制药', specification: '80mg×14 粒', form: '胶囊', appearance_desc: '蓝白胶囊', dosage_unit: '粒', category: '降压药' },
+        { name: '硝苯地平缓释片', generic_name: '硝苯地平', manufacturer: '拜耳医药', specification: '30mg×14 片', form: '缓释片', appearance_desc: '黄色椭圆形薄膜衣片，长约 12mm', dosage_unit: '片', category: '降压药' },
+        { name: '氨氯地平片', generic_name: '苯磺酸氨氯地平', manufacturer: '辉瑞制药', specification: '5mg×7 片', form: '片剂', appearance_desc: '白色圆形片剂，直径约 9mm', dosage_unit: '片', category: '降压药' },
+        { name: '厄贝沙坦片', generic_name: '厄贝沙坦', manufacturer: '赛诺菲制药', specification: '150mg×7 片', form: '片剂', appearance_desc: '白色椭圆形片剂，一面刻有标识', dosage_unit: '片', category: '降压药' },
+        { name: '缬沙坦胶囊', generic_name: '缬沙坦', manufacturer: '诺华制药', specification: '80mg×14 粒', form: '胶囊', appearance_desc: '蓝白胶囊，内含白色颗粒', dosage_unit: '粒', category: '降压药' },
         { name: '美托洛尔缓释片', generic_name: '酒石酸美托洛尔', manufacturer: '阿斯利康', specification: '47.5mg×7 片', form: '缓释片', appearance_desc: '淡黄色圆形片剂', dosage_unit: '片', category: '降压药' },
         { name: '非洛地平缓释片', generic_name: '非洛地平', manufacturer: '阿斯利康', specification: '5mg×10 片', form: '缓释片', appearance_desc: '白色椭圆形薄膜衣片', dosage_unit: '片', category: '降压药' },
         { name: '吲达帕胺片', generic_name: '吲达帕胺', manufacturer: '施维雅制药', specification: '2.5mg×30 片', form: '片剂', appearance_desc: '白色片剂', dosage_unit: '片', category: '降压药' },
@@ -78,7 +109,7 @@ async function handleImportCommonMedications() {
         { name: '替米沙坦片', generic_name: '替米沙坦', manufacturer: '勃林格殷格翰', specification: '40mg×14 片', form: '片剂', appearance_desc: '淡黄色圆形片剂', dosage_unit: '片', category: '降压药' },
         { name: '比索洛尔片', generic_name: '富马酸比索洛尔', manufacturer: '默克制药', specification: '5mg×10 片', form: '片剂', appearance_desc: '淡黄色圆形薄膜衣片', dosage_unit: '片', category: '降压药' },
         // 降糖药
-        { name: '二甲双胍片', generic_name: '盐酸二甲双胍', manufacturer: '中美上海施贵宝', specification: '0.5g×20 片', form: '片剂', appearance_desc: '白色圆形片剂', dosage_unit: '片', category: '降糖药' },
+        { name: '二甲双胍片', generic_name: '盐酸二甲双胍', manufacturer: '中美上海施贵宝', specification: '0.5g×20 片', form: '片剂', appearance_desc: '白色圆形片剂，直径约 10mm', dosage_unit: '片', category: '降糖药' },
         { name: '格列美脲片', generic_name: '格列美脲', manufacturer: '赛诺菲制药', specification: '1mg×15 片', form: '片剂', appearance_desc: '粉红色椭圆形片剂', dosage_unit: '片', category: '降糖药' },
         { name: '阿卡波糖片', generic_name: '阿卡波糖', manufacturer: '拜耳医药', specification: '50mg×30 片', form: '片剂', appearance_desc: '白色类圆形片剂', dosage_unit: '片', category: '降糖药' },
         { name: '格列齐特缓释片', generic_name: '格列齐特', manufacturer: '施维雅制药', specification: '30mg×10 片', form: '缓释片', appearance_desc: '白色椭圆形片剂', dosage_unit: '片', category: '降糖药' },
@@ -89,7 +120,7 @@ async function handleImportCommonMedications() {
         { name: '恩格列净片', generic_name: '恩格列净', manufacturer: '勃林格殷格翰', specification: '10mg×14 片', form: '片剂', appearance_desc: '淡黄色椭圆形片剂', dosage_unit: '片', category: '降糖药' },
         { name: '利拉鲁肽注射液', generic_name: '利拉鲁肽', manufacturer: '诺和诺德', specification: '3ml:18mg×1 支', form: '注射液', appearance_desc: '无色澄明注射液', dosage_unit: 'mg', category: '降糖药' },
         // 降脂药
-        { name: '阿托伐他汀钙片', generic_name: '阿托伐他汀', manufacturer: '辉瑞制药', specification: '20mg×7 片', form: '片剂', appearance_desc: '白色椭圆形薄膜衣片', dosage_unit: '片', category: '降脂药' },
+        { name: '阿托伐他汀钙片', generic_name: '阿托伐他汀', manufacturer: '辉瑞制药', specification: '20mg×7 片', form: '片剂', appearance_desc: '白色椭圆形薄膜衣片，长约 14mm', dosage_unit: '片', category: '降脂药' },
         { name: '瑞舒伐他汀钙片', generic_name: '瑞舒伐他汀', manufacturer: '阿斯利康', specification: '10mg×7 片', form: '片剂', appearance_desc: '粉色圆形片剂', dosage_unit: '片', category: '降脂药' },
         { name: '辛伐他汀片', generic_name: '辛伐他汀', manufacturer: '默沙东制药', specification: '20mg×14 片', form: '片剂', appearance_desc: '白色或类白色片剂', dosage_unit: '片', category: '降脂药' },
         { name: '普伐他汀钠片', generic_name: '普伐他汀', manufacturer: '百时美施贵宝', specification: '10mg×7 片', form: '片剂', appearance_desc: '淡橙色椭圆形片剂', dosage_unit: '片', category: '降脂药' },
@@ -98,16 +129,16 @@ async function handleImportCommonMedications() {
         { name: '普罗布考片', generic_name: '普罗布考', manufacturer: '赛诺菲制药', specification: '0.5g×6 片', form: '片剂', appearance_desc: '白色片剂', dosage_unit: '片', category: '降脂药' },
         { name: '血脂康胶囊', generic_name: '红曲提取物', manufacturer: '北京北大维信', specification: '0.3g×24 粒', form: '胶囊', appearance_desc: '紫红色胶囊', dosage_unit: '粒', category: '降脂药' },
         // 心血管药
-        { name: '阿司匹林肠溶片', generic_name: '阿司匹林', manufacturer: '拜耳医药', specification: '100mg×30 片', form: '肠溶片', appearance_desc: '白色圆形小药片', dosage_unit: '片', category: '心血管药' },
+        { name: '阿司匹林肠溶片', generic_name: '阿司匹林', manufacturer: '拜耳医药', specification: '100mg×30 片', form: '肠溶片', appearance_desc: '白色圆形小药片，直径约 8mm，刻有"100"', dosage_unit: '片', category: '心血管药' },
         { name: '氯吡格雷片', generic_name: '硫酸氢氯吡格雷', manufacturer: '赛诺菲制药', specification: '75mg×7 片', form: '片剂', appearance_desc: '黄色圆形片剂', dosage_unit: '片', category: '心血管药' },
-        { name: '华法林钠片', generic_name: '华法林钠', manufacturer: '奥加农制药', specification: '2.5mg×100 片', form: '片剂', appearance_desc: '白色片剂', dosage_unit: '片', category: '心血管药' },
+        { name: '华法林钠片', generic_name: '华法林钠', manufacturer: '奥加农制药', specification: '2.5mg×100 片', form: '片剂', appearance_desc: '白色片剂，有不同颜色标识', dosage_unit: '片', category: '心血管药' },
         { name: '单硝酸异山梨酯片', generic_name: '单硝酸异山梨酯', manufacturer: '赛诺菲制药', specification: '20mg×24 片', form: '片剂', appearance_desc: '白色圆形片剂', dosage_unit: '片', category: '心血管药' },
         { name: '硝酸甘油片', generic_name: '硝酸甘油', manufacturer: '拜耳医药', specification: '0.5mg×100 片', form: '片剂', appearance_desc: '白色小片剂', dosage_unit: '片', category: '心血管药' },
         // 胃药
-        { name: '奥美拉唑肠溶胶囊', generic_name: '奥美拉唑', manufacturer: '阿斯利康', specification: '20mg×7 粒', form: '肠溶胶囊', appearance_desc: '透明胶囊', dosage_unit: '粒', category: '胃药' },
+        { name: '奥美拉唑肠溶胶囊', generic_name: '奥美拉唑', manufacturer: '阿斯利康', specification: '20mg×7 粒', form: '肠溶胶囊', appearance_desc: '透明胶囊，内含白色小丸', dosage_unit: '粒', category: '胃药' },
         { name: '雷贝拉唑钠肠溶片', generic_name: '雷贝拉唑', manufacturer: '卫材制药', specification: '10mg×7 片', form: '肠溶片', appearance_desc: '黄色薄膜衣片', dosage_unit: '片', category: '胃药' },
         { name: '泮托拉唑钠肠溶片', generic_name: '泮托拉唑', manufacturer: '武田制药', specification: '40mg×7 片', form: '肠溶片', appearance_desc: '类白色肠溶衣片', dosage_unit: '片', category: '胃药' },
-        { name: '兰索拉唑肠溶胶囊', generic_name: '兰索拉唑', manufacturer: '武田制药', specification: '30mg×7 粒', form: '肠溶胶囊', appearance_desc: '透明胶囊', dosage_unit: '粒', category: '胃药' },
+        { name: '兰索拉唑肠溶胶囊', generic_name: '兰索拉唑', manufacturer: '武田制药', specification: '30mg×7 粒', form: '肠溶胶囊', appearance_desc: '透明胶囊，内含白色颗粒', dosage_unit: '粒', category: '胃药' },
         { name: '铝碳酸镁咀嚼片', generic_name: '铝碳酸镁', manufacturer: '拜耳医药', specification: '0.5g×20 片', form: '咀嚼片', appearance_desc: '白色或类白色片剂', dosage_unit: '片', category: '胃药' },
         // 止咳药
         { name: '氨溴索片', generic_name: '盐酸氨溴索', manufacturer: '勃林格殷格翰', specification: '30mg×20 片', form: '片剂', appearance_desc: '白色圆形片剂', dosage_unit: '片', category: '止咳药' },
@@ -115,7 +146,7 @@ async function handleImportCommonMedications() {
         { name: '右美沙芬片', generic_name: '氢溴酸右美沙芬', manufacturer: '强生制药', specification: '15mg×12 片', form: '片剂', appearance_desc: '白色片剂', dosage_unit: '片', category: '止咳药' },
         { name: '喷托维林片', generic_name: '枸橼酸喷托维林', manufacturer: '南京白敬宇', specification: '25mg×100 片', form: '片剂', appearance_desc: '白色片剂', dosage_unit: '片', category: '止咳药' },
         // 止痛药
-        { name: '布洛芬缓释胶囊', generic_name: '布洛芬', manufacturer: '中美天津史克', specification: '0.3g×20 粒', form: '缓释胶囊', appearance_desc: '透明胶囊', dosage_unit: '粒', category: '止痛药' },
+        { name: '布洛芬缓释胶囊', generic_name: '布洛芬', manufacturer: '中美天津史克', specification: '0.3g×20 粒', form: '缓释胶囊', appearance_desc: '透明胶囊，内含白色粉末', dosage_unit: '粒', category: '止痛药' },
         { name: '对乙酰氨基酚片', generic_name: '对乙酰氨基酚', manufacturer: '强生制药', specification: '0.5g×100 片', form: '片剂', appearance_desc: '白色圆形片剂', dosage_unit: '片', category: '止痛药' },
         { name: '双氯芬酸钠肠溶片', generic_name: '双氯芬酸钠', manufacturer: '诺华制药', specification: '25mg×30 片', form: '肠溶片', appearance_desc: '肠溶衣片', dosage_unit: '片', category: '止痛药' },
         { name: '塞来昔布胶囊', generic_name: '塞来昔布', manufacturer: '辉瑞制药', specification: '200mg×6 粒', form: '胶囊', appearance_desc: '蓝白胶囊', dosage_unit: '粒', category: '止痛药' },
@@ -126,18 +157,17 @@ async function handleImportCommonMedications() {
         { name: '甲钴胺片', generic_name: '甲钴胺', manufacturer: '卫材制药', specification: '0.5mg×20 片', form: '片剂', appearance_desc: '淡红色圆形糖衣片', dosage_unit: '片', category: '维生素' }
       ]
 
-      // 批量插入药品数据
+      // 批量插入药品数据到 common_medications 表
       let successCount = 0
       let skipCount = 0
 
-      for (const med of commonMedications) {
-        const { data, error } = await supabase
-          .from('medications')
+      for (const med of commonMedicationsData) {
+        const { error } = await supabase
+          .from('common_medications')
           .insert([{
-            user_id: '00000000-0000-0000-0000-000000000001',
-            ...med
+            ...med,
+            is_active: true
           }])
-          .select()
 
         if (error) {
           // 如果是唯一约束冲突，则跳过
@@ -154,12 +184,12 @@ async function handleImportCommonMedications() {
       loadingInstance.close()
 
       if (successCount > 0 || skipCount > 0) {
-        ElMessage.success(`导入完成！新增 ${successCount} 种药品，跳过 ${skipCount} 种已存在的药品`)
+        ElMessage.success(`导入完成！新增 ${successCount} 种药品到公共药品库，跳过 ${skipCount} 种已存在的药品`)
       } else {
         ElMessage.warning('没有导入任何药品')
       }
 
-      await fetchMedications()
+      await fetchCommonMedications()
     } catch (error) {
       loadingInstance.close()
       console.error('导入过程出错:', error)
@@ -172,12 +202,12 @@ async function handleImportCommonMedications() {
   }
 }
 
-async function fetchMedications() {
-  loading.value = true
+async function fetchCommonMedications() {
+  commonLoading.value = true
 
   try {
     let query = supabase
-      .from('medications')
+      .from('common_medications')
       .select('*')
       .order('created_at', { ascending: false })
 
@@ -194,33 +224,138 @@ async function fetchMedications() {
     const { data, error } = await query
 
     if (error) throw error
-    medications.value = data || []
+    commonMedications.value = data || []
 
     // 提取所有分类
-    const uniqueCategories = new Set(medications.value.map(m => m.category).filter(Boolean))
+    const uniqueCategories = new Set(commonMedications.value.map(m => m.category).filter(Boolean))
     categories.value = Array.from(uniqueCategories)
   } catch (error) {
-    console.error('获取药品列表失败:', error)
+    console.error('获取公共药品列表失败:', error)
   } finally {
-    loading.value = false
+    commonLoading.value = false
   }
 }
 
-function handleAdd() {
+function handleAddCommon() {
   editMode.value = false
-  currentMedication.value = {
+  currentCommonMedication.value = {
     is_active: true
   }
-  dialogVisible.value = true
+  commonDialogVisible.value = true
 }
 
-function handleEdit(medication: Medication) {
+function handleEditCommon(medication: CommonMedication) {
   editMode.value = true
-  currentMedication.value = { ...medication }
-  dialogVisible.value = true
+  currentCommonMedication.value = { ...medication }
+  commonDialogVisible.value = true
 }
 
-async function handleDelete(medication: Medication) {
+async function handleDeleteCommon(medication: CommonMedication) {
+  if (!confirm(`确定要删除药品"${medication.name}"吗？`)) return
+
+  try {
+    const { error } = await supabase
+      .from('common_medications')
+      .delete()
+      .eq('id', medication.id)
+
+    if (error) throw error
+
+    ElMessage.success('药品已删除')
+    await fetchCommonMedications()
+  } catch (error) {
+    console.error('删除药品失败:', error)
+    ElMessage.error('删除失败')
+  }
+}
+
+async function handleSubmitCommon() {
+  try {
+    await commonFormRef.value?.validate()
+
+    if (editMode.value && currentCommonMedication.value.id) {
+      // 更新药品
+      const { error } = await supabase
+        .from('common_medications')
+        .update({
+          name: currentCommonMedication.value.name,
+          generic_name: currentCommonMedication.value.generic_name,
+          category: currentCommonMedication.value.category,
+          manufacturer: currentCommonMedication.value.manufacturer,
+          specification: currentCommonMedication.value.specification,
+          form: currentCommonMedication.value.form,
+          appearance_desc: currentCommonMedication.value.appearance_desc,
+          dosage_unit: currentCommonMedication.value.dosage_unit,
+          is_active: currentCommonMedication.value.is_active,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentCommonMedication.value.id)
+
+      if (error) throw error
+      ElMessage.success('药品已更新')
+    } else {
+      // 添加新药品
+      const { error } = await supabase
+        .from('common_medications')
+        .insert([{
+          name: currentCommonMedication.value.name,
+          generic_name: currentCommonMedication.value.generic_name,
+          category: currentCommonMedication.value.category,
+          manufacturer: currentCommonMedication.value.manufacturer,
+          specification: currentCommonMedication.value.specification,
+          form: currentCommonMedication.value.form,
+          appearance_desc: currentCommonMedication.value.appearance_desc,
+          dosage_unit: currentCommonMedication.value.dosage_unit,
+          is_active: currentCommonMedication.value.is_active ?? true
+        }])
+
+      if (error) throw error
+      ElMessage.success('药品已添加')
+    }
+
+    commonDialogVisible.value = false
+    await fetchCommonMedications()
+  } catch (error) {
+    console.error('保存药品失败:', error)
+  }
+}
+
+// =====================================================
+// 用户药品库操作
+// =====================================================
+
+async function fetchUserMedications() {
+  userLoading.value = true
+
+  try {
+    const { data, error } = await supabase
+      .from('medications')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100)
+
+    if (error) throw error
+    userMedications.value = data || []
+  } catch (error) {
+    console.error('获取用户药品列表失败:', error)
+  } finally {
+    userLoading.value = false
+  }
+}
+
+function handleAddUser() {
+  editMode.value = false
+  currentUserMedication.value = {}
+  userDialogVisible.value = true
+}
+
+function handleEditUser(medication: UserMedication) {
+  editMode.value = true
+  currentUserMedication.value = { ...medication }
+  userDialogVisible.value = true
+}
+
+async function handleDeleteUser(medication: UserMedication) {
   if (!confirm(`确定要删除药品"${medication.name}"吗？`)) return
 
   try {
@@ -231,75 +366,103 @@ async function handleDelete(medication: Medication) {
 
     if (error) throw error
 
-    await fetchMedications()
-    alert('药品已删除')
+    ElMessage.success('药品已删除')
+    await fetchUserMedications()
   } catch (error) {
     console.error('删除药品失败:', error)
-    alert('删除失败')
+    ElMessage.error('删除失败')
   }
 }
 
-async function handleSubmit() {
+async function handleSubmitUser() {
   try {
-    await formRef.value?.validate()
+    await userFormRef.value?.validate()
 
-    if (editMode.value && currentMedication.value.id) {
+    // 获取当前用户 ID
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      ElMessage.error('未登录')
+      return
+    }
+
+    if (editMode.value && currentUserMedication.value.id) {
       // 更新药品
       const { error } = await supabase
         .from('medications')
         .update({
-          name: currentMedication.value.name,
-          generic_name: currentMedication.value.generic_name,
-          category: currentMedication.value.category,
-          manufacturer: currentMedication.value.manufacturer,
-          specification: currentMedication.value.specification,
-          dosage_instructions: currentMedication.value.dosage_instructions,
-          contraindications: currentMedication.value.contraindications,
-          side_effects: currentMedication.value.side_effects,
-          image_url: currentMedication.value.image_url,
-          is_active: currentMedication.value.is_active,
-          updated_at: new Date().toISOString()
+          name: currentUserMedication.value.name,
+          generic_name: currentUserMedication.value.generic_name,
+          manufacturer: currentUserMedication.value.manufacturer,
+          specification: currentUserMedication.value.specification,
+          form: currentUserMedication.value.form,
+          appearance_desc: currentUserMedication.value.appearance_desc,
+          dosage_unit: currentUserMedication.value.dosage_unit,
+          color: currentUserMedication.value.color,
+          shape: currentUserMedication.value.shape,
+          barcode: currentUserMedication.value.barcode,
+          image_url: currentUserMedication.value.image_url
         })
-        .eq('id', currentMedication.value.id)
+        .eq('id', currentUserMedication.value.id)
 
       if (error) throw error
-      alert('药品已更新')
+      ElMessage.success('药品已更新')
     } else {
       // 添加新药品
       const { error } = await supabase
         .from('medications')
         .insert([{
-          name: currentMedication.value.name,
-          generic_name: currentMedication.value.generic_name,
-          category: currentMedication.value.category,
-          manufacturer: currentMedication.value.manufacturer,
-          specification: currentMedication.value.specification,
-          dosage_instructions: currentMedication.value.dosage_instructions,
-          contraindications: currentMedication.value.contraindications,
-          side_effects: currentMedication.value.side_effects,
-          image_url: currentMedication.value.image_url,
-          is_active: currentMedication.value.is_active ?? true
+          user_id: user.id,
+          name: currentUserMedication.value.name!,
+          generic_name: currentUserMedication.value.generic_name,
+          manufacturer: currentUserMedication.value.manufacturer,
+          specification: currentUserMedication.value.specification,
+          form: currentUserMedication.value.form,
+          appearance_desc: currentUserMedication.value.appearance_desc,
+          dosage_unit: currentUserMedication.value.dosage_unit,
+          color: currentUserMedication.value.color,
+          shape: currentUserMedication.value.shape,
+          barcode: currentUserMedication.value.barcode,
+          image_url: currentUserMedication.value.image_url
         }])
 
       if (error) throw error
-      alert('药品已添加')
+      ElMessage.success('药品已添加')
     }
 
-    dialogVisible.value = false
-    await fetchMedications()
+    userDialogVisible.value = false
+    await fetchUserMedications()
   } catch (error) {
     console.error('保存药品失败:', error)
   }
 }
 
+// =====================================================
+// 通用操作
+// =====================================================
+
 function handleClearFilter() {
   searchKeyword.value = ''
   categoryFilter.value = ''
-  fetchMedications()
+  if (activeTab.value === 'common') {
+    fetchCommonMedications()
+  } else {
+    fetchUserMedications()
+  }
+}
+
+function handleTabChange() {
+  searchKeyword.value = ''
+  categoryFilter.value = ''
+  if (activeTab.value === 'common') {
+    fetchCommonMedications()
+  } else {
+    fetchUserMedications()
+  }
 }
 
 onMounted(() => {
-  fetchMedications()
+  fetchCommonMedications()
+  fetchUserMedications()
 })
 </script>
 
@@ -307,123 +470,189 @@ onMounted(() => {
   <div class="medications-page">
     <div class="page-header">
       <h2>药品库管理</h2>
-      <div style="display: flex; gap: 12px">
-        <el-button type="success" @click="handleImportCommonMedications">
-          <el-icon><Download /></el-icon>
-          导入常用药品
-        </el-button>
-        <el-button type="primary" @click="handleAdd">
-          <el-icon><Plus /></el-icon>
-          添加药品
-        </el-button>
-      </div>
     </div>
 
-    <!-- 搜索和筛选 -->
-    <el-card class="filter-card">
-      <div class="filter-row">
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索药品名称或通用名"
-          style="width: 300px"
-          clearable
-          @clear="fetchMedications"
-        >
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
+    <!-- 标签页切换 -->
+    <el-tabs v-model="activeTab" @tab-change="handleTabChange" style="margin-bottom: 20px">
+      <el-tab-pane label="公共药品库" name="common">
+        <template #label>
+          <span>
+            <el-icon><Goods /></el-icon>
+            公共药品库
+            <el-tag size="small" type="success" style="margin-left: 8px">{{ commonMedications.length }} 种</el-tag>
+          </span>
+        </template>
+      </el-tab-pane>
+      <el-tab-pane label="用户药品库" name="user">
+        <template #label>
+          <span>
+            <el-icon><Switch /></el-icon>
+            用户药品库
+            <el-tag size="small" type="primary" style="margin-left: 8px">{{ userMedications.length }} 种</el-tag>
+          </span>
+        </template>
+      </el-tab-pane>
+    </el-tabs>
 
-        <el-select
-          v-model="categoryFilter"
-          placeholder="全部分类"
-          style="width: 200px"
-          clearable
-          @change="fetchMedications"
-        >
-          <el-option label="全部分类" value="" />
-          <el-option
-            v-for="cat in categories"
-            :key="cat"
-            :label="cat"
-            :value="cat"
-          />
-        </el-select>
+    <!-- 公共药品库 -->
+    <template v-if="activeTab === 'common'">
+      <!-- 操作栏 -->
+      <el-card class="filter-card">
+        <div class="filter-row">
+          <el-button type="success" @click="handleImportCommonMedications">
+            <el-icon><Download /></el-icon>
+            导入常用药品
+          </el-button>
+          <el-button type="primary" @click="handleAddCommon">
+            <el-icon><Plus /></el-icon>
+            添加药品
+          </el-button>
 
-        <el-button @click="handleClearFilter">重置</el-button>
-      </div>
-    </el-card>
+          <div style="flex: 1" />
 
-    <!-- 药品列表 -->
-    <el-card>
-      <el-table
-        :data="medications"
-        v-loading="loading"
-        style="width: 100%"
-      >
-        <el-table-column prop="image_url" label="图片" width="80">
-          <template #default="{ row }">
-            <el-avatar
-              v-if="row.image_url"
-              :src="row.image_url"
-              :size="50"
-              shape="square"
+          <el-input
+            v-model="searchKeyword"
+            placeholder="搜索药品名称或通用名"
+            style="width: 300px"
+            clearable
+            @clear="fetchCommonMedications"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+
+          <el-select
+            v-model="categoryFilter"
+            placeholder="全部分类"
+            style="width: 200px; margin-left: 12px"
+            clearable
+            @change="fetchCommonMedications"
+          >
+            <el-option label="全部分类" value="" />
+            <el-option
+              v-for="cat in categories"
+              :key="cat"
+              :label="cat"
+              :value="cat"
             />
-            <el-avatar v-else :size="50" icon="Goods" shape="square" />
-          </template>
-        </el-table-column>
-        <el-table-column prop="name" label="药品名称" />
-        <el-table-column prop="generic_name" label="通用名称" />
-        <el-table-column prop="category" label="分类" width="120">
-          <template #default="{ row }">
-            <el-tag size="small">{{ row.category }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="manufacturer" label="生产厂家" />
-        <el-table-column prop="specification" label="规格" width="120" />
-        <el-table-column prop="is_active" label="状态" width="80">
-          <template #default="{ row }">
-            <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
-              {{ row.is_active ? '在用' : '停用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="created_at" label="添加时间" width="180">
-          <template #default="{ row }">
-            {{ new Date(row.created_at).toLocaleDateString('zh-CN') }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+          </el-select>
 
-    <!-- 添加/编辑对话框 -->
+          <el-button @click="handleClearFilter" style="margin-left: 12px">重置</el-button>
+        </div>
+      </el-card>
+
+      <!-- 药品列表 -->
+      <el-card>
+        <el-table
+          :data="commonMedications"
+          v-loading="commonLoading"
+          style="width: 100%"
+        >
+          <el-table-column prop="name" label="药品名称" />
+          <el-table-column prop="generic_name" label="通用名称" />
+          <el-table-column prop="category" label="分类" width="120">
+            <template #default="{ row }">
+              <el-tag size="small">{{ row.category }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="manufacturer" label="生产厂家" />
+          <el-table-column prop="specification" label="规格" width="120" />
+          <el-table-column prop="form" label="剂型" width="100" />
+          <el-table-column prop="is_active" label="状态" width="80">
+            <template #default="{ row }">
+              <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
+                {{ row.is_active ? '在用' : '停用' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="created_at" label="添加时间" width="180">
+            <template #default="{ row }">
+              {{ new Date(row.created_at).toLocaleDateString('zh-CN') }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="200" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="handleEditCommon(row)">编辑</el-button>
+              <el-button link type="danger" @click="handleDeleteCommon(row)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-card>
+    </template>
+
+    <!-- 用户药品库 -->
+    <template v-if="activeTab === 'user'">
+      <!-- 操作栏 -->
+      <el-card class="filter-card">
+        <div class="filter-row">
+          <el-button type="primary" @click="handleAddUser">
+            <el-icon><Plus /></el-icon>
+            添加药品
+          </el-button>
+        </div>
+      </el-card>
+
+      <!-- 药品列表 -->
+      <el-card>
+        <el-table
+          :data="userMedications"
+          v-loading="userLoading"
+          style="width: 100%"
+        >
+          <el-table-column prop="image_url" label="图片" width="80">
+            <template #default="{ row }">
+              <el-avatar
+                v-if="row.image_url"
+                :src="row.image_url"
+                :size="50"
+                shape="square"
+              />
+              <el-avatar v-else :size="50" icon="Goods" shape="square" />
+            </template>
+          </el-table-column>
+          <el-table-column prop="name" label="药品名称" />
+          <el-table-column prop="generic_name" label="通用名称" />
+          <el-table-column prop="manufacturer" label="生产厂家" />
+          <el-table-column prop="specification" label="规格" width="120" />
+          <el-table-column prop="dosage_unit" label="单位" width="80" />
+          <el-table-column prop="created_at" label="添加时间" width="180">
+            <template #default="{ row }">
+              {{ new Date(row.created_at).toLocaleDateString('zh-CN') }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="200" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="handleEditUser(row)">编辑</el-button>
+              <el-button link type="danger" @click="handleDeleteUser(row)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-card>
+    </template>
+
+    <!-- 公共药品添加/编辑对话框 -->
     <el-dialog
-      v-model="dialogVisible"
+      v-model="commonDialogVisible"
       :title="editMode ? '编辑药品' : '添加药品'"
       width="700px"
-      @closed="formRef?.resetFields()"
+      @closed="commonFormRef?.resetFields()"
     >
       <el-form
-        ref="formRef"
-        :model="currentMedication"
+        ref="commonFormRef"
+        :model="currentCommonMedication"
         :rules="formRules"
         label-width="100px"
       >
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="药品名称" prop="name">
-              <el-input v-model="currentMedication.name" placeholder="如：阿司匹林肠溶片" />
+              <el-input v-model="currentCommonMedication.name" placeholder="如：阿司匹林肠溶片" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="通用名称">
-              <el-input v-model="currentMedication.generic_name" placeholder="如：Acetylsalicylic Acid" />
+              <el-input v-model="currentCommonMedication.generic_name" placeholder="如：Acetylsalicylic Acid" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -431,22 +660,24 @@ onMounted(() => {
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="药品分类" prop="category">
-              <el-select v-model="currentMedication.category" placeholder="请选择分类" style="width: 100%">
-                <el-option label="心血管系统" value="心血管系统" />
-                <el-option label="消化系统" value="消化系统" />
-                <el-option label="呼吸系统" value="呼吸系统" />
-                <el-option label="神经系统" value="神经系统" />
-                <el-option label="内分泌系统" value="内分泌系统" />
-                <el-option label="抗感染药" value="抗感染药" />
+              <el-select v-model="currentCommonMedication.category" placeholder="请选择分类" style="width: 100%">
+                <el-option label="降压药" value="降压药" />
+                <el-option label="降糖药" value="降糖药" />
+                <el-option label="降脂药" value="降脂药" />
+                <el-option label="心血管药" value="心血管药" />
+                <el-option label="胃药" value="胃药" />
+                <el-option label="止咳药" value="止咳药" />
                 <el-option label="止痛药" value="止痛药" />
-                <el-option label="维生素类" value="维生素类" />
+                <el-option label="维生素" value="维生素" />
+                <el-option label="钙片" value="钙片" />
+                <el-option label="抗生素" value="抗生素" />
                 <el-option label="其他" value="其他" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="生产厂家">
-              <el-input v-model="currentMedication.manufacturer" placeholder="如：拜耳医药" />
+              <el-input v-model="currentCommonMedication.manufacturer" placeholder="如：拜耳医药" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -454,51 +685,149 @@ onMounted(() => {
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="规格">
-              <el-input v-model="currentMedication.specification" placeholder="如：100mg*30 片" />
+              <el-input v-model="currentCommonMedication.specification" placeholder="如：100mg*30 片" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="状态">
-              <el-switch v-model="currentMedication.is_active" active-text="在用" inactive-text="停用" />
+            <el-form-item label="剂型">
+              <el-select v-model="currentCommonMedication.form" placeholder="请选择剂型" style="width: 100%">
+                <el-option label="片剂" value="片剂" />
+                <el-option label="胶囊" value="胶囊" />
+                <el-option label="缓释片" value="缓释片" />
+                <el-option label="肠溶片" value="肠溶片" />
+                <el-option label="注射液" value="注射液" />
+                <el-option label="散剂" value="散剂" />
+                <el-option label="丸剂" value="丸剂" />
+                <el-option label="其他" value="其他" />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-form-item label="用药说明">
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="剂量单位">
+              <el-input v-model="currentCommonMedication.dosage_unit" placeholder="如：片、粒、ml" style="width: 120px" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="状态">
+              <el-switch v-model="currentCommonMedication.is_active" active-text="在用" inactive-text="停用" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-form-item label="外观描述">
           <el-input
-            v-model="currentMedication.dosage_instructions"
+            v-model="currentCommonMedication.appearance_desc"
             type="textarea"
             :rows="2"
-            placeholder="如：口服，一次 1 片，一日 3 次，饭前服用"
+            placeholder="如：黄色椭圆形薄膜衣片"
           />
-        </el-form-item>
-
-        <el-form-item label="禁忌症">
-          <el-input
-            v-model="currentMedication.contraindications"
-            type="textarea"
-            :rows="2"
-            placeholder="如：对本品过敏者禁用，胃溃疡患者慎用"
-          />
-        </el-form-item>
-
-        <el-form-item label="不良反应">
-          <el-input
-            v-model="currentMedication.side_effects"
-            type="textarea"
-            :rows="2"
-            placeholder="如：可能出现恶心、头晕、皮疹等反应"
-          />
-        </el-form-item>
-
-        <el-form-item label="图片 URL">
-          <el-input v-model="currentMedication.image_url" placeholder="输入图片 URL 或留空" />
         </el-form-item>
       </el-form>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">保存</el-button>
+        <el-button @click="commonDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmitCommon">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 用户药品添加/编辑对话框 -->
+    <el-dialog
+      v-model="userDialogVisible"
+      :title="editMode ? '编辑药品' : '添加药品'"
+      width="700px"
+      @closed="userFormRef?.resetFields()"
+    >
+      <el-form
+        ref="userFormRef"
+        :model="currentUserMedication"
+        :rules="formRules"
+        label-width="100px"
+      >
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="药品名称" prop="name">
+              <el-input v-model="currentUserMedication.name" placeholder="如：阿司匹林肠溶片" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="通用名称">
+              <el-input v-model="currentUserMedication.generic_name" placeholder="如：Acetylsalicylic Acid" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="生产厂家">
+              <el-input v-model="currentUserMedication.manufacturer" placeholder="如：拜耳医药" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="规格">
+              <el-input v-model="currentUserMedication.specification" placeholder="如：100mg*30 片" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="剂型">
+              <el-select v-model="currentUserMedication.form" placeholder="请选择剂型" style="width: 100%">
+                <el-option label="片剂" value="片剂" />
+                <el-option label="胶囊" value="胶囊" />
+                <el-option label="缓释片" value="缓释片" />
+                <el-option label="肠溶片" value="肠溶片" />
+                <el-option label="注射液" value="注射液" />
+                <el-option label="散剂" value="散剂" />
+                <el-option label="丸剂" value="丸剂" />
+                <el-option label="其他" value="其他" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="剂量单位">
+              <el-input v-model="currentUserMedication.dosage_unit" placeholder="如：片、粒、ml" style="width: 120px" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="颜色">
+              <el-input v-model="currentUserMedication.color" placeholder="如：白色、黄色" style="width: 120px" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="形状">
+              <el-input v-model="currentUserMedication.shape" placeholder="如：圆形、椭圆形" style="width: 120px" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-form-item label="外观描述">
+          <el-input
+            v-model="currentUserMedication.appearance_desc"
+            type="textarea"
+            :rows="2"
+            placeholder="如：黄色椭圆形薄膜衣片"
+          />
+        </el-form-item>
+
+        <el-form-item label="条形码">
+          <el-input v-model="currentUserMedication.barcode" placeholder="如：6901234567890" />
+        </el-form-item>
+
+        <el-form-item label="图片 URL">
+          <el-input v-model="currentUserMedication.image_url" placeholder="输入图片 URL 或留空" />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="userDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmitUser">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -531,6 +860,11 @@ onMounted(() => {
 .filter-row {
   display: flex;
   gap: 16px;
+  align-items: center;
+}
+
+:deep(.el-tabs__label) {
+  display: flex;
   align-items: center;
 }
 </style>
