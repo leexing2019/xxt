@@ -6,7 +6,7 @@
  */
 
 import { supabase } from './supabase'
-import { match as pinyinMatch } from 'pinyin-match'
+import PinyinMatch from 'pinyin-match'
 
 /**
  * 公共药品接口（与数据库 common_medications 表对应）
@@ -130,10 +130,10 @@ export async function searchMedications(keyword: string): Promise<DisplayMedicat
     }
 
     // 拼音首字母搜索（使用 pinyin-match 库）
-    if (pinyinMatch(med.name, keyword)) {
+    if (PinyinMatch.match(med.name, keyword)) {
       return true
     }
-    if (med.generic_name && pinyinMatch(med.generic_name, keyword)) {
+    if (med.generic_name && PinyinMatch.match(med.generic_name, keyword)) {
       return true
     }
 
