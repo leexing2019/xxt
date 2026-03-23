@@ -3,7 +3,7 @@
     <!-- 步骤条 -->
     <StepIndicator
       :current="currentStep"
-      :steps="['选择药品', '设置时间', '确认']"
+      :steps="isEditMode ? ['确认药品', '设置时间', '确认'] : ['选择药品', '设置时间', '确认']"
     />
 
     <!-- 步骤 1: 选择药品 -->
@@ -139,7 +139,7 @@
           <image v-if="selectedMedication" :src="selectedMedication.image" class="med-image" />
           <view class="med-info">
             <text class="med-name">{{ selectedMedication?.name }}</text>
-            <text class="med-usage">{{ selectedMedication?.usage }}</text>
+            <text class="med-usage">{{ dynamicUsage }}</text>
           </view>
         </view>
 
@@ -245,7 +245,7 @@
             <view class="confirm-med-info">
               <text class="confirm-med-name">{{ selectedMedication?.name }}</text>
               <text class="confirm-med-generic">通用名：{{ selectedMedication?.genericName }}</text>
-              <text class="confirm-med-usage">{{ selectedMedication?.usage }}</text>
+              <text class="confirm-med-usage">{{ dynamicUsage }}</text>
             </view>
           </view>
         </view>
@@ -328,8 +328,17 @@ import StepIndicator from '@/components/StepIndicator.vue'
 const medicationStore = useMedicationStore()
 const authStore = useAuthStore()
 
+// 从 store 获取数据
+const medications = computed(() => medicationStore.medications)
+const schedules = computed(() => medicationStore.schedules)
+
 // 步骤条
 const currentStep = ref(1)
+
+// 编辑模式
+const isEditMode = ref(false)
+const editingMedicationId = ref<string>('')
+const editingScheduleIds = ref<string[]>([])
 
 // 状态接口
 interface Schedule {
@@ -420,6 +429,24 @@ const loadingText = ref('')
 const selectedWeekdaysText = computed(() => {
   const days = schedule.weekdays.sort((a, b) => a - b)
   return days.map(d => weekdays.find(w => w.value === d)?.label || '').join('、')
+})
+
+// 动态用药说明（根据设置的时间和用量实时生成）
+const dynamicUsage = computed(() => {
+  const timeCount = schedule.time_of_day.filter(t => t).length
+  const dosage = schedule.dosage || '1'
+  const unit = dosageUnits[dosageUnitIndex.value]
+
+  if (timeCount === 0) {
+    return `每次${dosage}${unit}，请设置时间`
+  }
+
+  // 根据时间数量生成"每日 X 次"
+  const frequencyText = frequency.value === 'daily'
+    ? `每日${timeCount}次`
+    : `每周${selectedWeekdaysText.value}，每日${timeCount}次`
+
+  return `每次${dosage}${unit}，${frequencyText}`
 })
 
 // 判断是否为拼音输入（2 个或以上字母）
@@ -526,6 +553,12 @@ function addNewMedication() {
 
   selectMedication(tempMed)
   speakText(`已添加新药${tempMed.name}，请确认信息`)
+
+  // 自动进入下一步
+  setTimeout(() => {
+    currentStep.value = 2
+    speakText('请设置服药时间')
+  }, 500)
 }
 
 // 选择分类
@@ -755,7 +788,7 @@ function nextStep() {
   }
 }
 
-// 确认添加
+// 确认添加/更新
 async function confirmAdd() {
   if (!selectedMedication.value || !authStore.userId) {
     uni.showToast({ title: '请先选择药品', icon: 'none' })
@@ -763,46 +796,89 @@ async function confirmAdd() {
   }
 
   loading.value = true
-  loadingText.value = '正在添加...'
+  loadingText.value = isEditMode.value ? '正在保存...' : '正在添加...'
 
   try {
-    // 添加药品到数据库
-    const result = await medicationStore.addMedication({
-      name: selectedMedication.value.name,
-      generic_name: selectedMedication.value.genericName,
-      specification: '',
-      form: '',
-      manufacturer: '',
-      appearance_desc: selectedMedication.value.appearanceDesc,
-      image_url: selectedMedication.value.image
-    })
+    if (isEditMode.value) {
+      // 编辑模式：更新药品和用药计划
+      const result = await medicationStore.updateMedication(editingMedicationId.value, {
+        name: selectedMedication.value.name,
+        generic_name: selectedMedication.value.genericName,
+        specification: '',
+        form: '',
+        manufacturer: '',
+        appearance_desc: selectedMedication.value.appearanceDesc,
+        image_url: selectedMedication.value.image
+      })
 
-    if (result.success && result.data) {
-      // 添加用药计划
-      for (const time of schedule.time_of_day) {
-        await medicationStore.addSchedule({
-          medication_id: result.data.id,
-          time_of_day: time,
-          dosage: `${schedule.dosage}${dosageUnits[dosageUnitIndex.value]}`,
-          instructions: schedule.instructions,
-          weekdays: schedule.weekdays,
-          start_date: schedule.start_date
-        })
+      if (result.success) {
+        // 先删除旧的用药计划
+        for (const scheduleId of editingScheduleIds.value) {
+          await medicationStore.deleteSchedule(scheduleId)
+        }
+
+        // 添加新的用药计划
+        for (const time of schedule.time_of_day) {
+          await medicationStore.addSchedule({
+            medication_id: editingMedicationId.value,
+            time_of_day: time,
+            dosage: `${schedule.dosage}${dosageUnits[dosageUnitIndex.value]}`,
+            instructions: schedule.instructions,
+            weekdays: schedule.weekdays,
+            start_date: schedule.start_date
+          })
+        }
+
+        const msg = `${selectedMedication.value.name}已更新成功`
+        speakText(msg)
+        uni.showToast({ title: '更新成功', icon: 'success' })
+
+        setTimeout(() => {
+          resetState()
+          uni.navigateBack()
+        }, 1500)
+      } else {
+        throw new Error(result.error || '更新失败')
       }
-
-      const msg = `${selectedMedication.value.name}已添加成功`
-      speakText(msg)
-      uni.showToast({ title: '添加成功', icon: 'success' })
-
-      setTimeout(() => {
-        resetState()
-        uni.switchTab({ url: '/pages/medication-list/medication-list' })
-      }, 1500)
     } else {
-      throw new Error(result.error || '添加失败')
+      // 添加模式：新建药品和用药计划
+      const result = await medicationStore.addMedication({
+        name: selectedMedication.value.name,
+        generic_name: selectedMedication.value.genericName,
+        specification: '',
+        form: '',
+        manufacturer: '',
+        appearance_desc: selectedMedication.value.appearanceDesc,
+        image_url: selectedMedication.value.image
+      })
+
+      if (result.success && result.data) {
+        // 添加用药计划
+        for (const time of schedule.time_of_day) {
+          await medicationStore.addSchedule({
+            medication_id: result.data.id,
+            time_of_day: time,
+            dosage: `${schedule.dosage}${dosageUnits[dosageUnitIndex.value]}`,
+            instructions: schedule.instructions,
+            weekdays: schedule.weekdays,
+            start_date: schedule.start_date
+          })
+        }
+
+        const msg = `${selectedMedication.value.name}已添加成功`
+        speakText(msg)
+        uni.showToast({ title: '添加成功', icon: 'success' })
+
+        setTimeout(() => {
+          resetState()
+          uni.switchTab({ url: '/pages/medication-list/medication-list' })
+        }, 1500)
+      } else {
+        throw new Error(result.error || '添加失败')
+      }
     }
   } catch (error: any) {
-    uni.showToast({ title: error.message || '添加失败', icon: 'none' })
+    uni.showToast({ title: error.message || '操作失败', icon: 'none' })
   } finally {
     loading.value = false
   }
@@ -810,16 +886,31 @@ async function confirmAdd() {
 
 // 取消添加
 function cancelAdd() {
-  uni.showModal({
-    title: '确认取消',
-    content: '确定要取消添加药品吗？',
-    success: (res) => {
-      if (res.confirm) {
-        resetState()
-        uni.navigateBack()
+  if (isEditMode.value) {
+    // 编辑模式：直接返回
+    uni.showModal({
+      title: '确认取消',
+      content: '确定要取消编辑吗？修改将不会保存。',
+      success: (res) => {
+        if (res.confirm) {
+          resetState()
+          uni.navigateBack()
+        }
       }
-    }
-  })
+    })
+  } else {
+    // 添加模式：显示原有提示
+    uni.showModal({
+      title: '确认取消',
+      content: '确定要取消添加药品吗？',
+      success: (res) => {
+        if (res.confirm) {
+          resetState()
+          uni.navigateBack()
+        }
+      }
+    })
+  }
 }
 
 // 重置状态
@@ -837,6 +928,9 @@ function resetState() {
   voiceText.value = ''
   activeCategory.value = 'all'
   dosageUnitIndex.value = 0
+  isEditMode.value = false
+  editingMedicationId.value = ''
+  editingScheduleIds.value = []
 }
 
 // 页面加载时语音提示并加载公共药品库
@@ -846,9 +940,73 @@ onMounted(async () => {
   commonMedications.value = await fetchCommonMedications()
   loadingDrugs.value = false
 
-  setTimeout(() => {
-    speakText('欢迎添加药品，请选择药品开始')
-  }, 500)
+  // 检查是否是编辑模式
+  const pages = getCurrentPages()
+  const currentPage = pages[pages.length - 1]
+  const options = currentPage.options as any
+
+  if (options?.id) {
+    // 编辑模式：先刷新数据，再加载药品数据
+    await medicationStore.fetchMedications()
+    await medicationStore.fetchSchedules()
+
+    isEditMode.value = true
+    editingMedicationId.value = options.id
+
+    // 获取药品信息
+    const medication = medications.value.find(m => m.id === options.id)
+    if (medication) {
+      // 填充选中药品
+      selectedMedication.value = {
+        id: medication.id,
+        name: medication.name,
+        genericName: medication.generic_name || '',
+        category: '其他',
+        indications: '',
+        appearanceDesc: medication.appearance_desc || '',
+        image: medication.image_url || '',
+        usage: ''
+      }
+
+      // 获取该药品的用药计划
+      const medSchedules = schedules.value.filter(s => s.medication_id === options.id)
+      if (medSchedules.length > 0) {
+        // 保存原有计划 ID 用于删除
+        editingScheduleIds.value = medSchedules.map(s => s.id)
+
+        // 填充用药计划数据
+        schedule.time_of_day = medSchedules.map(s => s.time_of_day)
+        schedule.dosage = medSchedules[0].dosage.replace(/[^\d]/g, '') || '1'
+        schedule.instructions = medSchedules[0].instructions || ''
+        schedule.weekdays = medSchedules[0].weekdays || [1, 2, 3, 4, 5, 6, 7]
+        schedule.start_date = medSchedules[0].start_date
+
+        // 设置用量单位
+        const unitMatch = medSchedules[0].dosage.match(/[\u4e00-\u9fa5]+$/)
+        if (unitMatch) {
+          const unitIndex = dosageUnits.indexOf(unitMatch[0])
+          if (unitIndex > -1) {
+            dosageUnitIndex.value = unitIndex
+          }
+        }
+      }
+
+      // 直接进入第 2 步
+      currentStep.value = 2
+      speakText('已进入编辑模式，请修改服药时间')
+    } else {
+      // 药品不存在，提示错误
+      uni.showToast({ title: '药品不存在', icon: 'none' })
+      setTimeout(() => {
+        uni.navigateBack()
+      }, 1500)
+    }
+  } else {
+    // 添加模式：正常语音提示
+    setTimeout(() => {
+      speakText('欢迎添加药品，请选择药品开始')
+    }, 500)
+  }
 })
 
 onUnmounted(() => {
@@ -963,32 +1121,35 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 48rpx 32rpx;
-  gap: 24rpx;
+  padding: 24rpx 32rpx;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
 }
 
 .empty-icon {
-  font-size: 80rpx;
+  font-size: 64rpx;
   opacity: 0.5;
 }
 
 .empty-text {
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: #666;
   text-align: center;
 }
 
 .empty-btn {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
+  justify-content: center;
   background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
   border: 2rpx solid #2196F3;
   border-radius: 24rpx;
-  padding: 32rpx 24rpx;
+  padding: 20rpx 32rpx;
   width: 100%;
-  gap: 8rpx;
+  gap: 12rpx;
   transition: all 0.2s;
+  min-height: 88rpx;
 
   &:active {
     transform: scale(0.98);
@@ -997,20 +1158,21 @@ onUnmounted(() => {
 }
 
 .empty-btn-icon {
-  font-size: 48rpx;
+  font-size: 40rpx;
   color: #2196F3;
   font-weight: 700;
 }
 
 .empty-btn-text {
-  font-size: 30rpx;
+  font-size: 28rpx;
   color: #1976D2;
   font-weight: 600;
 }
 
 .empty-btn-hint {
-  font-size: 24rpx;
+  font-size: 22rpx;
   color: #666;
+  margin-left: 8rpx;
 }
 
 // ===== 功能按钮 =====
