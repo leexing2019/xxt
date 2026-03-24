@@ -360,13 +360,43 @@ function downloadTemplate() {
     { wch: 15 }, { wch: 10 }, { wch: 30 }, { wch: 10 }
   ]
 
-  // 设置数据验证
+  // 设置数据验证 - 为整个列区域设置下拉列表
+  // C 列：药品分类（C2:C11）
+  // F 列：剂型（F2:F11）
   wsTemplate['!dataValidations'] = {
-    C2: { type: 'list', formulae: [categories], allowBlank: false, showDropDown: false, showErrorMessage: true, error: '分类无效' },
-    F2: { type: 'list', formulae: [forms], allowBlank: false, showDropDown: false, showErrorMessage: true, error: '剂型无效' }
+    C2: {
+      type: 'list',
+      formulae: [`"${categories}"`],
+      allowBlank: false,
+      showDropDown: true,
+      showErrorMessage: true,
+      errorStyle: 'stop',
+      error: '分类无效，请从下拉列表选择'
+    },
+    F2: {
+      type: 'list',
+      formulae: [`"${forms}"`],
+      allowBlank: false,
+      showDropDown: true,
+      showErrorMessage: true,
+      errorStyle: 'stop',
+      error: '剂型无效，请从下拉列表选择'
+    }
   }
 
-  // 设置必填单元格背景色
+  // 为 C3:C11 和 F3:F11 也设置相同的数据验证
+  for (let i = 3; i <= 11; i++) {
+    wsTemplate[`C${i}`] = {
+      ...wsTemplate[`C${i}`],
+      t: 's'
+    }
+    wsTemplate[`F${i}`] = {
+      ...wsTemplate[`F${i}`],
+      t: 's'
+    }
+  }
+
+  // 设置必填单元格背景色（浅红色）
   for (let i = 2; i <= 11; i++) {
     wsTemplate[`A${i}`] = { s: { fill: { fgColor: { rgb: 'FFE6E6' } } } }
     wsTemplate[`C${i}`] = { s: { fill: { fgColor: { rgb: 'FFE6E6' } } } }
