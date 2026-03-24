@@ -562,76 +562,109 @@ async function handleFileUpload(file: any) {
   }
 }
 
-// 确认导入数据
-async function handleConfirmUpload() {
+// 更新行数据
+function updateRowData(rowId: number, field: string, value: any) {
+  const row = previewData.value.find(r => r.id === rowId)
+  if (row) {
+    row.data[field] = value
+    // 重新验证
+    row.errors = validateRow(row.data)
+    row.hasErrors = row.errors.length > 0
+    hasErrors.value = previewData.value.some(r => r.hasErrors)
+  }
+}
+
+// 删除行
+function deleteRow(rowId: number) {
+  previewData.value = previewData.value.filter(r => r.id !== rowId)
+  hasErrors.value = previewData.value.some(r => r.hasErrors)
+}
+
+// 批量导入数据
+async function handleBatchImport() {
+  if (hasErrors.value) {
+    ElMessage.warning('还有错误数据未修正，无法导入')
+    return
+  }
+
+  const validRows = previewData.value.filter(r => !r.hasErrors)
+  if (validRows.length === 0) {
+    ElMessage.warning('没有可导入的数据')
+    return
+  }
+
   try {
-    const loadingInstance = ElLoading.service({
+    const loading = ElLoading.service({
       lock: true,
-      text: '正在导入药品数据...',
+      text: '正在导入药品...',
       background: 'rgba(0, 0, 0, 0.7)'
     })
 
-    // 过滤出有效的数据行
-    const validRows = previewData.value
-      .filter(row => !row.hasErrors)
-      .map(row => row.data)
-
-    if (validRows.length === 0) {
-      ElMessage.warning('没有可导入的有效数据')
-      previewVisible.value = false
-      loadingInstance.close()
-      return
+    const results = {
+      success: 0,
+      duplicate: 0,
+      failed: 0,
+      details: [] as { name: string; reason: string; type: 'duplicate' | 'failed' }[]
     }
 
-    // 批量导入药品数据
-    let successCount = 0
-    let skipCount = 0
-    let errorCount = 0
-
     for (const row of validRows) {
-      const medicationData = {
-        name: String(row['药品名称']).trim(),
-        generic_name: row['通用名称'] ? String(row['通用名称']).trim() : undefined,
-        category: String(row['药品分类']).trim(),
-        manufacturer: row['生产厂家'] ? String(row['生产厂家']).trim() : undefined,
-        specification: row['规格'] ? String(row['规格']).trim() : undefined,
-        form: String(row['剂型']).trim(),
-        appearance_desc: row['外观描述'] ? String(row['外观描述']).trim() : undefined,
-        dosage_unit: row['剂量单位'] ? String(row['剂量单位']).trim() : undefined,
+      const medData = {
+        name: row.data['药品名称'],
+        generic_name: row.data['通用名称'] || '',
+        category: row.data['药品分类'],
+        manufacturer: row.data['生产厂家'] || '',
+        specification: row.data['规格'] || '',
+        form: row.data['剂型'],
+        appearance_desc: row.data['外观描述'] || '',
+        dosage_unit: row.data['剂量单位'] || '',
         is_active: true
       }
 
       const { error } = await supabase
         .from('common_medications')
-        .insert([medicationData])
+        .insert([medData])
 
       if (error) {
         if (error.code === '23505') {
-          skipCount++
+          results.duplicate++
+          results.details.push({ name: medData.name, reason: '药品已存在', type: 'duplicate' })
         } else {
-          console.error('导入药品失败:', error)
-          errorCount++
+          results.failed++
+          results.details.push({ name: medData.name, reason: error.message, type: 'failed' })
         }
       } else {
-        successCount++
+        results.success++
       }
     }
 
-    loadingInstance.close()
+    loading.close()
     previewVisible.value = false
-
-    if (successCount > 0 || skipCount > 0) {
-      ElMessage.success(`导入完成！成功 ${successCount} 条，跳过 ${skipCount} 条已存在的药品`)
-      await fetchCommonMedications()
-    } else if (errorCount > 0) {
-      ElMessage.error(`导入失败，${errorCount} 条数据出错`)
-    } else {
-      ElMessage.warning('没有导入任何数据')
-    }
+    showImportResult(results)
+    await fetchCommonMedications()
   } catch (error) {
-    console.error('导入过程出错:', error)
+    console.error('导入失败:', error)
     ElMessage.error('导入失败：' + (error as any).message)
   }
+}
+
+// 显示导入结果
+function showImportResult(results: any) {
+  let message = `<div style="text-align: left; padding: 10px 0;">`
+  message += `<p style="color: #67c23a; margin: 5px 0;">✓ 成功导入：${results.success} 条</p>`
+  if (results.duplicate > 0) {
+    message += `<p style="color: #e6a23c; margin: 5px 0;">⚠ 跳过重复：${results.duplicate} 条</p>`
+    results.details.filter((d: any) => d.type === 'duplicate').forEach((d: any) => {
+      message += `<p style="color: #e6a23c; margin: 2px 0; padding-left: 20px;">• ${d.name}（${d.reason}）</p>`
+    })
+  }
+  if (results.failed > 0) {
+    message += `<p style="color: #f56c6c; margin: 5px 0;">✗ 导入失败：${results.failed} 条</p>`
+    results.details.filter((d: any) => d.type === 'failed').forEach((d: any) => {
+      message += `<p style="color: #f56c6c; margin: 2px 0; padding-left: 20px;">• ${d.name}（${d.reason}）</p>`
+    })
+  }
+  message += `</div>`
+  ElMessageBox.alert(message, '导入完成', { dangerouslyUseHTMLString: true, confirmButtonText: '确定' })
 }
 
 async function fetchCommonMedications() {
@@ -1028,56 +1061,98 @@ onMounted(() => {
     <!-- 上传预览对话框 -->
     <el-dialog
       v-model="previewVisible"
-      title="数据预览"
-      width="90%"
+      :title="`批量导入预览 - 共 ${previewData.length} 条，错误 ${previewData.filter(r => r.hasErrors).length} 条`"
+      width="1200px"
       :close-on-click-modal="false"
     >
-      <el-alert
-        v-if="hasErrors"
-        title="数据存在错误，请修正后再提交"
-        type="error"
-        show-icon
-        style="margin-bottom: 16px"
-      />
-      <el-alert
-        v-else
-        title="数据验证通过，可以提交"
-        type="success"
-        show-icon
-        style="margin-bottom: 16px"
-      />
-
-      <el-table
-        :data="previewData"
-        max-height="400"
-        style="width: 100%"
-      >
-        <el-table-column type="index" width="50" />
-        <el-table-column prop="data.药品名称" label="药品名称" />
-        <el-table-column prop="data.通用名称" label="通用名称" />
-        <el-table-column prop="data.药品分类" label="药品分类" />
-        <el-table-column prop="data.生产厂家" label="生产厂家" />
-        <el-table-column prop="data.规格" label="规格" />
-        <el-table-column prop="data.剂型" label="剂型" />
-        <el-table-column label="错误信息">
+      <el-table :data="previewData" max-height="500">
+        <el-table-column label="药品名称" width="180">
           <template #default="{ row }">
-            <div v-if="row.hasErrors" style="color: #f56c6c">
-              <div v-for="(err, idx) in row.errors" :key="idx">{{ err }}</div>
-            </div>
-            <span v-else style="color: #67c23a">✓ 验证通过</span>
+            <el-input v-model="row.data['药品名称']" @change="updateRowData(row.id, '药品名称', ($event.target as HTMLInputElement).value)" />
+          </template>
+        </el-table-column>
+        <el-table-column label="通用名称" width="150">
+          <template #default="{ row }">
+            <el-input v-model="row.data['通用名称']" @change="updateRowData(row.id, '通用名称', ($event.target as HTMLInputElement).value)" />
+          </template>
+        </el-table-column>
+        <el-table-column label="药品分类" width="150">
+          <template #default="{ row }">
+            <el-select v-model="row.data['药品分类']" @change="updateRowData(row.id, '药品分类', $event)">
+              <el-option v-for="cat in VALID_CATEGORIES" :key="cat" :label="cat" :value="cat" />
+            </el-select>
+          </template>
+        </el-table-column>
+        <el-table-column label="生产厂家" width="180">
+          <template #default="{ row }">
+            <el-input v-model="row.data['生产厂家']" @change="updateRowData(row.id, '生产厂家', ($event.target as HTMLInputElement).value)" />
+          </template>
+        </el-table-column>
+        <el-table-column label="规格" width="120">
+          <template #default="{ row }">
+            <el-input v-model="row.data['规格']" @change="updateRowData(row.id, '规格', ($event.target as HTMLInputElement).value)" />
+          </template>
+        </el-table-column>
+        <el-table-column label="剂型" width="120">
+          <template #default="{ row }">
+            <el-select v-model="row.data['剂型']" @change="updateRowData(row.id, '剂型', $event)">
+              <el-option v-for="form in VALID_FORMS" :key="form" :label="form" :value="form" />
+            </el-select>
+          </template>
+        </el-table-column>
+        <el-table-column label="外观描述" width="200">
+          <template #default="{ row }">
+            <el-input v-model="row.data['外观描述']" @change="updateRowData(row.id, '外观描述', ($event.target as HTMLInputElement).value)" />
+          </template>
+        </el-table-column>
+        <el-table-column label="剂量单位" width="100">
+          <template #default="{ row }">
+            <el-input v-model="row.data['剂量单位']" @change="updateRowData(row.id, '剂量单位', ($event.target as HTMLInputElement).value)" />
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" width="80" fixed="right">
+          <template #default="{ row }">
+            <el-tag :type="row.hasErrors ? 'danger' : 'success'" size="small">
+              {{ row.hasErrors ? '有错误' : '通过' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="80" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="danger" @click="deleteRow(row.id)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <template #footer>
-        <el-button @click="previewVisible = false">取消</el-button>
-        <el-button
-          type="primary"
-          :disabled="hasErrors"
-          @click="handleConfirmUpload"
-        >
-          确认导入
-        </el-button>
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <el-alert
+            v-if="hasErrors"
+            type="warning"
+            title="还有错误数据，请修正或删除错误行后方可导入"
+            :closable="false"
+            show-icon
+            style="flex: 1; margin-right: 16px;"
+          />
+          <el-alert
+            v-else
+            type="success"
+            title="所有数据验证通过，可以导入"
+            :closable="false"
+            show-icon
+            style="flex: 1; margin-right: 16px;"
+          />
+          <div>
+            <el-button @click="previewVisible = false">取消</el-button>
+            <el-button
+              type="primary"
+              @click="handleBatchImport"
+              :disabled="hasErrors || previewData.length === 0"
+            >
+              开始导入 ({{ previewData.length }} 条)
+            </el-button>
+          </div>
+        </div>
       </template>
     </el-dialog>
   </div>
