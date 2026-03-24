@@ -229,6 +229,54 @@ function matchesPinyin(text: string, keyword: string): boolean {
   return pinyin.includes(keyword)
 }
 
+// 验证常量和函数
+const VALID_CATEGORIES = ['降压药', '降糖药', '降脂药', '心血管药', '胃药', '止咳药', '止痛药', '维生素', '钙片', '抗生素', '其他']
+const VALID_FORMS = ['tablet', 'capsule', 'liquid']
+
+function validateRow(row: any): string[] {
+  const errors: string[] = []
+
+  // 药品名称：必填，1-100 字
+  if (!row['药品名称'] || String(row['药品名称']).trim() === '') {
+    errors.push('药品名称不能为空')
+  } else if (String(row['药品名称']).length > 100) {
+    errors.push('药品名称过长（最多 100 字）')
+  }
+
+  // 药品分类：必填，预设分类
+  if (!row['药品分类'] || String(row['药品分类']).trim() === '') {
+    errors.push('药品分类不能为空')
+  } else if (!VALID_CATEGORIES.includes(String(row['药品分类']))) {
+    errors.push(`分类无效，可选：${VALID_CATEGORIES.join('、')}`)
+  }
+
+  // 剂型：必填，预设剂型
+  if (!row['剂型'] || String(row['剂型']).trim() === '') {
+    errors.push('剂型不能为空')
+  } else if (!VALID_FORMS.includes(String(row['剂型']))) {
+    errors.push('剂型无效（tablet/capsule/liquid）')
+  }
+
+  // 可选字段长度验证
+  if (row['通用名称'] && String(row['通用名称']).length > 100) {
+    errors.push('通用名称过长（最多 100 字）')
+  }
+  if (row['生产厂家'] && String(row['生产厂家']).length > 200) {
+    errors.push('生产厂家过长（最多 200 字）')
+  }
+  if (row['规格'] && String(row['规格']).length > 50) {
+    errors.push('规格过长（最多 50 字）')
+  }
+  if (row['外观描述'] && String(row['外观描述']).length > 500) {
+    errors.push('外观描述过长（最多 500 字）')
+  }
+  if (row['剂量单位'] && String(row['剂量单位']).length > 20) {
+    errors.push('剂量单位过长（最多 20 字）')
+  }
+
+  return errors
+}
+
 interface CommonMedication {
   id: string
   name: string
@@ -264,6 +312,12 @@ const currentMedication = ref<Partial<CommonMedication>>({})
 
 // 表单引用
 const formRef = ref()
+
+// 上传相关状态
+const uploadRef = ref()
+const previewData = ref<any[]>([])
+const previewVisible = ref(false)
+const hasErrors = ref(false)
 
 // 表单验证规则
 const formRules = {
@@ -453,6 +507,131 @@ function downloadTemplate() {
 
   XLSX.utils.book_append_sheet(wb, wsTemplate, '模板数据')
   XLSX.writeFile(wb, `药品批量导入模板_${dateString}.xlsx`)
+}
+
+// 触发文件上传
+function triggerUpload() {
+  uploadRef.value?.$el.click()
+}
+
+// 处理文件上传和解析
+async function handleFileUpload(file: any) {
+  try {
+    const fileData = await file.raw.arrayBuffer()
+    const workbook = XLSX.read(fileData, { type: 'array' })
+
+    // 获取模板数据工作表
+    const ws = workbook.Sheets[workbook.SheetNames[1]]
+    if (!ws) {
+      ElMessage.error('无效的模板文件格式')
+      return
+    }
+
+    // 解析为 JSON
+    const rows = XLSX.utils.sheet_to_json(ws)
+
+    if (rows.length === 0) {
+      ElMessage.warning('模板中没有数据')
+      return
+    }
+
+    // 验证每一行
+    const validatedRows = rows.map((row, index) => {
+      const errors = validateRow(row)
+      return {
+        id: index,
+        data: row,
+        errors,
+        hasErrors: errors.length > 0
+      }
+    })
+
+    previewData.value = validatedRows
+    hasErrors.value = validatedRows.some(r => r.hasErrors)
+    previewVisible.value = true
+
+    const errorCount = validatedRows.filter(r => r.hasErrors).length
+    if (errorCount > 0) {
+      ElMessage.warning(`共 ${rows.length} 条数据，其中 ${errorCount} 条有错误，请在预览窗口中修正`)
+    } else {
+      ElMessage.success(`共 ${rows.length} 条数据，验证通过`)
+    }
+  } catch (error) {
+    console.error('解析文件失败:', error)
+    ElMessage.error('解析文件失败：' + (error as any).message)
+  }
+}
+
+// 确认导入数据
+async function handleConfirmUpload() {
+  try {
+    const loadingInstance = ElLoading.service({
+      lock: true,
+      text: '正在导入药品数据...',
+      background: 'rgba(0, 0, 0, 0.7)'
+    })
+
+    // 过滤出有效的数据行
+    const validRows = previewData.value
+      .filter(row => !row.hasErrors)
+      .map(row => row.data)
+
+    if (validRows.length === 0) {
+      ElMessage.warning('没有可导入的有效数据')
+      previewVisible.value = false
+      loadingInstance.close()
+      return
+    }
+
+    // 批量导入药品数据
+    let successCount = 0
+    let skipCount = 0
+    let errorCount = 0
+
+    for (const row of validRows) {
+      const medicationData = {
+        name: String(row['药品名称']).trim(),
+        generic_name: row['通用名称'] ? String(row['通用名称']).trim() : undefined,
+        category: String(row['药品分类']).trim(),
+        manufacturer: row['生产厂家'] ? String(row['生产厂家']).trim() : undefined,
+        specification: row['规格'] ? String(row['规格']).trim() : undefined,
+        form: String(row['剂型']).trim(),
+        appearance_desc: row['外观描述'] ? String(row['外观描述']).trim() : undefined,
+        dosage_unit: row['剂量单位'] ? String(row['剂量单位']).trim() : undefined,
+        is_active: true
+      }
+
+      const { error } = await supabase
+        .from('common_medications')
+        .insert([medicationData])
+
+      if (error) {
+        if (error.code === '23505') {
+          skipCount++
+        } else {
+          console.error('导入药品失败:', error)
+          errorCount++
+        }
+      } else {
+        successCount++
+      }
+    }
+
+    loadingInstance.close()
+    previewVisible.value = false
+
+    if (successCount > 0 || skipCount > 0) {
+      ElMessage.success(`导入完成！成功 ${successCount} 条，跳过 ${skipCount} 条已存在的药品`)
+      await fetchCommonMedications()
+    } else if (errorCount > 0) {
+      ElMessage.error(`导入失败，${errorCount} 条数据出错`)
+    } else {
+      ElMessage.warning('没有导入任何数据')
+    }
+  } catch (error) {
+    console.error('导入过程出错:', error)
+    ElMessage.error('导入失败：' + (error as any).message)
+  }
 }
 
 async function fetchCommonMedications() {
@@ -843,6 +1022,62 @@ onMounted(() => {
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="handleSubmit">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 上传预览对话框 -->
+    <el-dialog
+      v-model="previewVisible"
+      title="数据预览"
+      width="90%"
+      :close-on-click-modal="false"
+    >
+      <el-alert
+        v-if="hasErrors"
+        title="数据存在错误，请修正后再提交"
+        type="error"
+        show-icon
+        style="margin-bottom: 16px"
+      />
+      <el-alert
+        v-else
+        title="数据验证通过，可以提交"
+        type="success"
+        show-icon
+        style="margin-bottom: 16px"
+      />
+
+      <el-table
+        :data="previewData"
+        max-height="400"
+        style="width: 100%"
+      >
+        <el-table-column type="index" width="50" />
+        <el-table-column prop="data.药品名称" label="药品名称" />
+        <el-table-column prop="data.通用名称" label="通用名称" />
+        <el-table-column prop="data.药品分类" label="药品分类" />
+        <el-table-column prop="data.生产厂家" label="生产厂家" />
+        <el-table-column prop="data.规格" label="规格" />
+        <el-table-column prop="data.剂型" label="剂型" />
+        <el-table-column label="错误信息">
+          <template #default="{ row }">
+            <div v-if="row.hasErrors" style="color: #f56c6c">
+              <div v-for="(err, idx) in row.errors" :key="idx">{{ err }}</div>
+            </div>
+            <span v-else style="color: #67c23a">✓ 验证通过</span>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <template #footer>
+        <el-button @click="previewVisible = false">取消</el-button>
+        <el-button
+          type="primary"
+          :disabled="hasErrors"
+          @click="handleConfirmUpload"
+        >
+          确认导入
+        </el-button>
       </template>
     </el-dialog>
   </div>
