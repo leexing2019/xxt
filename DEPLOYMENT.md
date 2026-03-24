@@ -11,7 +11,32 @@
 
 ## 数据库迁移
 
-在部署之前，请先执行数据库迁移：
+在部署之前，请按顺序执行以下数据库迁移：
+
+### 1. 拼音首字母自动生成功能（新增）
+
+```bash
+# 执行迁移脚本
+sql/add-pinyin-initials.sql
+```
+
+**操作步骤**：
+1. 访问 Supabase 后台：https://app.supabase.com/project/vqtrfkigzqtcthrivbzn/sql
+2. 复制 `sql/add-pinyin-initials.sql` 的全部内容
+3. 粘贴到 SQL Editor 并点击"Run"执行
+
+**迁移内容**：
+- 添加 `pinyin_initials` 字段到 `common_medications` 表
+- 创建拼音首字母映射函数和自动触发器
+- 为现有数据批量生成拼音首字母
+- 创建索引加速搜索
+
+**效果**：
+- 管理员后台添加药品时，自动生成拼音首字母
+- 用户前端添加药品时，保存到数据库后自动生成拼音首字母
+- 搜索时可以使用拼音首字母（如输入 "jg" 搜索"甲钴胺片"）
+
+### 2. 药品剂型和颜色迁移
 
 1. 访问 Supabase 后台：https://app.supabase.com/project/vqtrfkigzqtcthrivbzn/sql
 2. 复制 `sql/migrate-medication-forms-20260324.sql` 的全部内容
