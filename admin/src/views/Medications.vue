@@ -349,8 +349,8 @@ function downloadTemplate() {
   XLSX.utils.book_append_sheet(wb, wsInstructions, '填写说明')
 
   // 工作表 2：模板数据（含数据验证）
-  const categories = ['降压药', '降糖药', '降脂药', '心血管药', '胃药', '止咳药', '止痛药', '维生素', '钙片', '抗生素', '其他']
-  const forms = ['tablet', 'capsule', 'liquid']
+  const categories = '降压药，降糖药，降脂药，心血管药，胃药，止咳药，止痛药，维生素，钙片，抗生素，其他'
+  const forms = 'tablet,capsule,liquid'
   const headers = ['药品名称', '通用名称', '药品分类', '生产厂家', '规格', '剂型', '外观描述', '剂量单位']
   const emptyRows = Array(10).fill(null).map(() => Array(8).fill(''))
   const wsTemplate = XLSX.utils.aoa_to_sheet([headers, ...emptyRows])
@@ -360,42 +360,28 @@ function downloadTemplate() {
     { wch: 15 }, { wch: 10 }, { wch: 30 }, { wch: 10 }
   ]
 
-  // 使用 XLSX 库的 data validation 功能设置下拉列表
-  const categoriesFormula = '"' + categories.join(',') + '"'
-  const formsFormula = '"' + forms.join(',') + '"'
-
-  // 为第 2-11 行设置数据验证
-  for (let i = 2; i <= 11; i++) {
-    // C 列：药品分类
-    wsTemplate[`C${i}`] = {
-      ...wsTemplate[`C${i}`],
-      t: 's'
-    }
-    // F 列：剂型
-    wsTemplate[`F${i}`] = {
-      ...wsTemplate[`F${i}`],
-      t: 's'
-    }
+  // 设置数据验证 - 使用单个单元格格式
+  const dv = {
+    type: 'list',
+    showDropDown: true,
+    allowBlank: false,
+    showErrorMessage: true,
+    errorStyle: 'stop'
   }
 
-  // 设置数据验证区域
-  wsTemplate['!dataValidations'] = {
-    'C2:C11': {
-      type: 'list',
-      formulae: [categoriesFormula],
-      allowBlank: false,
-      showDropDown: true,
-      showErrorMessage: true,
-      errorStyle: 'stop',
+  // 为每一行设置数据验证
+  for (let i = 2; i <= 11; i++) {
+    // C 列：药品分类
+    wsTemplate[`!dataValidations`] = wsTemplate[`!dataValidations`] || {}
+    wsTemplate[`!dataValidations`][`C${i}`] = {
+      ...dv,
+      formula1: `"${categories}"`,
       error: '分类无效，请从下拉列表选择'
-    },
-    'F2:F11': {
-      type: 'list',
-      formulae: [formsFormula],
-      allowBlank: false,
-      showDropDown: true,
-      showErrorMessage: true,
-      errorStyle: 'stop',
+    }
+    // F 列：剂型
+    wsTemplate[`!dataValidations`][`F${i}`] = {
+      ...dv,
+      formula1: `"${forms}"`,
       error: '剂型无效，请从下拉列表选择'
     }
   }
@@ -408,7 +394,16 @@ function downloadTemplate() {
   }
 
   XLSX.utils.book_append_sheet(wb, wsTemplate, '模板数据')
-  XLSX.writeFile(wb, `药品批量导入模板_${dateString}.xlsx`)
+
+  // 使用 XLSX.write 而不是 writeFile 来确保数据验证被正确写入
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+  const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `药品批量导入模板_${dateString}.xlsx`
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
 // 触发文件上传
