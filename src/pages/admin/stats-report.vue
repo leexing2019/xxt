@@ -513,7 +513,7 @@ async function fetchTrendData() {
 async function fetchCategoryData() {
   try {
     const { data } = await supabase
-      .from('medications')
+      .from('common_medications')
       .select('category')
 
     if (!data || data.length === 0) {
@@ -573,10 +573,10 @@ async function fetchDailyData() {
 // 获取热门药品
 async function fetchPopularMedications() {
   try {
-    // 统计每个药品的用户数
+    // 统计每个药品的用户数（通过 medication_schedules 关联）
     const { data } = await supabase
-      .from('medications')
-      .select('id, name, generic_name, user_id')
+      .from('medication_schedules')
+      .select('medication_id, user_id, common_medications(id, name, generic_name)')
 
     if (!data || data.length === 0) {
       popularMedications.value = []
@@ -585,7 +585,10 @@ async function fetchPopularMedications() {
 
     const medMap = new Map<string, { id: string; name: string; genericName: string; userCount: number }>()
 
-    data.forEach(med => {
+    data.forEach(schedule => {
+      const med = schedule.common_medications
+      if (!med) return
+
       const key = med.id
       if (!medMap.has(key)) {
         medMap.set(key, {

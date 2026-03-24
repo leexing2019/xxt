@@ -49,7 +49,7 @@
           @click="goDetail(med)"
         >
           <view class="med-avatar">
-            <text class="med-icon">{{ med.name.charAt(0) }}</text>
+            <MedicationIcon :name="med.name" :appearance-desc="med.appearance_desc" :size="64" />
           </view>
           <view class="med-info">
             <view class="med-name">{{ med.name }}</view>
@@ -95,6 +95,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useMedicationStore } from '@/store/medication'
 import { checkDrugInteractions } from '@/data/drug-interactions'
+import MedicationIcon from '@/components/MedicationIcon.vue'
 
 const medicationStore = useMedicationStore()
 
@@ -165,6 +166,12 @@ onMounted(async () => {
   if (medications.value.length > 1) {
     checkInteractions()
   }
+
+  // 监听页面显示，从其他页面返回时刷新数据
+  uni.$on('pageShow', () => {
+    medicationStore.fetchMedications()
+    medicationStore.fetchSchedules()
+  })
 })
 </script>
 
@@ -333,19 +340,13 @@ onMounted(async () => {
   width: 80rpx;
   height: 80rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  background: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-right: 20rpx;
   flex-shrink: 0;
-  box-shadow: 0 2rpx 8rpx rgba(30, 136, 229, 0.2);
-}
-
-.med-icon {
-  font-size: 36rpx;
-  color: white;
-  font-weight: bold;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
 }
 
 .med-info {

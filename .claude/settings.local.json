@@ -32,7 +32,8 @@
       "Bash(npm install:*)",
       "Bash(npm list:*)",
       "Bash(curl -s http://localhost:5174)",
-      "Bash(curl -s http://localhost:3011)"
+      "Bash(curl -s http://localhost:3011)",
+      "Bash(git fetch:*)"
     ]
   }
 }

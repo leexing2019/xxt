@@ -101,30 +101,23 @@
           </view>
         </view>
         <view class="medication-content">
-          <!-- 药片图片 -->
-          <view class="medication-image-wrapper" v-if="item.medication?.image_url">
-            <image
-              class="medication-image"
-              :src="item.medication.image_url"
-              mode="aspectFill"
-              lazy-load
-              @error="handleImageError"
+          <!-- 药品图标 -->
+          <view class="medication-icon-wrapper">
+            <MedicationIcon
+              :name="item.common_medications?.name || '药'"
+              :appearance-desc="item.common_medications?.appearance_desc"
+              :size="100"
             />
-          </view>
-          <!-- 药片图片占位符 -->
-          <view class="medication-image-placeholder" v-else>
-            <text class="placeholder-icon">💊</text>
-            <text class="placeholder-text">{{ item.medication?.name?.charAt(0) || '药' }}</text>
           </view>
           <!-- 药品信息 -->
           <view class="medication-details">
-            <text class="medication-name">{{ item.medication?.name }}</text>
+            <text class="medication-name">{{ item.common_medications?.name }}</text>
             <view class="medication-appearance">
               <text class="appearance-icon">🔍</text>
-              <text class="appearance-text">{{ item.medication?.appearance_desc }}</text>
+              <text class="appearance-text">{{ item.common_medications?.appearance_desc || '请遵医嘱使用' }}</text>
             </view>
             <text class="medication-dosage">用量：{{ item.dosage }}</text>
-            <text class="medication-instructions">💡 {{ item.instructions }}</text>
+            <text class="medication-instructions">💡 {{ item.instructions || '请遵医嘱使用' }}</text>
           </view>
         </view>
       </view>
@@ -139,6 +132,7 @@ import { useMedicationStore } from '@/store/medication'
 import { speakText, recognizeSpeech } from '@/services/voice'
 import { showImmediateNotification, vibrate } from '@/services/reminder'
 import type { MedicationSchedule } from '@/store/medication'
+import MedicationIcon from '@/components/MedicationIcon.vue'
 
 const authStore = useAuthStore()
 const medicationStore = useMedicationStore()
@@ -196,7 +190,7 @@ async function takeMedication(item: any) {
 
   uni.showModal({
     title: '确认服药',
-    content: `确认已服用 ${item.medication?.name} ${item.dosage}？`,
+    content: `确认已服用 ${item.common_medications?.name} ${item.dosage}？`,
     confirmText: '确认',
     cancelText: '取消',
     success: async (res) => {
@@ -515,41 +509,11 @@ onMounted(() => {
   gap: 16px;
 }
 
-.medication-image-wrapper {
+.medication-icon-wrapper {
   flex-shrink: 0;
-  position: relative;
-}
-
-.medication-image {
-  width: 100px;
-  height: 100px;
-  border-radius: 12px;
-  background: #F5F5F5;
-  object-fit: cover;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.medication-image-placeholder {
-  width: 100px;
-  height: 100px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.placeholder-icon {
-  font-size: 32px;
-  margin-bottom: 4px;
-}
-
-.placeholder-text {
-  font-size: 24px;
-  font-weight: 600;
-  color: #1976D2;
 }
 
 .medication-details {

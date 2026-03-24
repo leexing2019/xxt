@@ -20,6 +20,19 @@ export interface Medication {
   created_at: string
 }
 
+export interface CommonMedication {
+  id: string
+  name: string
+  generic_name?: string
+  manufacturer?: string
+  specification?: string
+  form?: string
+  appearance_desc?: string
+  image_url?: string
+  category?: string
+  created_at_with_tz?: string
+}
+
 export interface MedicationSchedule {
   id: string
   medication_id: string
@@ -32,7 +45,7 @@ export interface MedicationSchedule {
   end_date?: string
   is_active: boolean
   created_at: string
-  medication?: Medication
+  common_medications?: CommonMedication
 }
 
 export interface MedicationLog {
@@ -67,20 +80,42 @@ export const useMedicationStore = defineStore('medication', () => {
     )
   })
 
-  // 获取所有药品
+  // 获取用户的药品列表（通过 medication_schedules 关联 common_medications）
   async function fetchMedications() {
     if (!authStore.userId) return
-    
+
     loading.value = true
     try {
+      // 通过用药计划表获取用户拥有的药品
       const { data, error } = await supabase
-        .from('medications')
-        .select('*')
+        .from('medication_schedules')
+        .select(`
+          id,
+          medication_id,
+          common_medications (*)
+        `)
         .eq('user_id', authStore.userId)
-        .order('created_at', { ascending: false })
-      
+
       if (error) throw error
-      medications.value = data || []
+
+      // 提取药品信息并去重（一个药品可能有多个用药计划）
+      const medsMap = new Map()
+      data?.forEach(item => {
+        if (!medsMap.has(item.medication_id)) {
+          medsMap.set(item.medication_id, {
+            id: item.common_medications.id,
+            name: item.common_medications.name,
+            generic_name: item.common_medications.generic_name,
+            manufacturer: item.common_medications.manufacturer,
+            specification: item.common_medications.specification,
+            form: item.common_medications.form,
+            appearance_desc: item.common_medications.appearance_desc,
+            image_url: item.common_medications.image_url,
+            created_at: item.common_medications.created_at_with_tz || item.created_at
+          })
+        }
+      })
+      medications.value = Array.from(medsMap.values())
     } catch (error) {
       console.error('获取药品失败:', error)
     } finally {
@@ -88,24 +123,44 @@ export const useMedicationStore = defineStore('medication', () => {
     }
   }
 
-  // 添加药品
+  // 添加药品（添加到 common_medications 公共药品库）
   async function addMedication(medication: Partial<Medication>) {
     if (!authStore.userId) return { success: false, error: '未登录' }
-    
+
     loading.value = true
     try {
+      // 先检查是否已存在同名药品
+      const { data: existingRows, error: queryError } = await supabase
+        .from('common_medications')
+        .select('id')
+        .eq('name', medication.name)
+        .limit(1)
+
+      if (queryError) throw queryError
+
+      if (existingRows && existingRows.length > 0) {
+        // 药品已存在，返回现有 ID
+        return { success: true, data: { id: existingRows[0].id, ...medication } }
+      }
+
+      // 添加到公共药品库
       const { data, error } = await supabase
-        .from('medications')
+        .from('common_medications')
         .insert({
-          ...medication,
-          user_id: authStore.userId
+          name: medication.name,
+          generic_name: medication.generic_name || medication.name,
+          manufacturer: medication.manufacturer || '',
+          specification: medication.specification || '',
+          form: medication.form || '',
+          appearance_desc: medication.appearance_desc || '',
+          image_url: medication.image_url || '',
+          category: '其他' // 默认分类
         })
         .select()
         .single()
-      
+
       if (error) throw error
-      
-      medications.value.unshift(data)
+
       return { success: true, data }
     } catch (error: any) {
       console.error('添加药品失败:', error)
@@ -115,22 +170,22 @@ export const useMedicationStore = defineStore('medication', () => {
     }
   }
 
-  // 更新药品
+  // 更新药品（更新 common_medications 表）
   async function updateMedication(id: string, updates: Partial<Medication>) {
     loading.value = true
     try {
       const { error } = await supabase
-        .from('medications')
+        .from('common_medications')
         .update(updates)
         .eq('id', id)
-      
+
       if (error) throw error
-      
+
       const index = medications.value.findIndex(m => m.id === id)
       if (index !== -1) {
         medications.value[index] = { ...medications.value[index], ...updates }
       }
-      
+
       return { success: true }
     } catch (error: any) {
       console.error('更新药品失败:', error)
@@ -140,17 +195,19 @@ export const useMedicationStore = defineStore('medication', () => {
     }
   }
 
-  // 删除药品
+  // 删除药品（删除用户的用药计划，不删除公共药品）
   async function deleteMedication(id: string) {
     loading.value = true
     try {
+      // 删除该用户的用药计划（外键级联删除）
       const { error } = await supabase
-        .from('medications')
+        .from('medication_schedules')
         .delete()
-        .eq('id', id)
-      
+        .eq('user_id', authStore.userId)
+        .eq('medication_id', id)
+
       if (error) throw error
-      
+
       medications.value = medications.value.filter(m => m.id !== id)
       return { success: true }
     } catch (error: any) {
@@ -169,7 +226,7 @@ export const useMedicationStore = defineStore('medication', () => {
     try {
       const { data, error } = await supabase
         .from('medication_schedules')
-        .select('*, medications(*)')
+        .select('*, common_medications(*)')
         .eq('user_id', authStore.userId)
         .order('time_of_day')
       
@@ -194,7 +251,7 @@ export const useMedicationStore = defineStore('medication', () => {
           ...schedule,
           user_id: authStore.userId
         })
-        .select('*, medications(*)')
+        .select('*, common_medications(*)')
         .single()
       
       if (error) throw error

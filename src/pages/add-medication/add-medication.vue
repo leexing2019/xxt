@@ -104,7 +104,7 @@
           :key="drug.id"
           class="drug-card"
           :class="{ selected: selectedMedication?.id === drug.id }"
-          @click="selectMedication(drug)"
+          @click="selectMedicationFromGrid(drug)"
         >
           <image :src="drug.image" class="drug-image" mode="aspectFill" />
           <text class="drug-name">{{ drug.name }}</text>
@@ -119,7 +119,7 @@
           v-for="drug in searchResults"
           :key="drug.id"
           class="search-result-card"
-          @click="selectMedication(drug)"
+          @click="selectMedicationFromSearch(drug)"
         >
           <image :src="drug.image" class="result-image" mode="aspectFill" />
           <view class="result-info">
@@ -317,6 +317,7 @@ import { recognizeMedication } from '@/services/medication'
 import { recognizeSpeech, speakText } from '@/services/voice'
 import {
   fetchCommonMedications,
+  getDisplayMedications,
   getMedicationsByCategory as getCategoryMedications,
   searchMedications as searchCommonMedications,
   toPinyinFirst,
@@ -528,7 +529,7 @@ function selectSuggestion(med: CommonMedication) {
   searchSuggestions.value = []
   showDropdown.value = false
   showEmptyAction.value = false
-  selectMedication(med)
+  selectMedicationFromSearch(med)
 }
 
 // 添加新药
@@ -568,18 +569,31 @@ function selectCategory(categoryId: string) {
 }
 
 // 选择药品
-function selectMedication(drug: CommonMedication) {
+function selectMedication(drug: CommonMedication, skipNext = false) {
   selectedMedication.value = drug
-  // 自动填充默认用药说明
-  schedule.instructions = drug.usage
-  speakText(`已选择${drug.name}，${drug.indications}`)
+  // 自动填充默认用药说明（使用 generic_name 或 name）
+  const defaultUsage = drug.generic_name ? `每次 1 片，每日 1 次` : `每次 1 片，每日 1 次`
+  schedule.instructions = defaultUsage
+  speakText(`已选择${drug.name}，${drug.appearance_desc || '请遵医嘱使用'}`)
 
   // 如果是在步骤 1 选择，提示可以进入下一步
-  if (currentStep.value === 1) {
+  if (currentStep.value === 1 && skipNext) {
+    // 搜索结果点击时，立即进入下一步
     setTimeout(() => {
-      speakText('请点击下一步设置服药时间')
-    }, 1000)
+      currentStep.value++
+      speakText('第 2 步，设置服药时间')
+    }, 100)
   }
+}
+
+// 从搜索结果选择药品（直接跳到下一步）
+function selectMedicationFromSearch(drug: CommonMedication) {
+  selectMedication(drug, true)
+}
+
+// 从常用药品列表选择药品（直接跳到下一步）
+function selectMedicationFromGrid(drug: CommonMedication) {
+  selectMedication(drug, true)
 }
 
 // 搜索药品
@@ -743,11 +757,11 @@ function onStartDateChange(e: any) {
 function formatTimeDisplay(time: string): string {
   const [hour, minute] = time.split(':')
   const h = parseInt(hour)
-  const m = minute === '00' ? '' : `:${minute}`
+  const m = minute === '00' ? '点' : `点${minute}分`
 
   if (h >= 5 && h < 10) return `早上${h}${m}`
   if (h >= 10 && h < 12) return `上午${h}${m}`
-  if (h === 12) return `中午${m}`
+  if (h === 12) return `中午 12${m}`
   if (h > 12 && h < 18) return `下午${h - 12}${m}`
   if (h >= 18 && h < 21) return `晚上${h > 12 ? h - 12 : h}${m}`
   if (h >= 21 || h < 5) return `睡前${h >= 21 ? h - 12 : h}${m}`
@@ -869,6 +883,13 @@ async function confirmAdd() {
         speakText(msg)
         uni.showToast({ title: '添加成功', icon: 'success' })
 
+        // 刷新 store 数据
+        await medicationStore.fetchMedications()
+        await medicationStore.fetchSchedules()
+
+        // 触发页面刷新事件
+        uni.$emit('pageShow')
+
         setTimeout(() => {
           resetState()
           uni.switchTab({ url: '/pages/medication-list/medication-list' })
@@ -937,7 +958,7 @@ function resetState() {
 onMounted(async () => {
   // 加载公共药品库数据
   loadingDrugs.value = true
-  commonMedications.value = await fetchCommonMedications()
+  commonMedications.value = await getDisplayMedications()
   loadingDrugs.value = false
 
   // 检查是否是编辑模式
@@ -1774,6 +1795,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-prev {

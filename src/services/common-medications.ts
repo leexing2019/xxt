@@ -7,6 +7,7 @@
 
 import { supabase } from './supabase'
 import PinyinMatch from 'pinyin-match'
+import { identifyForm, getMedicationColor } from '@/utils/medication-icon'
 
 /**
  * 公共药品接口（与数据库 common_medications 表对应）
@@ -25,6 +26,7 @@ export interface CommonMedication {
   shape?: string
   barcode?: string
   image_url?: string
+  pinyin_initials?: string  // 拼音首字母
   is_active: boolean
   created_at: string
   updated_at: string
@@ -42,6 +44,7 @@ export interface DisplayMedication {
   appearanceDesc: string
   image: string
   usage: string
+  form?: string  // 剂型
 }
 
 // 内存缓存
@@ -94,8 +97,9 @@ export async function getDisplayMedications(): Promise<DisplayMedication[]> {
     category: med.category,
     indications: getCategoryIndication(med.category),
     appearanceDesc: med.appearance_desc || '请确认外观',
-    image: med.image_url || getPlaceholderImage(med.name),
-    usage: getDefaultUsage(med.category, med.form)
+    image: generateMedicationSvg(med.name, med.form, med.appearance_desc, med.color),
+    usage: getDefaultUsage(med.category, med.form),
+    form: med.form
   }))
 }
 
@@ -236,6 +240,7 @@ export function toPinyinFirst(text: string): string {
 
 /**
  * 搜索药品（支持中文、拼音首字母搜索）
+ * 优先使用数据库的 pinyin_initials 字段， fallback 到本地计算
  */
 export async function searchMedications(keyword: string): Promise<DisplayMedication[]> {
   const allMeds = await getDisplayMedications()
@@ -251,19 +256,19 @@ export async function searchMedications(keyword: string): Promise<DisplayMedicat
       return true
     }
 
-    // 拼音首字母搜索（使用 pinyin-match 库）
+    // 拼音首字母搜索（优先使用数据库字段）
+    const pinyinInitials = med.pinyin_initials?.toLowerCase() || toPinyinFirst(med.name).toLowerCase()
+    const genericPinyin = med.genericName ? (toPinyinFirst(med.genericName).toLowerCase()) : ''
+
+    if (pinyinInitials.includes(kw) || genericPinyin.includes(kw)) {
+      return true
+    }
+
+    // 拼音匹配（使用 pinyin-match 库）
     if (PinyinMatch.match(med.name, keyword)) {
       return true
     }
     if (med.generic_name && PinyinMatch.match(med.generic_name, keyword)) {
-      return true
-    }
-
-    // 本地拼音首字母映射匹配（支持 hfln -> 华法林钠片）
-    const namePinyin = toPinyinFirst(med.name).toLowerCase()
-    const genericPinyin = med.genericName ? toPinyinFirst(med.genericName).toLowerCase() : ''
-
-    if (namePinyin.includes(kw) || genericPinyin.includes(kw)) {
       return true
     }
 
@@ -308,7 +313,97 @@ function getDefaultUsage(category: string, form?: string): string {
 }
 
 /**
- * 生成药品占位图
+ * 生成药品 SVG 图标（Data URL 格式）
+ */
+function generateMedicationSvg(
+  name: string,
+  form?: string,
+  appearanceDesc?: string,
+  colorOverride?: string
+): string {
+  const medicationForm = identifyForm(form, appearanceDesc)
+  // 优先使用指定的 color 字段，其次从外观描述提取，最后使用名称哈希
+  const color = colorOverride || getMedicationColor(name, appearanceDesc)
+  const firstChar = name.charAt(0)
+
+  // 计算文字颜色（根据背景亮度）
+  const luminance = getLuminance(color)
+  const textColor = luminance > 0.6 ? '#333333' : '#FFFFFF'
+
+  // 加深颜色（用于描边）
+  const darkColor = darkenColor(color, 20)
+
+  // 变浅颜色（用于胶囊双色效果）
+  const lightColor = lightenColor(color, 30)
+
+  let shapePath = ''
+
+  switch (medicationForm) {
+    case 'liquid':
+      // 口服液
+      shapePath = `
+        <path d="M814.88 881.9H515.79a76.8 76.8 0 0 1-76.8-76.62V413.77a76.8 76.8 0 0 1 76.8-76.6h278.89v71.8H515.79a4.81 4.81 0 0 0-4.81 4.79v386.74a4.77 4.77 0 0 0 2.96 4.44c0.59 0.24 1.21 0.37 1.85 0.37h299.1v71.8z" fill="${color}"/>
+        <path d="M782.77 200.3h-28.58v-15.25a56.37 56.37 0 0 0 50.27-55.97V56.32A56.37 56.37 0 0 0 748.16 0H273.37a56.36 56.36 0 0 0-56.3 56.32v72.78a56.32 56.32 0 0 0 54.13 56.19v14.99h-29.95a76.75 76.75 0 0 0-76.67 76.69v629.58A117.56 117.56 0 0 0 281.97 1024h460.07A117.54 117.54 0 0 0 859.43 906.57v-629.58a76.76 76.76 0 0 0-76.65-76.69z" fill="#333333"/>
+      `
+      break
+    case 'capsule':
+      // 胶囊
+      shapePath = `
+        <path d="M590.6 601.4L398.9 409.7c-1.1-1.1-1.1-2.9 0-4l147.3-147.3c54-54 141.6-54 195.6 0s54 141.6 0 195.6L594.5 601.4c-1.1 1.1-2.8 1.1-3.9 0z" fill="${lightColor}"/>
+        <path d="M581.3 610.6L389.7 419c-1.1-1.1-2.9-1.1-4 0L238.4 566.3c-54 54-54 141.6 0 195.6s141.6 54 195.6 0l147.3-147.3c1.1-1.1 1.1-2.9 0-4z" fill="${color}"/>
+      `
+      break
+    case 'tablet':
+    default:
+      // 药片
+      shapePath = `
+        <path d="M641 280.7C780.6 315 832.3 433.9 756.5 546.2 680.7 658.5 506 721.8 366.4 687.5 226.8 653.2 175.1 534.4 250.9 422 326.7 309.7 501.4 246.5 641 280.7z" fill="${color}"/>
+      `
+  }
+
+  const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="200" height="200">${shapePath}</svg>`
+
+  // 使用 base64 编码，兼容性更好
+  const base64 = btoa(unescape(encodeURIComponent(svgContent)))
+  return `data:image/svg+xml;base64,${base64}`
+}
+
+/**
+ * 计算颜色亮度
+ */
+function getLuminance(hexColor: string): number {
+  const r = parseInt(hexColor.slice(1, 3), 16) / 255
+  const g = parseInt(hexColor.slice(3, 5), 16) / 255
+  const b = parseInt(hexColor.slice(5, 7), 16) / 255
+  return 0.299 * r + 0.587 * g + 0.114 * b
+}
+
+/**
+ * 加深颜色
+ */
+function darkenColor(hexColor: string, percent: number): string {
+  const num = parseInt(hexColor.slice(1), 16)
+  const amt = Math.round(2.55 * percent)
+  const R = Math.max((num >> 16) - amt, 0)
+  const G = Math.max((num >> 8 & 0x00FF) - amt, 0)
+  const B = Math.max((num & 0x0000FF) - amt, 0)
+  return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)
+}
+
+/**
+ * 变浅颜色
+ */
+function lightenColor(hexColor: string, percent: number): string {
+  const num = parseInt(hexColor.slice(1), 16)
+  const amt = Math.round(2.55 * percent)
+  const R = Math.min((num >> 16) + amt, 255)
+  const G = Math.min((num >> 8 & 0x00FF) + amt, 255)
+  const B = Math.min((num & 0x0000FF) + amt, 255)
+  return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)
+}
+
+/**
+ * 生成药品占位图（保留向后兼容）
  */
 function getPlaceholderImage(name: string): string {
   const colors = ['4CAF50', '2196F3', 'FF9800', 'E91E63', '9C27B0', '00BCD4', 'FFC107', '795548']
@@ -323,4 +418,13 @@ function getPlaceholderImage(name: string): string {
 export function clearCache() {
   cachedMedications = null
   lastFetchTime = 0
+}
+
+/**
+ * 刷新缓存（强制重新获取）
+ */
+export async function refreshCache(): Promise<CommonMedication[]> {
+  cachedMedications = null
+  lastFetchTime = 0
+  return fetchCommonMedications()
 }

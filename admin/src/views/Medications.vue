@@ -239,6 +239,7 @@ interface CommonMedication {
   appearance_desc?: string
   dosage_unit?: string
   color?: string  // 新增颜色字段
+  pinyin_initials?: string  // 拼音首字母（数据库触发器自动生成）
   is_active: boolean
   created_at: string
   updated_at: string

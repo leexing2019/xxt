@@ -49,3 +49,27 @@ All tables have RLS policies enforcing user isolation. See `sql/schema.sql` for 
 - Supabase client configured in `src/services/supabase.ts` with auth session persistence
 - Pages use uni-app APIs (`@dcloudio/uni-app`) for cross-platform compatibility
 - SCSS for styling with common styles in `src/styles/common.scss`
+
+## Superpowers 工作流
+
+当用户提到"使用 superpowers 工作流"时，按以下顺序执行：
+
+### 1. Brainstorm（头脑风暴）
+- 探索用户意图和需求
+- 收集相关信息和约束条件
+- 确定设计方向和技术方案
+
+### 2. Write-Plan（编写计划）
+- 创建详细的实施计划文档（`docs/superpowers/plans/`）
+- 定义任务清单（使用 checkbox `- [ ]` 语法）
+- 映射文件结构和修改内容
+- 指定验收标准
+
+### 3. Execute-Plan（执行计划）
+- 按计划逐项实现
+- 使用 `superpowers:subagent-driven-development` 处理独立任务
+- 测试验证
+
+### 相关文档
+- 设计文档：`docs/superpowers/specs/`
+- 实施计划：`docs/superpowers/plans/`

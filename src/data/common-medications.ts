@@ -7,6 +7,7 @@ export interface CommonMedication {
   genericName: string    // 通用名
   category: string       // 分类：降压药/降糖药等
   indications: string    // 适应症/用途
+  form: string           // 剂型：tablet-round/tablet-oval/capsule/injection/tablet-other
   appearanceDesc: string // 外观描述
   image: string          // 标准图片 URL
   usage: string          // 常用法用量
@@ -95,6 +96,52 @@ function getPlaceholderImage(name: string, index: number): string {
   return `https://via.placeholder.com/200x200/${color}/ffffff?text=${text}`
 }
 
+// 根据剂型和外观描述生成颜色
+function getColorFromDesc(desc: string): string {
+  // 白色系
+  if (desc.includes('白')) return 'FFFFFF'
+  // 黄色系
+  if (desc.includes('黄')) return 'FFC107'
+  // 橙色系
+  if (desc.includes('橙')) return 'FF9800'
+  // 粉/红色系
+  if (desc.includes('粉')) return 'F48FB1'
+  if (desc.includes('红')) return 'F44336'
+  // 蓝色系
+  if (desc.includes('蓝')) return '2196F3'
+  // 绿色系
+  if (desc.includes('绿')) return '4CAF50'
+  // 紫色系
+  if (desc.includes('紫')) return '9C27B0'
+  // 透明/无色
+  if (desc.includes('透明') || desc.includes('无色')) return 'E0E0E0'
+  // 默认灰色
+  return '9E9E9E'
+}
+
+// 生成带剂型形状的图标
+function getShapeBasedImage(name: string, form: string, desc: string): string {
+  const color = getColorFromDesc(desc)
+  return `data:image/svg+xml;utf8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+      ${form === 'capsule' ? `
+        <rect x="4" y="28" width="72" height="24" rx="12" fill="#${color}" stroke="#333" stroke-width="2"/>
+        <rect x="4" y="28" width="36" height="24" fill="#${color}" fill-opacity="0.7"/>
+        <text x="40" y="48" text-anchor="middle" fill="#333" font-size="20" font-weight="bold">${name.charAt(0)}</text>
+      ` : form === 'injection' ? `
+        <rect x="28" y="16" width="24" height="48" rx="4" fill="#${color}" stroke="#333" stroke-width="2"/>
+        <text x="40" y="44" text-anchor="middle" fill="#FFF" font-size="20" font-weight="bold">${name.charAt(0)}</text>
+      ` : form === 'tablet-oval' ? `
+        <ellipse cx="40" cy="40" rx="34" ry="24" fill="#${color}" stroke="#333" stroke-width="2"/>
+        <text x="40" y="46" text-anchor="middle" fill="#FFF" font-size="20" font-weight="bold">${name.charAt(0)}</text>
+      ` : `
+        <circle cx="40" cy="40" r="34" fill="#${color}" stroke="#333" stroke-width="2"/>
+        <text x="40" y="48" text-anchor="middle" fill="#FFF" font-size="24" font-weight="bold">${name.charAt(0)}</text>
+      `}
+    </svg>
+  `)}`
+}
+
 export const COMMON_MEDICATIONS: CommonMedication[] = [
   // ===== 降压药 (10 种) =====
   {
@@ -103,8 +150,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '硝苯地平',
     category: '降压药',
     indications: '降血压',
+    form: 'tablet-oval',
     appearanceDesc: '黄色椭圆形薄膜衣片，长约 12mm',
-    image: getPlaceholderImage('硝', 0),
+    image: getShapeBasedImage('硝', 'tablet-oval', '黄色椭圆形薄膜衣片，长约 12mm'),
     usage: '每次 1 片，每日 2 次'
   },
   {
@@ -113,8 +161,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '苯磺酸氨氯地平',
     category: '降压药',
     indications: '降血压',
+    form: 'tablet-round',
     appearanceDesc: '白色圆形片剂，直径约 9mm',
-    image: getPlaceholderImage('氨', 1),
+    image: getShapeBasedImage('氨', 'tablet-round', '白色圆形片剂，直径约 9mm'),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -123,8 +172,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '厄贝沙坦',
     category: '降压药',
     indications: '降血压',
+    form: 'tablet-oval',
     appearanceDesc: '白色椭圆形片剂，一面刻有标识',
-    image: getPlaceholderImage('厄', 2),
+    image: getShapeBasedImage('厄', 'tablet-oval', '白色椭圆形片剂，一面刻有标识'),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -133,8 +183,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '缬沙坦',
     category: '降压药',
     indications: '降血压',
+    form: 'capsule',
     appearanceDesc: '蓝白胶囊，内含白色颗粒',
-    image: getPlaceholderImage('缬', 3),
+    image: getShapeBasedImage('缬', 'capsule', '蓝白胶囊，内含白色颗粒'),
     usage: '每次 1 粒，每日 1 次'
   },
   {
@@ -143,8 +194,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '酒石酸美托洛尔',
     category: '降压药',
     indications: '降血压/心率',
+    form: 'tablet-round',
     appearanceDesc: '淡黄色圆形片剂',
-    image: getPlaceholderImage('美', 4),
+    image: getShapeBasedImage('美', 'tablet-round', '淡黄色圆形片剂'),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -153,8 +205,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '非洛地平',
     category: '降压药',
     indications: '降血压',
+    form: 'tablet-oval',
     appearanceDesc: '白色椭圆形薄膜衣片',
-    image: getPlaceholderImage('非', 5),
+    image: getShapeBasedImage('非', 'tablet-oval', '白色椭圆形薄膜衣片'),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -163,8 +216,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '吲达帕胺',
     category: '降压药',
     indications: '降血压',
+    form: 'tablet-round',
     appearanceDesc: '白色片剂',
-    image: getPlaceholderImage('吲', 6),
+    image: getShapeBasedImage('吲', 'tablet-round', '白色片剂'),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -173,8 +227,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '氯沙坦',
     category: '降压药',
     indications: '降血压',
+    form: 'tablet-oval',
     appearanceDesc: '白色椭圆形薄膜衣片',
-    image: getPlaceholderImage('氯', 7),
+    image: getShapeBasedImage('氯', 'tablet-oval', '白色椭圆形薄膜衣片'),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -183,8 +238,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '替米沙坦',
     category: '降压药',
     indications: '降血压',
+    form: 'tablet-round',
     appearanceDesc: '淡黄色圆形片剂',
-    image: getPlaceholderImage('替', 0),
+    image: getShapeBasedImage('替', 'tablet-round', '淡黄色圆形片剂'),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -193,8 +249,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '富马酸比索洛尔',
     category: '降压药',
     indications: '降血压/心率',
+    form: 'tablet-round',
     appearanceDesc: '淡黄色圆形薄膜衣片',
-    image: getPlaceholderImage('比', 1),
+    image: getShapeBasedImage('比', 'tablet-round', '淡黄色圆形薄膜衣片'),
     usage: '每次 1 片，每日 1 次'
   },
 
@@ -205,8 +262,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '盐酸二甲双胍',
     category: '降糖药',
     indications: '降血糖',
+    form: 'tablet-round',
     appearanceDesc: '白色圆形片剂，直径约 10mm',
-    image: getPlaceholderImage('二', 2),
+    image: getShapeBasedImage('二', 'tablet-round', '白色圆形片剂，直径约 10mm'),
     usage: '每次 1 片，每日 2 次，餐中服用'
   },
   {
@@ -215,8 +273,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '格列美脲',
     category: '降糖药',
     indications: '降血糖',
+    form: 'tablet-oval',
     appearanceDesc: '粉红色椭圆形片剂',
-    image: getPlaceholderImage('格', 3),
+    image: getShapeBasedImage('格', 'tablet-oval', '粉红色椭圆形片剂'),
     usage: '每次 1 片，每日 1 次，早餐前'
   },
   {
@@ -225,8 +284,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '阿卡波糖',
     category: '降糖药',
     indications: '降餐后血糖',
+    form: 'tablet-round',
     appearanceDesc: '白色类圆形片剂',
-    image: getPlaceholderImage('阿', 4),
+    image: getShapeBasedImage('阿', 'tablet-round', '白色类圆形片剂'),
     usage: '每次 1 片，每日 3 次，餐前服用'
   },
   {
@@ -235,8 +295,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '格列齐特',
     category: '降糖药',
     indications: '降血糖',
+    form: 'tablet-oval',
     appearanceDesc: '白色椭圆形片剂',
-    image: getPlaceholderImage('列', 5),
+    image: getShapeBasedImage('列', 'tablet-oval', '白色椭圆形片剂'),
     usage: '每次 1 片，每日 1 次，早餐时'
   },
   {
@@ -245,8 +306,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '瑞格列奈',
     category: '降糖药',
     indications: '降餐后血糖',
+    form: 'tablet-round',
     appearanceDesc: '白色圆形片剂',
-    image: getPlaceholderImage('瑞', 6),
+    image: getShapeBasedImage('瑞', 'tablet-round', '白色圆形片剂'),
     usage: '每次 1 片，每日 3 次，餐前 15 分钟'
   },
   {
@@ -255,8 +317,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '磷酸西格列汀',
     category: '降糖药',
     indications: '降血糖',
+    form: 'tablet-round',
     appearanceDesc: '淡粉色圆形薄膜衣片',
-    image: getPlaceholderImage('西', 7),
+    image: getShapeBasedImage('西', 'tablet-round', '淡粉色圆形薄膜衣片'),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -265,8 +328,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '沙格列汀',
     category: '降糖药',
     indications: '降血糖',
+    form: 'tablet-round',
     appearanceDesc: '淡黄色圆形片剂',
-    image: getPlaceholderImage('沙', 0),
+    image: getShapeBasedImage('沙', 'tablet-round', '淡黄色圆形片剂'),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -275,8 +339,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '达格列净',
     category: '降糖药',
     indications: '降血糖',
+    form: 'tablet-oval',
     appearanceDesc: '黄色椭圆形薄膜衣片',
-    image: getPlaceholderImage('达', 1),
+    image: getShapeBasedImage('达', 'tablet-oval', '黄色椭圆形薄膜衣片'),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -285,8 +350,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '恩格列净',
     category: '降糖药',
     indications: '降血糖',
+    form: 'tablet-oval',
     appearanceDesc: '淡黄色椭圆形片剂',
-    image: getPlaceholderImage('恩', 2),
+    image: getShapeBasedImage('恩', 'tablet-oval', '淡黄色椭圆形片剂'),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -295,8 +361,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '利拉鲁肽',
     category: '降糖药',
     indications: '降血糖',
+    form: 'injection',
     appearanceDesc: '无色澄明注射液',
-    image: getPlaceholderImage('利', 3),
+    image: getShapeBasedImage('利', 'injection', '无色澄明注射液'),
     usage: '每日 1 次，皮下注射'
   },
 
@@ -307,8 +374,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '阿托伐他汀',
     category: '降脂药',
     indications: '降胆固醇',
+    form: 'tablet-oval',
     appearanceDesc: '白色椭圆形薄膜衣片，长约 14mm',
-    image: getPlaceholderImage('阿', 4),
+    image: getShapeBasedImage('阿', 'tablet-oval', '白色椭圆形薄膜衣片，长约 14mm'),
     usage: '每次 1 片，每日 1 次，睡前服用'
   },
   {
@@ -317,8 +385,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '瑞舒伐他汀',
     category: '降脂药',
     indications: '降血脂',
+    form: 'tablet-round',
     appearanceDesc: '粉色圆形片剂',
-    image: getPlaceholderImage('瑞', 5),
+    image: getShapeBasedImage('瑞', 'tablet-round', '粉色圆形片剂'),
     usage: '每次 1 片，每日 1 次，睡前服用'
   },
   {
@@ -327,8 +396,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '辛伐他汀',
     category: '降脂药',
     indications: '降血脂',
+    form: 'tablet-round',
     appearanceDesc: '白色或类白色片剂',
-    image: getPlaceholderImage('辛', 6),
+    image: getShapeBasedImage('辛', 'tablet-round', '白色或类白色片剂'),
     usage: '每次 1 片，每日 1 次，晚上服用'
   },
   {
@@ -337,8 +407,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '普伐他汀',
     category: '降脂药',
     indications: '降血脂',
+    form: 'tablet-oval',
     appearanceDesc: '淡橙色椭圆形片剂',
-    image: getPlaceholderImage('普', 7),
+    image: getShapeBasedImage('普', 'tablet-oval', '淡橙色椭圆形片剂'),
     usage: '每次 1 片，每日 1 次，睡前服用'
   },
   {
@@ -347,8 +418,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '非诺贝特',
     category: '降脂药',
     indications: '降甘油三酯',
+    form: 'capsule',
     appearanceDesc: '黄白相间胶囊',
-    image: getPlaceholderImage('非', 0),
+    image: getShapeBasedImage('非', 'capsule', '黄白相间胶囊'),
     usage: '每次 1 粒，每日 1 次'
   },
   {
@@ -357,8 +429,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '依折麦布',
     category: '降脂药',
     indications: '降胆固醇',
+    form: 'tablet-oval',
     appearanceDesc: '白色椭圆形片剂',
-    image: getPlaceholderImage('依', 1),
+    image: getShapeBasedImage('依', 'tablet-oval', '白色椭圆形片剂'),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -367,8 +440,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '普罗布考',
     category: '降脂药',
     indications: '降血脂',
+    form: 'tablet-round',
     appearanceDesc: '白色片剂',
-    image: getPlaceholderImage('普', 2),
+    image: getShapeBasedImage('普', 'tablet-round', '白色片剂'),
     usage: '每次 1 片，每日 2 次'
   },
   {
@@ -377,8 +451,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '红曲提取物',
     category: '降脂药',
     indications: '降血脂',
+    form: 'capsule',
     appearanceDesc: '紫红色胶囊',
-    image: getPlaceholderImage('血', 3),
+    image: getShapeBasedImage('血', 'capsule', '紫红色胶囊'),
     usage: '每次 2 粒，每日 2 次'
   },
 
@@ -389,8 +464,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '阿司匹林',
     category: '心血管药',
     indications: '预防血栓',
+    form: 'tablet-round',
     appearanceDesc: '白色圆形小药片，直径约 8mm，刻有"100"',
-    image: getPlaceholderImage('阿', 4),
+    image: getShapeBasedImage('阿', 'tablet-round', '白色圆形小药片，直径约 8mm，刻有"100"'),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -399,8 +475,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '硫酸氢氯吡格雷',
     category: '心血管药',
     indications: '预防血栓',
+    form: 'tablet-round',
     appearanceDesc: '黄色圆形片剂',
-    image: getPlaceholderImage('氯', 5),
+    image: getShapeBasedImage('氯', 'tablet-round', '黄色圆形片剂'),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -409,8 +486,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '华法林',
     category: '心血管药',
     indications: '抗凝血',
+    form: 'tablet-round',
     appearanceDesc: '白色片剂，有不同颜色标识',
-    image: getPlaceholderImage('华', 6),
+    image: getShapeBasedImage('华', 'tablet-round', '白色片剂，有不同颜色标识'),
     usage: '遵医嘱，每日 1 次'
   },
   {
@@ -419,8 +497,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '单硝酸异山梨酯',
     category: '心血管药',
     indications: '心绞痛',
+    form: 'tablet-round',
     appearanceDesc: '白色圆形片剂',
-    image: getPlaceholderImage('单', 7),
+    image: getShapeBasedImage('单', 'tablet-round', '白色圆形片剂'),
     usage: '每次 1 片，每日 2 次'
   },
   {
@@ -429,8 +508,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '硝酸甘油',
     category: '心血管药',
     indications: '心绞痛急救',
+    form: 'tablet-round',
     appearanceDesc: '白色小片剂',
-    image: getPlaceholderImage('硝', 0),
+    image: getShapeBasedImage('硝', 'tablet-round', '白色小片剂'),
     usage: '舌下含服，需要时使用'
   },
 
@@ -441,8 +521,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '奥美拉唑',
     category: '胃药',
     indications: '抑制胃酸',
+    form: 'capsule',
     appearanceDesc: '透明胶囊，内含白色小丸',
-    image: getPlaceholderImage('奥', 1),
+    image: getShapeBasedImage('奥', 'capsule', '透明胶囊，内含白色小丸'),
     usage: '每次 1 粒，每日 1 次，早餐前'
   },
   {
@@ -451,8 +532,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '雷贝拉唑',
     category: '胃药',
     indications: '抑制胃酸',
+    form: 'tablet-round',
     appearanceDesc: '黄色薄膜衣片',
-    image: getPlaceholderImage('雷', 2),
+    image: getShapeBasedImage('雷', 'tablet-round', '黄色薄膜衣片'),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -461,8 +543,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '泮托拉唑',
     category: '胃药',
     indications: '抑制胃酸',
+    form: 'tablet-other',
     appearanceDesc: '类白色肠溶衣片',
-    image: getPlaceholderImage('泮', 3),
+    image: getShapeBasedImage('泮', 'tablet-other', '类白色肠溶衣片'),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -471,8 +554,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '兰索拉唑',
     category: '胃药',
     indications: '抑制胃酸',
+    form: 'capsule',
     appearanceDesc: '透明胶囊，内含白色颗粒',
-    image: getPlaceholderImage('兰', 4),
+    image: getShapeBasedImage('兰', 'capsule', '透明胶囊，内含白色颗粒'),
     usage: '每次 1 粒，每日 1 次'
   },
   {
@@ -481,8 +565,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '铝碳酸镁',
     category: '胃药',
     indications: '中和胃酸',
+    form: 'tablet-other',
     appearanceDesc: '白色或类白色片剂',
-    image: getPlaceholderImage('铝', 5),
+    image: getShapeBasedImage('铝', 'tablet-other', '白色或类白色片剂'),
     usage: '每次 1-2 片，嚼服，每日 3 次'
   },
 
@@ -493,8 +578,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '盐酸氨溴索',
     category: '止咳药',
     indications: '化痰止咳',
+    form: 'tablet-round',
     appearanceDesc: '白色圆形片剂',
-    image: getPlaceholderImage('氨', 6),
+    image: getShapeBasedImage('氨', 'tablet-round', '白色圆形片剂'),
     usage: '每次 1 片，每日 3 次'
   },
   {
@@ -503,8 +589,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '溴己新',
     category: '止咳药',
     indications: '化痰',
+    form: 'tablet-round',
     appearanceDesc: '白色片剂',
-    image: getPlaceholderImage('溴', 7),
+    image: getShapeBasedImage('溴', 'tablet-round', '白色片剂'),
     usage: '每次 1 片，每日 3 次'
   },
   {
@@ -513,8 +600,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '氢溴酸右美沙芬',
     category: '止咳药',
     indications: '止咳',
+    form: 'tablet-round',
     appearanceDesc: '白色片剂',
-    image: getPlaceholderImage('右', 0),
+    image: getShapeBasedImage('右', 'tablet-round', '白色片剂'),
     usage: '每次 1 片，每日 3 次'
   },
   {
@@ -523,8 +611,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '枸橼酸喷托维林',
     category: '止咳药',
     indications: '止咳',
+    form: 'tablet-round',
     appearanceDesc: '白色片剂',
-    image: getPlaceholderImage('喷', 1),
+    image: getShapeBasedImage('喷', 'tablet-round', '白色片剂'),
     usage: '每次 1 片，每日 3 次'
   },
 
@@ -535,8 +624,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '布洛芬',
     category: '止痛药',
     indications: '止痛退烧',
+    form: 'capsule',
     appearanceDesc: '透明胶囊，内含白色粉末',
-    image: getPlaceholderImage('布', 2),
+    image: getShapeBasedImage('布', 'capsule', '透明胶囊，内含白色粉末'),
     usage: '每次 1 粒，每日 2 次'
   },
   {
@@ -545,8 +635,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '对乙酰氨基酚',
     category: '止痛药',
     indications: '止痛退烧',
+    form: 'tablet-round',
     appearanceDesc: '白色圆形片剂',
-    image: getPlaceholderImage('对', 3),
+    image: getShapeBasedImage('对', 'tablet-round', '白色圆形片剂'),
     usage: '每次 1 片，需要时服用'
   },
   {
@@ -555,8 +646,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '双氯芬酸',
     category: '止痛药',
     indications: '止痛消炎',
+    form: 'tablet-other',
     appearanceDesc: '肠溶衣片',
-    image: getPlaceholderImage('双', 4),
+    image: getShapeBasedImage('双', 'tablet-other', '肠溶衣片'),
     usage: '每次 1 片，每日 3 次'
   },
   {
@@ -565,8 +657,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '塞来昔布',
     category: '止痛药',
     indications: '止痛消炎',
+    form: 'capsule',
     appearanceDesc: '蓝白胶囊',
-    image: getPlaceholderImage('塞', 5),
+    image: getShapeBasedImage('塞', 'capsule', '蓝白胶囊'),
     usage: '每次 1 粒，每日 1-2 次'
   },
 
@@ -577,8 +670,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '复合维生素',
     category: '维生素',
     indications: '补充维生素',
+    form: 'tablet-oval',
     appearanceDesc: '橙色椭圆形片剂',
-    image: getPlaceholderImage('复', 6),
+    image: getShapeBasedImage('复', 'tablet-oval', '橙色椭圆形片剂'),
     usage: '每次 1 片，每日 1 次'
   },
   {
@@ -587,8 +681,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '碳酸钙',
     category: '钙片',
     indications: '补钙',
+    form: 'tablet-round',
     appearanceDesc: '白色或类白色片剂',
-    image: getPlaceholderImage('碳', 7),
+    image: getShapeBasedImage('碳', 'tablet-round', '白色或类白色片剂'),
     usage: '每次 1 片，每日 1-2 次'
   },
   {
@@ -597,8 +692,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '维生素 B1',
     category: '维生素',
     indications: '补充维生素 B1',
+    form: 'tablet-round',
     appearanceDesc: '白色片剂',
-    image: getPlaceholderImage('维', 0),
+    image: getShapeBasedImage('维', 'tablet-round', '白色片剂'),
     usage: '每次 1 片，每日 3 次'
   },
   {
@@ -607,8 +703,9 @@ export const COMMON_MEDICATIONS: CommonMedication[] = [
     genericName: '甲钴胺',
     category: '维生素',
     indications: '营养神经',
+    form: 'tablet-round',
     appearanceDesc: '淡红色圆形糖衣片',
-    image: getPlaceholderImage('甲', 1),
+    image: getShapeBasedImage('甲', 'tablet-round', '淡红色圆形糖衣片'),
     usage: '每次 1 片，每日 3 次'
   }
 ]

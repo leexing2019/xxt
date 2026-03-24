@@ -389,7 +389,7 @@ async function fetchSchedules() {
   try {
     const { data, error } = await supabase
       .from('medication_schedules')
-      .select('*, medications(*)')
+      .select('*, common_medications(*)')
       .eq('user_id', authStore.userId)
       .order('time_of_day', { ascending: true })
 
@@ -403,20 +403,40 @@ async function fetchSchedules() {
   }
 }
 
-// 获取药品列表
+// 获取药品列表（通过 medication_schedules 关联 common_medications）
 async function fetchMedications() {
   if (!authStore.userId) return
 
   try {
     const { data, error } = await supabase
-      .from('medications')
-      .select('*')
+      .from('medication_schedules')
+      .select(`
+        id,
+        medication_id,
+        common_medications (*)
+      `)
       .eq('user_id', authStore.userId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
 
     if (error) throw error
-    medications.value = data || []
+
+    // 提取药品信息（去重）
+    const medsMap = new Map()
+    data?.forEach(item => {
+      if (!medsMap.has(item.medication_id)) {
+        medsMap.set(item.medication_id, {
+          id: item.common_medications.id,
+          name: item.common_medications.name,
+          generic_name: item.common_medications.generic_name,
+          manufacturer: item.common_medications.manufacturer,
+          specification: item.common_medications.specification,
+          form: item.common_medications.form,
+          appearance_desc: item.common_medications.appearance_desc,
+          image_url: item.common_medications.image_url,
+          created_at: item.common_medications.created_at_with_tz
+        })
+      }
+    })
+    medications.value = Array.from(medsMap.values())
   } catch (error: any) {
     console.error('获取药品列表失败:', error)
   }
@@ -620,7 +640,7 @@ async function submitForm() {
       const { data, error } = await supabase
         .from('medication_schedules')
         .insert(scheduleData)
-        .select('*, medications(*)')
+        .select('*, common_medications(*)')
         .single()
 
       if (error) throw error
