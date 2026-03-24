@@ -4,7 +4,6 @@ import { supabase } from '@/services/supabase'
 import { Search, Plus, Download, Upload } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import * as XLSX from 'xlsx'
-import XlsxPopulate from 'xlsx-populate'
 
 // 拼音首字母映射表
 const PINYIN_MAP: Record<string, string> = {
@@ -326,23 +325,20 @@ const formRules = {
 // =====================================================
 
 // 下载 Excel 模板
-async function downloadTemplate() {
+function downloadTemplate() {
   const dateString = new Date().toISOString().slice(0, 10).replace(/-/g, '')
 
-  // 使用 xlsx-populate 创建带数据验证的 Excel 文件
-  const workbook = await XlsxPopulate.fromBlankAsync()
+  // 使用 XLSX 库创建 Excel 模板
+  const wb = XLSX.utils.book_new()
 
   // 工作表 1：填写说明
-  const sheet1 = workbook.sheet(0)
-  sheet1.name('填写说明')
-
-  const instructions = [
+  const instructionData = [
     ['📋 药品批量导入模板 - 填写说明'],
     [],
     ['填写规则：'],
     ['  • 标红单元格为必填项'],
-    ['  • 药品分类：从下拉列表选择（降压药、降糖药、降脂药、心血管药、胃药、止咳药、止痛药、维生素、钙片、抗生素、其他）'],
-    ['  • 剂型：从下拉列表选择（tablet=药片、capsule=胶囊、liquid=口服液）'],
+    ['  • 药品分类：从下方选择（降压药、降糖药、降脂药、心血管药、胃药、止咳药、止痛药、维生素、钙片、抗生素、其他）'],
+    ['  • 剂型：从下方选择（tablet=药片、capsule=胶囊、liquid=口服液）'],
     ['  • 重复药品判断：以"药品名称"为准，名称相同视为重复'],
     [],
     ['📝 填写示例：'],
@@ -350,75 +346,30 @@ async function downloadTemplate() {
     ['阿司匹林肠溶片', '阿司匹林', '心血管药', '拜耳医药', '100mg×30 片', 'tablet', '白色圆形小药片，直径约 8mm，刻有"100"', '片'],
     ['布洛芬缓释胶囊', '布洛芬', '止痛药', '中美天津史克', '0.3g×20 粒', 'capsule', '透明胶囊，内含白色粉末', '粒']
   ]
-
-  instructions.forEach((row, rowIndex) => {
-    if (rowIndex === 0) {
-      sheet1.cell(`A${rowIndex + 1}`).value(row[0])
-      sheet1.cell(`A${rowIndex + 1}`).style('fontSize', 16).style('bold', true)
-    } else if (rowIndex >= 2 && rowIndex <= 6) {
-      sheet1.cell(`A${rowIndex + 1}`).value(row[0])
-    } else if (rowIndex === 8) {
-      sheet1.cell(`A${rowIndex + 1}`).value(row[0]).style('bold', true)
-    } else if (rowIndex === 9 || rowIndex === 10) {
-      row.forEach((cell, colIndex) => {
-        sheet1.cell(String.fromCharCode(65 + colIndex) + (rowIndex + 1)).value(cell)
-      })
-    }
-  })
-
-  sheet1.column(0).width(50)
+  const wsInstructions = XLSX.utils.aoa_to_sheet(instructionData)
+  wsInstructions['!cols'] = [{ wch: 60 }]
+  XLSX.utils.book_append_sheet(wb, wsInstructions, '填写说明')
 
   // 工作表 2：模板数据
-  const sheet2 = workbook.addSheet('模板数据')
-
   const headers = ['药品名称', '通用名称', '药品分类', '生产厂家', '规格', '剂型', '外观描述', '剂量单位']
-  headers.forEach((header, colIndex) => {
-    sheet2.cell(String.fromCharCode(65 + colIndex) + '1').value(header).style('bold', true)
-  })
+  const emptyRows = Array(10).fill(null).map(() => Array(8).fill(''))
+  const wsTemplate = XLSX.utils.aoa_to_sheet([headers, ...emptyRows])
 
   // 设置列宽
-  const colWidths = [20, 15, 12, 20, 15, 10, 30, 10]
-  colWidths.forEach((width, colIndex) => {
-    sheet2.column(colIndex).width(width)
-  })
+  wsTemplate['!cols'] = [
+    { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 20 },
+    { wch: 15 }, { wch: 12 }, { wch: 30 }, { wch: 10 }
+  ]
 
-  // 设置数据验证下拉列表
-  const categories = ['降压药', '降糖药', '降脂药', '心血管药', '胃药', '止咳药', '止痛药', '维生素', '钙片', '抗生素', '其他']
-  const forms = ['tablet', 'capsule', 'liquid']
-
-  // 为第 2-11 行设置数据验证
+  // 设置必填单元格背景色（浅红色）- A 列、C 列（药品分类）、F 列（剂型）
   for (let i = 2; i <= 11; i++) {
-    // C 列：药品分类
-    sheet2.cell(`C${i}`).validation({
-      type: 'list',
-      formula1: '"' + categories.join(',') + '"',
-      allowBlank: false,
-      showErrorMessage: true,
-      error: '分类无效，请从下拉列表选择'
-    })
-    // F 列：剂型
-    sheet2.cell(`F${i}`).validation({
-      type: 'list',
-      formula1: '"' + forms.join(',') + '"',
-      allowBlank: false,
-      showErrorMessage: true,
-      error: '剂型无效，请从下拉列表选择'
-    })
-
-    // 设置必填单元格背景色（浅红色）
-    sheet2.cell(`A${i}`).style('fill', { type: 'pattern', pattern: 'solid', fgColor: 'FFE6E6' })
-    sheet2.cell(`C${i}`).style('fill', { type: 'pattern', pattern: 'solid', fgColor: 'FFE6E6' })
-    sheet2.cell(`F${i}`).style('fill', { type: 'pattern', pattern: 'solid', fgColor: 'FFE6E6' })
+    wsTemplate[`A${i}`] = { s: { fill: { fgColor: { rgb: 'FFE6E6' } } } }
+    wsTemplate[`C${i}`] = { s: { fill: { fgColor: { rgb: 'FFE6E6' } } } }
+    wsTemplate[`F${i}`] = { s: { fill: { fgColor: { rgb: 'FFE6E6' } } } }
   }
 
-  // 下载文件
-  const blob = await workbook.outputAsync()
-  const url = URL.createObjectURL(new Blob([blob], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `药品批量导入模板_${dateString}.xlsx`
-  link.click()
-  URL.revokeObjectURL(url)
+  XLSX.utils.book_append_sheet(wb, wsTemplate, '模板数据')
+  XLSX.writeFile(wb, `药品批量导入模板_${dateString}.xlsx`)
 }
 
 // 触发文件上传
