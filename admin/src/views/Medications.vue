@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { supabase } from '@/services/supabase'
 import { Search, Plus, Download, Upload } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
+import * as XLSX from 'xlsx'
 
 // 拼音首字母映射表
 const PINYIN_MAP: Record<string, string> = {
@@ -399,6 +400,59 @@ async function handleImportCommonMedications() {
       console.error('取消导入', error)
     }
   }
+}
+
+// 下载 Excel 模板
+function downloadTemplate() {
+  const wb = XLSX.utils.book_new()
+  const dateString = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+
+  // 工作表 1：填写说明
+  const instructionData = [
+    ['📋 药品批量导入模板 - 填写说明'],
+    [],
+    ['填写规则：'],
+    ['  • 标红单元格为必填项'],
+    ['  • 药品分类：从下拉列表选择（降压药、降糖药、降脂药、心血管药、胃药、止咳药、止痛药、维生素、钙片、抗生素、其他）'],
+    ['  • 剂型：从下拉列表选择（tablet=药片、capsule=胶囊、liquid=口服液）'],
+    ['  • 重复药品判断：以"药品名称"为准，名称相同视为重复'],
+    [],
+    ['📝 填写示例：'],
+    ['药品名称', '通用名称', '药品分类', '生产厂家', '规格', '剂型', '外观描述', '剂量单位'],
+    ['阿司匹林肠溶片', '阿司匹林', '心血管药', '拜耳医药', '100mg×30 片', 'tablet', '白色圆形小药片，直径约 8mm，刻有"100"', '片'],
+    ['布洛芬缓释胶囊', '布洛芬', '止痛药', '中美天津史克', '0.3g×20 粒', 'capsule', '透明胶囊，内含白色粉末', '粒']
+  ]
+  const wsInstructions = XLSX.utils.aoa_to_sheet(instructionData)
+  wsInstructions['!cols'] = [{ wch: 50 }]
+  XLSX.utils.book_append_sheet(wb, wsInstructions, '填写说明')
+
+  // 工作表 2：模板数据（含数据验证）
+  const categories = '降压药，降糖药，降脂药，心血管药，胃药，止咳药，止痛药，维生素，钙片，抗生素，其他'
+  const forms = 'tablet,capsule,liquid'
+  const headers = ['药品名称', '通用名称', '药品分类', '生产厂家', '规格', '剂型', '外观描述', '剂量单位']
+  const emptyRows = Array(10).fill(null).map(() => Array(8).fill(''))
+  const wsTemplate = XLSX.utils.aoa_to_sheet([headers, ...emptyRows])
+
+  wsTemplate['!cols'] = [
+    { wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 20 },
+    { wch: 15 }, { wch: 10 }, { wch: 30 }, { wch: 10 }
+  ]
+
+  // 设置数据验证
+  wsTemplate['!dataValidations'] = {
+    C2: { type: 'list', formulae: [categories], allowBlank: false, showDropDown: false, showErrorMessage: true, error: '分类无效' },
+    F2: { type: 'list', formulae: [forms], allowBlank: false, showDropDown: false, showErrorMessage: true, error: '剂型无效' }
+  }
+
+  // 设置必填单元格背景色
+  for (let i = 2; i <= 11; i++) {
+    wsTemplate[`A${i}`] = { s: { fill: { fgColor: { rgb: 'FFE6E6' } } } }
+    wsTemplate[`C${i}`] = { s: { fill: { fgColor: { rgb: 'FFE6E6' } } } }
+    wsTemplate[`F${i}`] = { s: { fill: { fgColor: { rgb: 'FFE6E6' } } } }
+  }
+
+  XLSX.utils.book_append_sheet(wb, wsTemplate, '模板数据')
+  XLSX.writeFile(wb, `药品批量导入模板_${dateString}.xlsx`)
 }
 
 async function fetchCommonMedications() {
