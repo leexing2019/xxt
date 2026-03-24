@@ -464,13 +464,20 @@ async function downloadTemplate() {
 
 // 触发文件上传
 function triggerUpload() {
-  ;(uploadRef.value as any)?.$refs.upload?.click()
+  ;(uploadRef.value as HTMLInputElement)?.click()
 }
 
 // 处理文件上传和解析
-async function handleFileUpload(file: any) {
+async function handleFileUpload(event: Event) {
   try {
-    const fileData = await file.raw.arrayBuffer()
+    const input = event.target as HTMLInputElement
+    const files = input.files
+    if (!files || files.length === 0) {
+      return
+    }
+
+    const file = files[0]
+    const fileData = await file.arrayBuffer()
     const workbook = XLSX.read(fileData, { type: 'array' })
 
     // 获取模板数据工作表
@@ -509,6 +516,9 @@ async function handleFileUpload(file: any) {
     } else {
       ElMessage.success(`共 ${rows.length} 条数据，验证通过`)
     }
+
+    // 清空 input，允许重复上传同一文件
+    input.value = ''
   } catch (error) {
     console.error('解析文件失败:', error)
     ElMessage.error('解析文件失败：' + (error as any).message)
@@ -792,16 +802,13 @@ onMounted(() => {
           <el-icon><Upload /></el-icon>
           上传
         </el-button>
-        <el-upload
+        <input
           ref="uploadRef"
-          :auto-upload="false"
-          :on-change="handleFileUpload"
-          :show-file-list="false"
+          type="file"
           accept=".xlsx,.xls"
           style="display: none"
-        >
-          <el-button>上传</el-button>
-        </el-upload>
+          @change="handleFileUpload"
+        />
         <el-button type="primary" @click="handleAdd">
           <el-icon><Plus /></el-icon>
           添加药品
