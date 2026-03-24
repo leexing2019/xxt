@@ -40,8 +40,22 @@ export const routes: RouteRecordRaw[] = [
 
 // 路由守卫
 export function setupRouterGuard(router: Router) {
-  router.beforeEach((to, from, next) => {
+  router.beforeEach(async (to, from, next) => {
     const authStore = useAuthStore()
+
+    // 等待 auth 初始化完成（防止刷新时未初始化就跳转）
+    if (!authStore.initialized) {
+      await new Promise(resolve => {
+        const checkInitialized = () => {
+          if (authStore.initialized) {
+            resolve(true)
+          } else {
+            setTimeout(checkInitialized, 50)
+          }
+        }
+        checkInitialized()
+      })
+    }
 
     // 设置页面标题
     if (to.meta.title) {

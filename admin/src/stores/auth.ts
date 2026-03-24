@@ -6,8 +6,38 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<any>(null)
   const loading = ref(false)
   const sidebarCollapsed = ref(false)
+  const initialized = ref(false)
 
   const isLoggedIn = computed(() => !!user.value)
+
+  // 初始化认证状态（页面刷新时恢复会话）
+  async function initAuth() {
+    if (initialized.value) return
+
+    loading.value = true
+    try {
+      // 获取当前会话
+      const { data: { session }, error } = await supabase.auth.getSession()
+
+      if (session?.user) {
+        user.value = session.user
+      }
+
+      // 监听认证状态变化
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (session?.user) {
+          user.value = session.user
+        } else {
+          user.value = null
+        }
+      })
+    } catch (error) {
+      console.error('初始化认证失败:', error)
+    } finally {
+      loading.value = false
+      initialized.value = true
+    }
+  }
 
   // 管理员登录
   async function login(email: string, password: string) {
@@ -64,10 +94,12 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     user,
     loading,
+    initialized,
     sidebarCollapsed,
     isLoggedIn,
     login,
     logout,
-    toggleSidebar
+    toggleSidebar,
+    initAuth
   }
 })
