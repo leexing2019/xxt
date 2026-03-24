@@ -154,7 +154,8 @@ export const useMedicationStore = defineStore('medication', () => {
           form: medication.form || '',
           appearance_desc: medication.appearance_desc || '',
           image_url: medication.image_url || '',
-          category: '其他' // 默认分类
+          category: '其他', // 默认分类
+          created_by: authStore.userId // 记录添加者
         })
         .select()
         .single()
