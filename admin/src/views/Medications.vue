@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { supabase } from '@/services/supabase'
-import { Search, Plus, Download } from '@element-plus/icons-vue'
+import { Search, Plus, Download, Upload } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 
 // 拼音首字母映射表
@@ -565,10 +565,24 @@ onMounted(() => {
     <div class="page-header">
       <h2>公共药品库管理</h2>
       <div style="display: flex; gap: 12px">
-        <el-button type="success" @click="handleImportCommonMedications">
+        <el-button @click="downloadTemplate">
           <el-icon><Download /></el-icon>
-          导入常用药品
+          下载模板
         </el-button>
+        <el-button @click="triggerUpload">
+          <el-icon><Upload /></el-icon>
+          上传
+        </el-button>
+        <el-upload
+          ref="uploadRef"
+          :auto-upload="false"
+          :on-change="handleFileUpload"
+          :show-file-list="false"
+          accept=".xlsx,.xls"
+          style="display: none"
+        >
+          <el-button>上传</el-button>
+        </el-upload>
         <el-button type="primary" @click="handleAdd">
           <el-icon><Plus /></el-icon>
           添加药品
