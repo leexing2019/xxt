@@ -129,6 +129,9 @@ export const useMedicationStore = defineStore('medication', () => {
 
     loading.value = true
     try {
+      console.log('[addMedication] 用户 ID:', authStore.userId)
+      console.log('[addMedication] 药品名称:', medication.name)
+
       // 先检查是否已存在同名药品
       const { data: existingRows, error: queryError } = await supabase
         .from('common_medications')
@@ -140,10 +143,12 @@ export const useMedicationStore = defineStore('medication', () => {
 
       if (existingRows && existingRows.length > 0) {
         // 药品已存在，返回现有 ID
+        console.log('[addMedication] 药品已存在:', existingRows[0].id)
         return { success: true, data: { id: existingRows[0].id, ...medication } }
       }
 
       // 添加到公共药品库
+      console.log('[addMedication] 插入新药，created_by:', authStore.userId)
       const { data, error } = await supabase
         .from('common_medications')
         .insert({
@@ -159,6 +164,8 @@ export const useMedicationStore = defineStore('medication', () => {
         })
         .select()
         .single()
+
+      console.log('[addMedication] 插入结果:', data)
 
       if (error) throw error
 
