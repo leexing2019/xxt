@@ -464,7 +464,7 @@ async function downloadTemplate() {
 
 // 触发文件上传
 function triggerUpload() {
-  uploadRef.value?.$el.click()
+  ;(uploadRef.value as any)?.$refs.upload?.click()
 }
 
 // 处理文件上传和解析
