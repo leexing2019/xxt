@@ -195,7 +195,13 @@ const PINYIN_MAP: Record<string, string> = {
   '子': 'z', '紫': 'z', '字': 'z', '自': 'z', '宗': 'z', '总': 'z', '纵': 'z',
   '走': 'z', '奏': 'z', '租': 'z', '足': 'z', '族': 'z', '阻': 'z', '组': 'z',
   '祖': 'z', '钻': 'z', '嘴': 'z', '最': 'z', '罪': 'z', '醉': 'z', '尊': 'z',
-  '昨': 'z', '左': 'z', '作': 'z', '坐': 'z', '座': 'z', '做': 'z', '躁': 'z'
+  '昨': 'z', '左': 'z', '作': 'z', '坐': 'z', '座': 'z', '做': 'z', '躁': 'z',
+  // 补充：常用药品用字
+  '钴': 'g', '胺': 'a', '肼': 'j', '噻': 's', '吩': 'f', '唑': 'z', '汀': 't',
+  '坦': 't', '洛': 'l', '贝': 'b', '纳': 'n', '沙': 's', '韦': 'w', '奈': 'n',
+  '酯': 'z', '醇': 'c', '苷': 'g', '铋': 'b', '羟': 'q', '苄': 'b', '地': 'd',
+  '米': 'm', '布': 'b', '芬': 'f', '昔': 'x', '伦': 'l', '肽': 't', '硝': 'x',
+  '苯': 'b', '平': 'p', '缓': 'h', '释': 's', '肠': 'c', '溶': 'r'
 }
 
 // 获取中文的拼音首字母
@@ -232,6 +238,7 @@ interface CommonMedication {
   form?: string
   appearance_desc?: string
   dosage_unit?: string
+  color?: string  // 新增颜色字段
   is_active: boolean
   created_at: string
   updated_at: string
@@ -502,6 +509,7 @@ async function handleSubmit() {
           manufacturer: currentMedication.value.manufacturer,
           specification: currentMedication.value.specification,
           form: currentMedication.value.form,
+          color: currentMedication.value.color,
           appearance_desc: currentMedication.value.appearance_desc,
           dosage_unit: currentMedication.value.dosage_unit,
           is_active: currentMedication.value.is_active,
@@ -522,6 +530,7 @@ async function handleSubmit() {
           manufacturer: currentMedication.value.manufacturer,
           specification: currentMedication.value.specification,
           form: currentMedication.value.form,
+          color: currentMedication.value.color,
           appearance_desc: currentMedication.value.appearance_desc,
           dosage_unit: currentMedication.value.dosage_unit,
           is_active: currentMedication.value.is_active ?? true
@@ -723,14 +732,9 @@ onMounted(() => {
           <el-col :span="12">
             <el-form-item label="剂型">
               <el-select v-model="currentMedication.form" placeholder="请选择剂型" style="width: 100%">
-                <el-option label="片剂" value="片剂" />
-                <el-option label="胶囊" value="胶囊" />
-                <el-option label="缓释片" value="缓释片" />
-                <el-option label="肠溶片" value="肠溶片" />
-                <el-option label="注射液" value="注射液" />
-                <el-option label="散剂" value="散剂" />
-                <el-option label="丸剂" value="丸剂" />
-                <el-option label="其他" value="其他" />
+                <el-option label="药片" value="tablet" />
+                <el-option label="胶囊" value="capsule" />
+                <el-option label="口服液" value="liquid" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -738,11 +742,19 @@ onMounted(() => {
 
         <el-row :gutter="20">
           <el-col :span="12">
+            <el-form-item label="颜色" v-if="['tablet', 'capsule'].includes(currentMedication.form)">
+              <el-color-picker v-model="currentMedication.color" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="剂量单位">
               <el-input v-model="currentMedication.dosage_unit" placeholder="如：片、粒、ml" style="width: 120px" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="24">
             <el-form-item label="状态">
               <el-switch v-model="currentMedication.is_active" active-text="在用" inactive-text="停用" />
             </el-form-item>
