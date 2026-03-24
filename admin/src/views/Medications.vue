@@ -349,8 +349,8 @@ function downloadTemplate() {
   XLSX.utils.book_append_sheet(wb, wsInstructions, '填写说明')
 
   // 工作表 2：模板数据（含数据验证）
-  const categories = '降压药，降糖药，降脂药，心血管药，胃药，止咳药，止痛药，维生素，钙片，抗生素，其他'
-  const forms = 'tablet,capsule,liquid'
+  const categories = ['降压药', '降糖药', '降脂药', '心血管药', '胃药', '止咳药', '止痛药', '维生素', '钙片', '抗生素', '其他']
+  const forms = ['tablet', 'capsule', 'liquid']
   const headers = ['药品名称', '通用名称', '药品分类', '生产厂家', '规格', '剂型', '外观描述', '剂量单位']
   const emptyRows = Array(10).fill(null).map(() => Array(8).fill(''))
   const wsTemplate = XLSX.utils.aoa_to_sheet([headers, ...emptyRows])
@@ -360,39 +360,43 @@ function downloadTemplate() {
     { wch: 15 }, { wch: 10 }, { wch: 30 }, { wch: 10 }
   ]
 
-  // 设置数据验证 - 为整个列区域设置下拉列表
-  // C 列：药品分类（C2:C11）
-  // F 列：剂型（F2:F11）
+  // 使用 XLSX 库的 data validation 功能设置下拉列表
+  const categoriesFormula = '"' + categories.join(',') + '"'
+  const formsFormula = '"' + forms.join(',') + '"'
+
+  // 为第 2-11 行设置数据验证
+  for (let i = 2; i <= 11; i++) {
+    // C 列：药品分类
+    wsTemplate[`C${i}`] = {
+      ...wsTemplate[`C${i}`],
+      t: 's'
+    }
+    // F 列：剂型
+    wsTemplate[`F${i}`] = {
+      ...wsTemplate[`F${i}`],
+      t: 's'
+    }
+  }
+
+  // 设置数据验证区域
   wsTemplate['!dataValidations'] = {
-    C2: {
+    'C2:C11': {
       type: 'list',
-      formulae: [`"${categories}"`],
+      formulae: [categoriesFormula],
       allowBlank: false,
       showDropDown: true,
       showErrorMessage: true,
       errorStyle: 'stop',
       error: '分类无效，请从下拉列表选择'
     },
-    F2: {
+    'F2:F11': {
       type: 'list',
-      formulae: [`"${forms}"`],
+      formulae: [formsFormula],
       allowBlank: false,
       showDropDown: true,
       showErrorMessage: true,
       errorStyle: 'stop',
       error: '剂型无效，请从下拉列表选择'
-    }
-  }
-
-  // 为 C3:C11 和 F3:F11 也设置相同的数据验证
-  for (let i = 3; i <= 11; i++) {
-    wsTemplate[`C${i}`] = {
-      ...wsTemplate[`C${i}`],
-      t: 's'
-    }
-    wsTemplate[`F${i}`] = {
-      ...wsTemplate[`F${i}`],
-      t: 's'
     }
   }
 
