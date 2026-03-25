@@ -252,11 +252,24 @@ export async function recordAndRecognize(): Promise<SpeechRecognitionResult> {
             }
           })
         } else {
-          // 标准基座/H5+: 使用 fetch 获取 blob URL
-          console.log('标准基座/H5 环境：使用 fetch 获取录音文件')
-          const response = await fetch(tempFilePath)
-          const blob = await response.blob()
-          console.log('录音文件获取成功，大小:', blob.size)
+          // 标准基座/H5+ 环境：使用 XMLHttpRequest 获取录音文件
+          console.log('标准基座/H5 环境：使用 XHR 获取录音文件')
+
+          const blob = await new Promise<Blob>((resolve, reject) => {
+            const xhr = new XMLHttpRequest()
+            xhr.open('GET', tempFilePath, true)
+            xhr.responseType = 'blob'
+            xhr.onload = () => {
+              console.log('录音文件获取成功，大小:', xhr.response.size)
+              resolve(xhr.response)
+            }
+            xhr.onerror = (e) => {
+              console.error('XHR 获取文件失败:', e)
+              reject(new Error('读取录音文件失败'))
+            }
+            xhr.send()
+          })
+
           const result = await recognizeSpeechBaidu(blob)
           console.log('百度语音识别成功:', result.text)
           resolve({ success: true, text: result.text, confidence: 1.0 })
