@@ -57,14 +57,19 @@ export function parseReportText(reportText: string): ReportData {
 /**
  * 文本自动换行（传统 Canvas API 版本）
  * 由于 uni.createCanvasContext 不支持 measureText，使用固定字符数换行
+ * 根据 maxWidth 动态计算每行字符数
  */
 function wrapText(ctx: any, text: string, maxWidth: number): string[] {
-  // 估算每行字符数（中文约 20 个字符一行）
-  const charsPerLine = Math.floor(maxWidth / 18)
+  // 根据可用宽度计算每行字符数
+  // Canvas 375px 宽，padding 40px，可用宽度约 295px
+  // 中文字符约 14-16px 宽，英文字符约 8-10px 宽
+  // 保守估计每行 20 个字符（混合场景）
+  const charsPerLine = 20
   const lines: string[] = []
   const paragraphs = text.split('\n')
 
   for (const paragraph of paragraphs) {
+    if (!paragraph) continue
     if (paragraph.length <= charsPerLine) {
       lines.push(paragraph)
     } else {
@@ -88,65 +93,67 @@ export async function drawReportCanvas(
     // 使用 uni.createCanvasContext 创建 Canvas 上下文
     const ctx = uni.createCanvasContext('report-canvas')
 
-    const dpr = uni.getSystemInfoSync().pixelRatio
-
-    // 设置画布尺寸
+    // 画布尺寸（与样式一致）
     const width = 375
     const height = 800
+    const padding = 40 // 增加边距
 
     // 解析报告
     const data = parseReportText(reportText)
 
-    // 1. 绘制顶部渐变背景（使用矩形模拟）
+    // 0. 先绘制白色背景
+    ctx.setFillStyle('#FFFFFF')
+    ctx.fillRect(0, 0, width, height)
+
+    // 1. 绘制顶部背景
     ctx.setFillStyle('#2196F3')
     ctx.fillRect(0, 0, width, 120)
 
-    // 2. 绘制标题
+    // 2. 绘制标题 - 居中显示
     ctx.setFillStyle('#FFFFFF')
     ctx.setFontSize(24)
-    ctx.setTextAlign('left')
-    ctx.fillText(data.title, 24, 35)
+    ctx.setTextAlign('center')
+    ctx.fillText(data.title, width / 2, 40)
 
-    // 3. 绘制日期
+    // 3. 绘制日期 - 右对齐
     ctx.setFillStyle('rgba(255,255,255,0.8)')
     ctx.setFontSize(14)
     ctx.setTextAlign('right')
-    ctx.fillText(data.date, width - 24, 35)
+    ctx.fillText(data.date, width - padding, 40)
 
     // 4. 绘制报告正文
-    let y = 150
-    const lineHeight = 25
-    const padding = 24
-
-    ctx.setFillStyle('#333333')
-    ctx.setFontSize(14)
-    ctx.setTextAlign('left')
+    let y = 160
+    const lineHeight = 28
 
     for (const section of data.sections) {
+      // 绘制 section 标题
       if (section.title) {
         ctx.setFillStyle('#2196F3')
         ctx.setFontSize(16)
+        ctx.setTextAlign('left')
         ctx.fillText(`【${section.title}】`, padding, y)
-        y += lineHeight
-        ctx.setFillStyle('#333333')
-        ctx.setFontSize(14)
+        y += lineHeight + 10
       }
 
+      // 绘制正文内容 - 每行都明确设置对齐方式
       const lines = wrapText(ctx, section.content, width - padding * 2)
       for (const line of lines) {
+        ctx.setTextAlign('left')
+        ctx.setFillStyle('#333333')
+        ctx.setFontSize(14)
         ctx.fillText(line, padding, y)
         y += lineHeight
       }
-      y += 10 // section 间距
+      y += 14 // section 间距
     }
 
     // 5. 绘制底部
     ctx.setFillStyle('#F8F9FA')
-    ctx.fillRect(0, height - 40, width, 40)
+    ctx.fillRect(0, height - 50, width, 50)
     ctx.setFillStyle('#999999')
     ctx.setFontSize(12)
     ctx.setTextAlign('center')
-    ctx.fillText(data.footer, width / 2, height - 20)
+    ctx.fillText(data.footer, width / 2, height - 25)
 
     // 6. 导出图片
     ctx.draw(false, () => {
