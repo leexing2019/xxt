@@ -78,95 +78,100 @@ function wrapText(ctx: any, text: string, maxWidth: number): string[] {
 /**
  * 在 Canvas 上绘制报告图片
  * @param reportText 报告文本
- * @param canvas Canvas 实例（Vue ref）
+ * @param canvasId Canvas 元素 ID
  * @returns 临时图片文件路径
  */
 export async function drawReportCanvas(
   reportText: string,
-  canvas: any
+  canvasId: string
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    if (!canvas) {
-      reject(new Error('Canvas not found'))
-      return
-    }
-
-    const ctx = canvas.getContext('2d')
-    const dpr = uni.getSystemInfoSync().pixelRatio
-
-    // 设置画布尺寸
-    const width = 375
-    const height = 600
-    canvas.width = width * dpr
-    canvas.height = height * dpr
-    ctx.scale(dpr, dpr)
-
-    // 解析报告
-    const data = parseReportText(reportText)
-
-    // 1. 绘制顶部渐变背景
-    const gradient = ctx.createLinearGradient(0, 0, 0, 120)
-    gradient.addColorStop(0, '#2196F3')
-    gradient.addColorStop(1, '#1976D2')
-    ctx.fillStyle = gradient
-    ctx.fillRect(0, 0, width, 120)
-
-    // 2. 绘制标题
-    ctx.fillStyle = '#FFFFFF'
-    ctx.font = 'bold 24px sans-serif'
-    ctx.textAlign = 'left'
-    ctx.fillText(data.title, 24, 50)
-
-    // 3. 绘制日期
-    ctx.fillStyle = 'rgba(255,255,255,0.8)'
-    ctx.font = '14px sans-serif'
-    ctx.textAlign = 'right'
-    ctx.fillText(data.date, width - 24, 50)
-
-    // 4. 绘制白色内容区背景
-    ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(0, 120, width, height - 160)
-
-    // 5. 绘制报告正文
-    let y = 150
-    const lineHeight = 25
-    const padding = 24
-
-    ctx.fillStyle = '#333333'
-    ctx.font = '14px sans-serif'
-    ctx.textAlign = 'left'
-
-    for (const section of data.sections) {
-      if (section.title) {
-        ctx.fillStyle = '#2196F3'
-        ctx.font = 'bold 16px sans-serif'
-        ctx.fillText(`【${section.title}】`, padding, y)
-        y += lineHeight
-        ctx.fillStyle = '#333333'
-        ctx.font = '14px sans-serif'
+    // 使用 uni.createSelectorQuery 获取 Canvas
+    const query = uni.createSelectorQuery()
+    query.select(`#${canvasId}`).fields({ node: true, size: true }).exec((res: any[]) => {
+      if (!res[0] || !res[0].node) {
+        reject(new Error('Canvas not found'))
+        return
       }
 
-      const lines = wrapText(ctx, section.content, width - padding * 2)
-      for (const line of lines) {
-        ctx.fillText(line, padding, y)
-        y += lineHeight
+      const canvas = res[0].node
+      const ctx = canvas.getContext('2d')
+      const dpr = uni.getSystemInfoSync().pixelRatio
+
+      // 设置画布尺寸
+      const width = 375
+      const height = 600
+      canvas.width = width * dpr
+      canvas.height = height * dpr
+      ctx.scale(dpr, dpr)
+
+      // 解析报告
+      const data = parseReportText(reportText)
+
+      // 1. 绘制顶部渐变背景
+      const gradient = ctx.createLinearGradient(0, 0, 0, 120)
+      gradient.addColorStop(0, '#2196F3')
+      gradient.addColorStop(1, '#1976D2')
+      ctx.fillStyle = gradient
+      ctx.fillRect(0, 0, width, 120)
+
+      // 2. 绘制标题
+      ctx.fillStyle = '#FFFFFF'
+      ctx.font = 'bold 24px sans-serif'
+      ctx.textAlign = 'left'
+      ctx.fillText(data.title, 24, 50)
+
+      // 3. 绘制日期
+      ctx.fillStyle = 'rgba(255,255,255,0.8)'
+      ctx.font = '14px sans-serif'
+      ctx.textAlign = 'right'
+      ctx.fillText(data.date, width - 24, 50)
+
+      // 4. 绘制白色内容区背景
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(0, 120, width, height - 160)
+
+      // 5. 绘制报告正文
+      let y = 150
+      const lineHeight = 25
+      const padding = 24
+
+      ctx.fillStyle = '#333333'
+      ctx.font = '14px sans-serif'
+      ctx.textAlign = 'left'
+
+      for (const section of data.sections) {
+        if (section.title) {
+          ctx.fillStyle = '#2196F3'
+          ctx.font = 'bold 16px sans-serif'
+          ctx.fillText(`【${section.title}】`, padding, y)
+          y += lineHeight
+          ctx.fillStyle = '#333333'
+          ctx.font = '14px sans-serif'
+        }
+
+        const lines = wrapText(ctx, section.content, width - padding * 2)
+        for (const line of lines) {
+          ctx.fillText(line, padding, y)
+          y += lineHeight
+        }
+        y += 10 // section 间距
       }
-      y += 10 // section 间距
-    }
 
-    // 6. 绘制底部
-    ctx.fillStyle = '#F8F9FA'
-    ctx.fillRect(0, height - 40, width, 40)
-    ctx.fillStyle = '#999999'
-    ctx.font = '12px sans-serif'
-    ctx.textAlign = 'center'
-    ctx.fillText(data.footer, width / 2, height - 20)
+      // 6. 绘制底部
+      ctx.fillStyle = '#F8F9FA'
+      ctx.fillRect(0, height - 40, width, 40)
+      ctx.fillStyle = '#999999'
+      ctx.font = '12px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText(data.footer, width / 2, height - 20)
 
-    // 7. 导出图片
-    uni.canvasToTempFilePath({
-      canvas,
-      success: (res) => resolve(res.tempFilePath),
-      fail: reject
+      // 7. 导出图片
+      uni.canvasToTempFilePath({
+        canvas,
+        success: (res) => resolve(res.tempFilePath),
+        fail: reject
+      })
     })
   })
 }

@@ -121,7 +121,6 @@
     <!-- App 端隐藏 Canvas -->
     <!-- #ifndef H5 -->
     <canvas
-      ref="canvasRef"
       id="report-canvas"
       type="2d"
       style="width: 375px; height: 600px; position: fixed; left: -10000px;"
@@ -175,7 +174,6 @@ const reportImageUrl = ref('')
 
 // #ifndef H5
 const reportImagePath = ref('')
-const canvasRef = ref<any>(null)
 // #endif
 
 const visibleQuestions = computed(() => medicalHistoryQuestions)
@@ -309,15 +307,9 @@ async function generateReportImage() {
     uni.showLoading({ title: '生成图片中...' })
 
     // 确保 canvas 已就绪
-    await new Promise(resolve => setTimeout(resolve, 300))
+    await new Promise(resolve => setTimeout(resolve, 500))
 
-    if (!canvasRef.value) {
-      uni.showToast({ title: 'Canvas 未就绪', icon: 'none' })
-      uni.hideLoading()
-      return
-    }
-
-    const imagePath = await drawReportCanvas(medicalReport.value, canvasRef.value)
+    const imagePath = await drawReportCanvas(medicalReport.value, 'report-canvas')
     reportImagePath.value = imagePath
     showImagePreview.value = true
     previewVisible.value = true
