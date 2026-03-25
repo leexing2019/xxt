@@ -227,44 +227,59 @@ export async function recordAndRecognize(): Promise<SpeechRecognitionResult> {
       }
 
       try {
-        // 读取录音文件为 Blob
         const { tempFilePath } = res
+        console.log('开始读取录音文件:', tempFilePath)
 
+        // H5 端处理 - 使用 base64 方式读取
         // #ifdef H5
-        // H5 端处理
-        const response = await fetch(tempFilePath)
-        const blob = await response.blob()
-        const result = await recognizeSpeechBaidu(blob)
-        resolve({
-          success: true,
-          text: result.text,
-          confidence: 1.0
-        })
+        try {
+          // 使用 uni.getFileSystemManager 读取
+          const fs = uni.getFileSystemManager()
+          fs.readFile({
+            filePath: tempFilePath,
+            encoding: undefined,
+            success: (fileRes) => {
+              console.log('录音文件读取成功:', fileRes.data)
+              const blob = new Blob([fileRes.data as ArrayBuffer], { type: 'audio/wav' })
+              recognizeSpeechBaidu(blob)
+                .then(result => {
+                  console.log('百度语音识别成功:', result.text)
+                  resolve({ success: true, text: result.text, confidence: 1.0 })
+                })
+                .catch(err => {
+                  console.error('百度语音识别失败:', err)
+                  resolve({ success: false, error: `识别失败：${err.message}` })
+                })
+            },
+            fail: (readErr) => {
+              console.error('读取录音文件失败:', readErr)
+              resolve({ success: false, error: `读取文件失败：${readErr.errMsg}` })
+            }
+          })
+        } catch (e) {
+          console.error('H5 文件读取异常:', e)
+          resolve({ success: false, error: `H5 读取异常：${e.message}` })
+        }
         // #endif
 
-        // #ifdef APP-PLUS
         // App 端处理
-        uni.getFileSystemManager().readFile({
+        // #ifdef APP-PLUS
+        const fs = uni.getFileSystemManager()
+        fs.readFile({
           filePath: tempFilePath,
           encoding: undefined,
           success: async (fileRes) => {
             const blob = new Blob([fileRes.data as ArrayBuffer], { type: 'audio/wav' })
             const result = await recognizeSpeechBaidu(blob)
-            resolve({
-              success: true,
-              text: result.text,
-              confidence: 1.0
-            })
+            resolve({ success: true, text: result.text, confidence: 1.0 })
           },
           fail: (err) => {
-            resolve({
-              success: false,
-              error: `读取录音文件失败：${err.errMsg}`
-            })
+            resolve({ success: false, error: `读取文件失败：${err.errMsg}` })
           }
         })
         // #endif
       } catch (error) {
+        console.error('录音后处理异常:', error)
         resolve({
           success: false,
           error: error instanceof Error ? error.message : '语音识别失败'
