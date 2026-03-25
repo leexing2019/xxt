@@ -21,13 +21,13 @@
 
       <!-- 底部操作 -->
       <view class="preview-footer">
-        <button class="btn btn-outline" @click="handleShare">
-          <text class="btn-icon">📤</text>
-          <text class="btn-label">分享</text>
-        </button>
         <button class="btn btn-primary" @click="handleSave">
           <text class="btn-icon">💾</text>
           <text class="btn-label">保存到相册</text>
+        </button>
+        <button class="btn btn-outline" @click="handleShare">
+          <text class="btn-icon">📤</text>
+          <text class="btn-label">分享</text>
         </button>
       </view>
     </view>
@@ -51,7 +51,7 @@ function handleClose() {
 }
 
 function handleLongPress() {
-  uni.showToast({ title: '长按已保存图片', icon: 'success' })
+  uni.showToast({ title: '长按图片已保存', icon: 'none' })
 }
 
 function handleSave() {
@@ -75,14 +75,14 @@ function handleShare() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32rpx;
+  padding: 24rpx;
 }
 
 .preview-modal {
   background: white;
   border-radius: 24rpx;
-  width: 100%;
-  max-width: 400rpx;
+  width: calc(100% - 48rpx);
+  max-width: 600rpx;
   overflow: hidden;
   animation: fadeIn 0.3s ease;
 }
@@ -91,39 +91,40 @@ function handleShare() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24rpx 28rpx;
+  padding: 20rpx 24rpx;
   border-bottom: 1rpx solid #f0f0f0;
 }
 
 .preview-title {
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: 600;
   color: #333;
 }
 
 .preview-close {
-  font-size: 40rpx;
+  font-size: 36rpx;
   color: #999;
-  width: 48rpx;
-  height: 48rpx;
+  width: 44rpx;
+  height: 44rpx;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .preview-content {
-  padding: 32rpx;
+  padding: 24rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 400rpx;
+  min-height: 300rpx;
+  max-height: 50vh;
   background: #f8f9fa;
 }
 
 .preview-image {
   width: 100%;
   height: auto;
-  border-radius: 12rpx;
+  border-radius: 8rpx;
 }
 
 .preview-loading {
@@ -133,9 +134,9 @@ function handleShare() {
 
 .preview-footer {
   display: flex;
-  gap: 20rpx;
-  padding: 24rpx 28rpx;
-  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  gap: 16rpx;
+  padding: 20rpx 24rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
 }
 
 .preview-footer .btn {
@@ -143,16 +144,16 @@ function handleShare() {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8rpx;
-  padding: 14rpx 20rpx;
-  min-height: 44rpx;
+  gap: 6rpx;
+  padding: 16rpx 12rpx;
+  min-height: 48rpx;
   font-size: 26rpx;
   border-radius: 12rpx;
 }
 
 .btn-icon {
   flex-shrink: 0;
-  font-size: 28rpx;
+  font-size: 32rpx;
   line-height: 1;
 }
 

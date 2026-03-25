@@ -394,17 +394,37 @@ async function shareReportImage() {
   // #endif
 
   // #ifndef H5
-  uni.share({
-    filePath: reportImagePath.value,
-    success: () => {
-      uni.showToast({ title: '分享成功', icon: 'success' })
-      closeImageModal()
-    },
-    fail: (err) => {
-      console.error('分享失败:', err)
-      uni.showToast({ title: '分享失败', icon: 'none' })
-    }
-  })
+  // 使用 plus.share 原生分享
+  // @ts-ignore
+  if (plus && plus.share) {
+    // @ts-ignore
+    plus.nativeUI.actionSheet(
+      {
+        title: '分享报告',
+        cancel: '取消',
+        buttons: [
+          { title: '微信' },
+          { title: '朋友圈' },
+          { title: 'QQ' },
+          { title: '复制链接' }
+        ]
+      },
+      (e: any) => {
+        if (e.index > 0) {
+          // @ts-ignore
+          plus.share.sendWithSystem(reportImagePath.value, () => {
+            uni.showToast({ title: '分享成功', icon: 'success' })
+            closeImageModal()
+          }, (err: any) => {
+            console.error('分享失败:', err)
+            uni.showToast({ title: '分享已取消', icon: 'none' })
+          })
+        }
+      }
+    )
+  } else {
+    uni.showToast({ title: '请长按图片后分享', icon: 'none' })
+  }
   // #endif
 }
 
