@@ -99,12 +99,20 @@
           </view>
         </view>
         <view class="medication-content">
-          <!-- 药品图标 -->
-          <view class="medication-icon-wrapper">
+          <!-- 药品照片/图标 -->
+          <view class="medication-avatar">
+            <image
+              v-if="item.common_medications?.image_url"
+              :src="getImageUrl(item.common_medications.image_url)"
+              class="med-image"
+              mode="aspectFill"
+              @error="handleImageError(item)"
+            />
             <MedicationIcon
+              v-else
               :name="item.common_medications?.name || '药'"
               :appearance-desc="item.common_medications?.appearance_desc"
-              :size="100"
+              :size="60"
             />
           </view>
           <!-- 药品信息 -->
@@ -140,12 +148,20 @@
           </view>
         </view>
         <view class="medication-content">
-          <!-- 药品图标 -->
-          <view class="medication-icon-wrapper">
+          <!-- 药品照片/图标 -->
+          <view class="medication-avatar">
+            <image
+              v-if="item.common_medications?.image_url"
+              :src="getImageUrl(item.common_medications.image_url)"
+              class="med-image"
+              mode="aspectFill"
+              @error="handleImageError(item)"
+            />
             <MedicationIcon
+              v-else
               :name="item.common_medications?.name || '药'"
               :appearance-desc="item.common_medications?.appearance_desc"
-              :size="100"
+              :size="60"
             />
           </view>
           <!-- 药品信息 -->
@@ -383,9 +399,17 @@ function goAddMedication() {
 }
 
 // 图片加载错误处理
-function handleImageError() {
+function handleImageError(item: any) {
   // 图片加载失败时静默处理，显示占位符
-  console.log('药品图片加载失败，显示占位符')
+  console.log('药品图片加载失败，显示默认图标')
+}
+
+// 获取图片 URL（处理 Base64 和 URL）
+function getImageUrl(imageUrl: string): string {
+  if (!imageUrl) return ''
+  // 如果是 Base64，直接返回
+  if (imageUrl.startsWith('data:image')) return imageUrl
+  return imageUrl
 }
 
 // 检测用户切换 - uni-app onShow 生命周期
@@ -711,6 +735,25 @@ onMounted(() => {
 .medication-content {
   display: flex;
   gap: 16px;
+}
+
+.medication-avatar {
+  flex-shrink: 0;
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+
+.med-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .medication-icon-wrapper {

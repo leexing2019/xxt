@@ -358,7 +358,7 @@ export const useMedicationStore = defineStore('medication', () => {
   // 记录服药
   async function logMedication(scheduleId: string, status: 'taken' | 'missed' | 'delayed', notes?: string) {
     if (!authStore.userId) return { success: false, error: '未登录' }
-    
+
     try {
       const { data, error } = await supabase
         .from('medication_logs')
@@ -372,14 +372,89 @@ export const useMedicationStore = defineStore('medication', () => {
         })
         .select()
         .single()
-      
+
       if (error) throw error
-      
+
       todayLogs.value.push(data)
       return { success: true, data }
     } catch (error: any) {
       console.error('记录服药失败:', error)
       return { success: false, error: error.message }
+    }
+  }
+
+  // 将图片转换为 Base64（降级方案）
+  async function convertToBase64(imagePath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      // #ifdef H5
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(imagePath as any)
+      // #endif
+
+      // #ifndef H5
+      const fs = uni.getFileSystemManager()
+      fs.readFile({
+        filePath: imagePath,
+        encoding: 'base64',
+        success: (res) => resolve('data:image/jpeg;base64,' + res.data as string),
+        fail: reject
+      })
+      // #endif
+    })
+  }
+
+  // 上传药品照片（带降级处理：Storage -> Base64）
+  async function uploadMedicationPhoto(medicationId: string, imagePath: string): Promise<string> {
+    if (!authStore.userId) throw new Error('未登录')
+
+    // 方案 1：尝试上传到 Storage
+    try {
+      const { data, error } = await supabase.storage
+        .from('medication-photos')
+        .upload(`${authStore.userId}/${medicationId}.jpg`, imagePath, {
+          cacheControl: '3600',
+          upsert: true
+        })
+
+      if (error) throw error
+
+      const { data: urlData } = supabase.storage
+        .from('medication-photos')
+        .getPublicUrl(`${authStore.userId}/${medicationId}.jpg`)
+
+      return urlData.publicUrl
+    } catch (error: any) {
+      console.warn('Storage 上传失败，降级到 Base64:', error.message)
+
+      // 方案 2：降级到 Base64 存储到数据库
+      const base64Data = await convertToBase64(imagePath)
+
+      // Base64 数据限制在 500KB 以内
+      if (base64Data.length > 500 * 1024) {
+        throw new Error('图片太大，无法存储（Base64 超过 500KB）')
+      }
+
+      // 返回 Base64 数据，存储到 image_url 字段
+      return base64Data
+    }
+  }
+
+  // 检查 Storage 状态
+  async function checkStorageStatus(): Promise<boolean> {
+    try {
+      const testBlob = new Blob(['test'], { type: 'image/jpeg' })
+      const { error } = await supabase.storage
+        .from('medication-photos')
+        .upload(`test/${Date.now()}.jpg`, testBlob as any)
+
+      if (error?.message.includes('exceeds') || error?.message.includes('limit')) {
+        return false
+      }
+      return true
+    } catch (e) {
+      return false
     }
   }
 
@@ -425,6 +500,9 @@ export const useMedicationStore = defineStore('medication', () => {
     updateSchedule,
     deleteSchedule,
     logMedication,
-    fetchTodayLogs
+    fetchTodayLogs,
+    uploadMedicationPhoto,
+    checkStorageStatus,
+    convertToBase64
   }
 })

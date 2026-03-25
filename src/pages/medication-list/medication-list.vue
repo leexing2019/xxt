@@ -49,7 +49,19 @@
           @click="goDetail(med)"
         >
           <view class="med-avatar">
-            <MedicationIcon :name="med.name" :appearance-desc="med.appearance_desc" :size="64" />
+            <image
+              v-if="med.image_url"
+              :src="getImageUrl(med.image_url)"
+              class="med-image"
+              mode="aspectFill"
+              @error="handleImageError(med)"
+            />
+            <MedicationIcon
+              v-else
+              :name="med.name"
+              :appearance-desc="med.appearance_desc"
+              :size="64"
+            />
           </view>
           <view class="med-info">
             <view class="med-name">{{ med.name }}</view>
@@ -114,6 +126,20 @@ function checkInteractions() {
     drugs: `${int.drug1} + ${int.drug2}`,
     description: int.description
   }))
+}
+
+// 获取图片 URL（处理 Base64 和 URL）
+function getImageUrl(imageUrl: string): string {
+  if (!imageUrl) return ''
+  // 如果是 Base64，直接返回
+  if (imageUrl.startsWith('data:image')) return imageUrl
+  return imageUrl
+}
+
+// 图片加载错误处理
+function handleImageError(med: any) {
+  // 图片加载失败时静默处理
+  console.log('药品图片加载失败:', med.name)
 }
 
 // 获取药品的用药计划
@@ -347,6 +373,13 @@ onMounted(async () => {
   margin-right: 20rpx;
   flex-shrink: 0;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.med-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .med-info {

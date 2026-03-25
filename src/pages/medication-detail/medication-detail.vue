@@ -3,13 +3,47 @@
     <!-- 顶部药品信息卡片 -->
     <view class="medication-header card">
       <view class="medication-avatar">
-        <image v-if="medication?.image_url" :src="medication.image_url" class="med-image" mode="aspectFill" />
+        <image v-if="medication?.image_url" :src="getImageUrl(medication.image_url)" class="med-image" mode="aspectFill" />
         <text v-else class="med-placeholder">💊</text>
       </view>
       <view class="medication-info">
         <text class="medication-name">{{ medication?.name || '未知药品' }}</text>
         <text v-if="medication?.generic_name" class="generic-name">通用名：{{ medication.generic_name }}</text>
         <text v-if="medication?.specification" class="specification">规格：{{ medication.specification }}</text>
+      </view>
+    </view>
+
+    <!-- 药品照片区域 -->
+    <view class="photo-section card">
+      <text class="section-title">药品照片</text>
+      <view class="photo-content">
+        <view class="photo-preview" @click="takePhoto">
+          <image
+            v-if="medication?.image_url && !isBase64(medication.image_url)"
+            :src="medication.image_url"
+            class="preview-image"
+            mode="aspectFill"
+            @error="handleImageError"
+          />
+          <!-- Base64 图片显示 -->
+          <image
+            v-else-if="medication?.image_url"
+            :src="medication.image_url"
+            class="preview-image"
+            mode="aspectFill"
+            @error="handleImageError"
+          />
+          <view v-else class="photo-placeholder">
+            <text class="placeholder-icon">📷</text>
+            <text class="placeholder-text">点击拍摄药品照片</text>
+          </view>
+        </view>
+        <button class="take-photo-btn" @click="takePhoto">
+          📷 {{ medication?.image_url ? '更换照片' : '拍摄/选择照片' }}
+        </button>
+        <text v-if="storageLimitWarning" class="warning-hint">
+          ⚠️ Storage 空间已满，使用压缩模式存储
+        </text>
       </view>
     </view>
 
@@ -61,13 +95,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useMedicationStore } from '@/store/medication'
+import { useAuthStore } from '@/store/auth'
 
 const medicationStore = useMedicationStore()
+const authStore = useAuthStore()
 
 const medicationId = ref('')
 const medication = ref<any>(null)
 const schedules = ref<any[]>([])
 const recentLogs = ref<any[]>([])
+const storageLimitWarning = ref(false)
 
 // 模拟数据
 const contraindications = ref('对阿司匹林过敏者禁用')
@@ -77,6 +114,97 @@ const interactions = ref('与华法林同用可能增加出血风险')
 const complianceRate = computed(() => 85)
 const takenCount = computed(() => 17)
 const missedCount = computed(() => 3)
+
+// 判断是否为 Base64
+function isBase64(str: string): boolean {
+  return str.startsWith('data:image')
+}
+
+// 获取图片 URL（处理 Base64 和 URL）
+function getImageUrl(imageUrl: string): string {
+  if (!imageUrl) return ''
+  if (isBase64(imageUrl)) return imageUrl
+  return imageUrl
+}
+
+// 处理图片加载错误
+function handleImageError() {
+  console.log('图片加载失败，显示占位符')
+}
+
+// 拍照或选择照片
+async function takePhoto() {
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'], // 自动压缩
+    sourceType: ['camera', 'album'],
+    success: async (res) => {
+      const imageSize = res.tempFiles[0].size
+
+      // 如果图片 > 100KB，提示用户
+      if (imageSize > 100 * 1024) {
+        uni.showToast({
+          title: '图片过大，将压缩后上传',
+          icon: 'none',
+          duration: 2000
+        })
+      }
+
+      uni.showLoading({ title: '上传中...' })
+
+      try {
+        const imagePath = res.tempFilePaths[0]
+        const imageUrl = await medicationStore.uploadMedicationPhoto(medicationId.value, imagePath)
+
+        // 更新药品照片
+        await medicationStore.updateMedication(medicationId.value, { image_url: imageUrl })
+
+        // 更新本地状态
+        if (medication.value) {
+          medication.value.image_url = imageUrl
+        }
+
+        uni.showToast({ title: '照片已更新', icon: 'success' })
+      } catch (error: any) {
+        console.error('上传失败:', error)
+        if (error.message.includes('storage') || error.message.includes('limit')) {
+          // Storage 失败，尝试 Base64 降级
+          try {
+            const base64Data = await medicationStore.convertToBase64(res.tempFilePaths[0])
+            if (base64Data.length > 500 * 1024) {
+              uni.showToast({ title: '图片太大，无法存储', icon: 'none' })
+              return
+            }
+
+            await medicationStore.updateMedication(medicationId.value, { image_url: base64Data })
+            if (medication.value) {
+              medication.value.image_url = base64Data
+            }
+            uni.showToast({ title: '照片已保存（压缩模式）', icon: 'success' })
+          } catch (base64Error) {
+            console.error('Base64 降级失败:', base64Error)
+            uni.showToast({ title: '上传失败', icon: 'none' })
+          }
+        } else {
+          uni.showToast({ title: '上传失败：' + error.message, icon: 'none' })
+        }
+      } finally {
+        uni.hideLoading()
+      }
+    },
+    fail: () => {
+      uni.showToast({ title: '取消选择', icon: 'none' })
+    }
+  })
+}
+
+// 检查 Storage 状态
+async function checkStorage() {
+  const isAvailable = await medicationStore.checkStorageStatus()
+  if (!isAvailable) {
+    storageLimitWarning.value = true
+  }
+}
 
 // 判断是否为今天
 function isToday(dayOfWeek: number): boolean {
@@ -136,6 +264,9 @@ onMounted(async () => {
   const currentPage = pages[pages.length - 1] as any
   const options = currentPage.options || {}
   medicationId.value = options.id || ''
+
+  // 检查 Storage 状态
+  await checkStorage()
 
   if (medicationId.value) {
     await medicationStore.fetchMedications()
@@ -208,6 +339,11 @@ onMounted(async () => {
   color: #666;
 }
 
+/* 药品照片区域样式 */
+.photo-section {
+  margin-top: 16rpx;
+}
+
 .section-title {
   font-size: 28rpx;
   font-weight: bold;
@@ -215,6 +351,78 @@ onMounted(async () => {
   display: block;
   margin-bottom: 16rpx;
   padding: 0 24rpx;
+}
+
+.photo-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+  padding: 0 24rpx;
+}
+
+.photo-preview {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #F5F5F5;
+  border: 4rpx solid #E0E0E0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholder-icon {
+  font-size: 60rpx;
+  margin-bottom: 8rpx;
+}
+
+.placeholder-text {
+  font-size: 20rpx;
+  color: #999;
+  text-align: center;
+}
+
+.take-photo-btn {
+  padding: 16rpx 32rpx;
+  font-size: 26rpx;
+  background: linear-gradient(135deg, #2196F3, #1976D2);
+  color: white;
+  border-radius: 40rpx;
+  border: none;
+  box-shadow: 0 4rpx 12rpx rgba(33, 150, 243, 0.3);
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.warning-hint {
+  font-size: 22rpx;
+  color: #FF9800;
+  background: #FFF3E0;
+  padding: 8rpx 16rpx;
+  border-radius: 8rpx;
 }
 
 .schedule-card {
