@@ -136,26 +136,26 @@
       {
         "pagePath": "pages/index/index",
         "text": "首页",
-        "iconPath": "/static/tabbar/home.svg",
-        "selectedIconPath": "/static/tabbar/home-active.svg"
+        "iconPath": "static/tabbar/home.png",
+        "selectedIconPath": "static/tabbar/home-active.png"
       },
       {
         "pagePath": "pages/medication-list/medication-list",
         "text": "药品",
-        "iconPath": "/static/tabbar/medicine.svg",
-        "selectedIconPath": "/static/tabbar/medicine-active.svg"
+        "iconPath": "static/tabbar/medicine.png",
+        "selectedIconPath": "static/tabbar/medicine-active.png"
       },
       {
         "pagePath": "pages/health-records/health-records",
         "text": "健康",
-        "iconPath": "/static/tabbar/health.svg",
-        "selectedIconPath": "/static/tabbar/health-active.svg"
+        "iconPath": "static/tabbar/health.png",
+        "selectedIconPath": "static/tabbar/health-active.png"
       },
       {
         "pagePath": "pages/settings/settings",
         "text": "设置",
-        "iconPath": "/static/tabbar/settings.svg",
-        "selectedIconPath": "/static/tabbar/settings-active.svg"
+        "iconPath": "static/tabbar/settings.png",
+        "selectedIconPath": "static/tabbar/settings-active.png"
       }
     ]
   },
