@@ -22,6 +22,7 @@ const isCollapsed = computed(() => authStore.sidebarCollapsed)
 function handleCommand(command: string) {
   if (command === 'logout') {
     authStore.logout()
+    router.push('/login')
   }
 }
 
