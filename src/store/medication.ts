@@ -30,6 +30,7 @@ export interface CommonMedication {
   appearance_desc?: string
   image_url?: string
   category?: string
+  created_by?: string  // 添加者 ID
   created_at_with_tz?: string
 }
 
@@ -142,9 +143,23 @@ export const useMedicationStore = defineStore('medication', () => {
       if (queryError) throw queryError
 
       if (existingRows && existingRows.length > 0) {
-        // 药品已存在，返回现有 ID
-        console.log('[addMedication] 药品已存在:', existingRows[0].id)
-        return { success: true, data: { id: existingRows[0].id, ...medication } }
+        const existingMed = existingRows[0]
+        console.log('[addMedication] 药品已存在:', existingMed.id, 'created_by:', existingMed.created_by)
+
+        // 如果药品是管理员导入的（created_by 为 NULL），更新为当前用户
+        if (!existingMed.created_by) {
+          console.log('[addMedication] 药品是管理员导入的，更新 created_by 为当前用户:', authStore.userId)
+          const { error: updateError } = await supabase
+            .from('common_medications')
+            .update({ created_by: authStore.userId })
+            .eq('id', existingMed.id)
+
+          if (updateError) {
+            console.error('[addMedication] 更新 created_by 失败:', updateError)
+          }
+        }
+
+        return { success: true, data: { id: existingMed.id, ...medication } }
       }
 
       // 添加到公共药品库

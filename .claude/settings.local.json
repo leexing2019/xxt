@@ -33,7 +33,19 @@
       "Bash(npm list:*)",
       "Bash(curl -s http://localhost:5174)",
       "Bash(curl -s http://localhost:3011)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "WebFetch(domain:supabase.com)",
+      "Bash(npx -y @supabase/mcp --help)",
+      "WebFetch(domain:github.com)",
+      "Bash(npm search:*)",
+      "Bash(SUPABASE_URL=\"https://vqtrfkigzqtcthrivbzn.supabase.co\" SUPABASE_ACCESS_TOKEN=\"sbp_f604b061f9cfcff122a5b5b60a92ed360615dea4\" echo '{}')",
+      "Bash(node \"C:\\\\Users\\\\zlx19\\\\AppData\\\\Roaming\\\\npm\\\\node_modules\\\\@supabase\\\\mcp-server-supabase\\\\dist\\\\transports\\\\stdio.js\")",
+      "Bash(node:*)",
+      "Bash(claude mcp:*)",
+      "Bash(C:\\\\Users\\\\zlx19\\\\AppData\\\\Local\\\\supabase\\\\supabase.exe login:*)",
+      "Skill(update-config)",
+      "Bash(\"C:\\\\Users\\\\zlx19\\\\AppData\\\\Local\\\\supabase\\\\supabase.exe\" --version)",
+      "Bash(\"C:\\\\Users\\\\zlx19\\\\AppData\\\\Local\\\\supabase\\\\supabase.exe\" projects:*)"
     ]
   }
 }

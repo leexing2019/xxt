@@ -232,6 +232,15 @@ const VALID_FORMS = ['tablet', 'capsule', 'liquid']
 function validateRow(row: any): string[] {
   const errors: string[] = []
 
+  // 检查是否为空行（所有字段都为空）
+  const allFields = ['药品名称', '通用名称', '药品分类', '生产厂家', '规格', '剂型', '外观描述', '剂量单位']
+  const isEmptyRow = allFields.every(field => !row[field] || String(row[field]).trim() === '')
+
+  // 空行跳过验证（不视为错误）
+  if (isEmptyRow) {
+    return []
+  }
+
   // 药品名称：必填，1-100 字
   if (!row['药品名称'] || String(row['药品名称']).trim() === '') {
     errors.push('药品名称不能为空')
