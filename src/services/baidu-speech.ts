@@ -252,21 +252,31 @@ export async function recordAndRecognize(): Promise<SpeechRecognitionResult> {
             }
           })
         } else {
-          // 标准基座环境：使用 uni.request 获取录音文件
-          console.log('标准基座环境：使用 uni.request 获取录音文件')
+          // 标准基座环境：使用 plus.io 读取本地文件
+          console.log('标准基座环境：使用 plus.io 读取录音文件')
 
           const blob = await new Promise<Blob>((resolve, reject) => {
-            uni.request({
-              url: tempFilePath,
-              responseType: 'arraybuffer',
-              success: (response) => {
-                console.log('录音文件获取成功，大小:', response.data.byteLength)
-                resolve(new Blob([response.data], { type: 'audio/wav' }))
-              },
-              fail: (err) => {
-                console.error('uni.request 获取文件失败:', err)
-                reject(new Error(`读取录音文件失败：${err.errMsg}`))
-              }
+            // 使用 plus.io 解析本地路径
+            plus.io.resolveLocalFileSystemURL(tempFilePath, (entry) => {
+              entry.file((file) => {
+                const reader = new plus.io.FileReader()
+                reader.onload = () => {
+                  const blob = new Blob([reader.result as ArrayBuffer], { type: 'audio/wav' })
+                  console.log('录音文件获取成功，大小:', blob.size)
+                  resolve(blob)
+                }
+                reader.onerror = (e) => {
+                  console.error('FileReader 读取失败:', e)
+                  reject(new Error('读取录音文件失败'))
+                }
+                reader.readAsArrayBuffer(file)
+              }, (err) => {
+                console.error('获取 file 对象失败:', err)
+                reject(err)
+              })
+            }, (err) => {
+              console.error('解析文件路径失败:', err)
+              reject(err)
             })
           })
 
