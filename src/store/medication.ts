@@ -90,11 +90,7 @@ export const useMedicationStore = defineStore('medication', () => {
       // 通过用药计划表获取用户拥有的药品
       const { data, error } = await supabase
         .from('medication_schedules')
-        .select(`
-          id,
-          medication_id,
-          common_medications (*)
-        `)
+        .select('id,medication_id,common_medications(*)')
         .eq('user_id', authStore.userId)
 
       if (error) throw error
@@ -244,7 +240,7 @@ export const useMedicationStore = defineStore('medication', () => {
   // 获取用药计划
   async function fetchSchedules() {
     if (!authStore.userId) return
-    
+
     loading.value = true
     try {
       const { data, error } = await supabase
@@ -252,7 +248,7 @@ export const useMedicationStore = defineStore('medication', () => {
         .select('*, common_medications(*)')
         .eq('user_id', authStore.userId)
         .order('time_of_day')
-      
+
       if (error) throw error
       schedules.value = data || []
     } catch (error) {

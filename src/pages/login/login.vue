@@ -59,15 +59,6 @@
         <text class="text-primary" @click="goRegister">立即注册</text>
       </view>
 
-      <!-- 演示账号快捷登录 -->
-      <view class="demo-login-section">
-        <view class="demo-login-btn" @click="useDemoAccount">
-          <text class="demo-icon">👤</text>
-          <text class="demo-text">演示账号快速登录</text>
-        </view>
-        <text class="demo-hint">账号：demo / 密码：123456</text>
-      </view>
-
       <!-- 语音登录提示 -->
       <!-- 已移除：底部麦克风图标语音输入提示 -->
     </view>
@@ -93,7 +84,6 @@
 import { ref } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import { speakText } from '@/services/voice'
-import { supabase } from '@/services/supabase'
 
 const authStore = useAuthStore()
 
@@ -133,38 +123,6 @@ async function handleLogin() {
 // 去注册
 function goRegister() {
   uni.navigateTo({ url: '/pages/register/register' })
-}
-
-// 演示账号快速登录
-function useDemoAccount() {
-  loading.value = true
-  // 演示账号：自动登录，跳过邮箱验证检查
-  supabase.auth.signInWithPassword({
-    email: 'demo@local.dev',
-    password: '123456'
-  }).then(({ data, error }) => {
-    loading.value = false
-    if (error) {
-      if (error.message.includes('Email not confirmed')) {
-        uni.showModal({
-          title: '提示',
-          content: '演示账号邮箱尚未确认。请开发者前往 Supabase 控制台确认 demo@local.dev 邮箱，或在 Authentication 设置中关闭邮箱验证要求。',
-          showCancel: false,
-          confirmText: '知道了'
-        })
-      } else {
-        uni.showToast({ title: error.message || '登录失败', icon: 'none' })
-      }
-      return
-    }
-    if (data.user) {
-      uni.showToast({ title: '登录成功', icon: 'success' })
-      speakText('欢迎使用 AI 用药助手')
-      setTimeout(() => {
-        uni.switchTab({ url: '/pages/index/index' })
-      }, 1000)
-    }
-  })
 }
 
 // 显示用户协议
@@ -295,49 +253,6 @@ function goEmergency() {
   text-align: center;
   margin-top: 24rpx;
   font-size: 26rpx;
-}
-
-.demo-login-section {
-  margin-top: 28rpx;
-  padding: 20rpx 24rpx;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-  border-radius: 20rpx;
-  text-align: center;
-}
-
-.demo-login-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16rpx 32rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 32rpx;
-  cursor: pointer;
-  transition: all 0.2s ease-out;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-
-  &:active {
-    transform: scale(0.95);
-    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.2);
-  }
-}
-
-.demo-icon {
-  font-size: 28rpx;
-  margin-right: 8rpx;
-}
-
-.demo-text {
-  color: white;
-  font-size: 24rpx;
-  font-weight: 500;
-}
-
-.demo-hint {
-  display: block;
-  margin-top: 8rpx;
-  color: #999;
-  font-size: 20rpx;
 }
 
 /* 语音提示样式已移除 */

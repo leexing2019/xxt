@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { supabase } from '@/services/supabase'
 import { useAuthStore } from './auth'
+import { useMedicationStore } from './medication'
 
 export interface HealthRecord {
   id: string
@@ -39,7 +40,8 @@ export const medicalHistoryQuestions = [
 
 export const useHealthStore = defineStore('health', () => {
   const authStore = useAuthStore()
-  
+  const medicationStore = useMedicationStore()
+
   // 状态
   const healthRecords = ref<HealthRecord[]>([])
   const medicalHistoryAnswers = ref<MedicalHistoryAnswer[]>([])
@@ -69,7 +71,7 @@ export const useHealthStore = defineStore('health', () => {
   // 添加健康记录
   async function addHealthRecord(record: Partial<HealthRecord>) {
     if (!authStore.userId) return { success: false, error: '未登录' }
-    
+
     loading.value = true
     try {
       const { data, error } = await supabase
@@ -80,9 +82,9 @@ export const useHealthStore = defineStore('health', () => {
         })
         .select()
         .single()
-      
+
       if (error) throw error
-      
+
       healthRecords.value.unshift(data)
       return { success: true, data }
     } catch (error: any) {
@@ -235,13 +237,20 @@ export const useHealthStore = defineStore('health', () => {
 
   // 获取用药依从性统计
   function getComplianceStats() {
-    // 实际项目中从medication_logs计算
+    const logs = medicationStore.todayLogs
+    const total = logs.length
+    const taken = logs.filter(l => l.status === 'taken').length
+    const missed = logs.filter(l => l.status === 'missed').length
+    const delayed = logs.filter(l => l.status === 'delayed').length
+
+    const rate = total > 0 ? Math.round((taken / total) * 100) : 0
+
     return {
-      total: 30,
-      taken: 25,
-      missed: 3,
-      delayed: 2,
-      rate: 83.3
+      total,
+      taken,
+      missed,
+      delayed,
+      rate
     }
   }
 

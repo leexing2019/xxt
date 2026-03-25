@@ -17,17 +17,22 @@ export const useAuthStore = defineStore('auth', () => {
   // 初始化认证状态
   async function initAuth() {
     if (initialized.value) return
-    
+
     loading.value = true
     try {
-      // 获取当前会话
-      const { data: { session }, error } = await supabase.auth.getSession()
-      
+      // 设置超时，避免网络问题导致白屏
+      const sessionPromise = supabase.auth.getSession()
+      const timeoutPromise = new Promise(resolve => {
+        setTimeout(() => resolve({ data: { session: null }, error: null }), 3000)
+      })
+
+      const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]) as any
+
       if (session?.user) {
         user.value = session.user
         await fetchProfile()
       }
-      
+
       // 监听认证状态变化
       supabase.auth.onAuthStateChange(async (event, session) => {
         if (session?.user) {
@@ -39,7 +44,8 @@ export const useAuthStore = defineStore('auth', () => {
         }
       })
     } catch (error) {
-      console.error('初始化认证失败:', error)
+      console.error('初始化认证失败（已降级处理）:', error)
+      // 不阻塞应用启动，用户可以手动登录
     } finally {
       loading.value = false
       initialized.value = true
@@ -75,6 +81,10 @@ export const useAuthStore = defineStore('auth', () => {
   async function register(username: string, password: string, email?: string) {
     loading.value = true
     try {
+      // 注册前清除旧用户状态，防止数据污染
+      user.value = null
+      profile.value = null
+
       const { data, error } = await supabase.auth.signUp({
         email: email || `${username}@local.dev`,
         password: password,
@@ -89,9 +99,8 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (data.user) {
         user.value = data.user
-        // 数据库触发器会自动创建 profile，无需手动创建
-        // 等待一小段时间确保触发器执行完成后再获取 profile
-        await new Promise(resolve => setTimeout(resolve, 100))
+        // 数据库触发器会自动创建 profile，等待触发器执行完成
+        await new Promise(resolve => setTimeout(resolve, 500))
         await fetchProfile()
       }
 
@@ -175,8 +184,46 @@ export const useAuthStore = defineStore('auth', () => {
       await supabase.auth.signOut()
       user.value = null
       profile.value = null
+      // 通知其他 store 清除数据（需要在调用 logout 的页面中处理）
+      uni.$emit('userLoggedOut')
     } catch (error) {
       console.error('退出登录失败:', error)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // 修改密码
+  async function changePassword(currentPassword: string, newPassword: string) {
+    if (!user.value?.email) return { success: false, error: '未登录' }
+
+    loading.value = true
+    try {
+      // 1. 先验证当前密码是否正确（重新登录验证）
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.value.email,
+        password: currentPassword
+      })
+
+      if (signInError) {
+        return { success: false, error: '当前密码错误' }
+      }
+
+      if (!signInData?.user) {
+        return { success: false, error: '当前密码错误' }
+      }
+
+      // 2. 更新密码
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword
+      })
+
+      if (updateError) throw updateError
+
+      return { success: true }
+    } catch (error: any) {
+      console.error('修改密码失败:', error)
+      return { success: false, error: error.message }
     } finally {
       loading.value = false
     }
@@ -199,6 +246,7 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     createProfile,
     updateProfile,
-    logout
+    logout,
+    changePassword
   }
 })

@@ -15,30 +15,30 @@
     <view class="progress-card card">
       <view class="progress-content">
         <view class="progress-ring-container">
-          <svg class="progress-ring" width="160" height="160" viewBox="0 0 160 160">
+          <svg class="progress-ring" width="120" height="120" viewBox="0 0 120 120">
             <!-- 背景圆环 -->
             <circle
               class="progress-ring-bg"
-              cx="80"
-              cy="80"
-              r="64"
+              cx="60"
+              cy="60"
+              r="48"
               fill="none"
               stroke="#E0E0E0"
-              stroke-width="16"
+              stroke-width="12"
             />
             <!-- 进度圆环 -->
             <circle
               class="progress-ring-fill"
-              cx="80"
-              cy="80"
-              r="64"
+              cx="60"
+              cy="60"
+              r="48"
               fill="none"
               stroke="url(#progressGradient)"
-              stroke-width="16"
+              stroke-width="12"
               stroke-linecap="round"
               :stroke-dasharray="circumference"
               :stroke-dashoffset="dashOffset"
-              transform="rotate(-90 80 80)"
+              transform="rotate(-90 60 60)"
             />
             <defs>
               <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -137,6 +137,29 @@ import MedicationIcon from '@/components/MedicationIcon.vue'
 const authStore = useAuthStore()
 const medicationStore = useMedicationStore()
 
+// 记录上一次的用户 ID，检测用户切换
+let lastUserId: string | null = null
+
+// 页面加载时检查登录状态
+onMounted(async () => {
+  // 等待认证初始化完成
+  let waitCount = 0
+  while (!authStore.initialized && waitCount < 50) {
+    await new Promise(resolve => setTimeout(resolve, 100))
+    waitCount++
+  }
+
+  // 如果未登录，跳转到登录页
+  if (!authStore.isLoggedIn) {
+    uni.reLaunch({ url: '/pages/login/login' })
+  } else {
+    // 已登录，加载数据
+    lastUserId = authStore.userId
+    await medicationStore.fetchSchedules()
+    await medicationStore.fetchTodayLogs()
+  }
+})
+
 // 从 store 加载真实数据
 const todayMedications = computed(() => {
   if (!medicationStore.schedules.length) return []
@@ -177,7 +200,7 @@ const progressPercent = computed(() => {
 })
 
 // 进度环计算
-const radius = 64
+const radius = 48
 const circumference = computed(() => 2 * Math.PI * radius)
 const dashOffset = computed(() => circumference.value - (progressPercent.value / 100) * circumference.value)
 
@@ -263,6 +286,32 @@ function handleImageError() {
   console.log('药品图片加载失败，显示占位符')
 }
 
+// 检测用户切换 - uni-app onShow 生命周期
+async function onShow() {
+  // 等待认证初始化
+  if (!authStore.initialized) {
+    let waitCount = 0
+    while (!authStore.initialized && waitCount < 50) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      waitCount++
+    }
+  }
+
+  // 检查用户是否切换
+  if (authStore.userId !== lastUserId) {
+    // 清除旧数据并重新加载
+    medicationStore.schedules = []
+    medicationStore.todayLogs = []
+    medicationStore.medications = []
+    lastUserId = authStore.userId
+
+    if (authStore.isLoggedIn) {
+      await medicationStore.fetchSchedules()
+      await medicationStore.fetchTodayLogs()
+    }
+  }
+}
+
 onMounted(() => {
   if (!authStore.isLoggedIn) {
     uni.redirectTo({ url: '/pages/login/login' })
@@ -277,6 +326,13 @@ onMounted(() => {
       medicationStore.fetchSchedules()
       medicationStore.fetchTodayLogs()
     }
+  })
+
+  // 监听退出登录，清除用户数据
+  uni.$on('userLoggedOut', () => {
+    medicationStore.schedules = []
+    medicationStore.todayLogs = []
+    medicationStore.medications = []
   })
 })
 </script>
@@ -338,10 +394,10 @@ onMounted(() => {
 }
 
 .progress-card {
-  margin: 16px;
+  margin: 12px;
   background: white;
-  border-radius: 20px;
-  padding: 24px;
+  border-radius: 16px;
+  padding: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
@@ -353,14 +409,14 @@ onMounted(() => {
 
 .progress-ring-container {
   position: relative;
-  width: 160px;
-  height: 160px;
-  margin-bottom: 20px;
+  width: 120px;
+  height: 120px;
+  margin-bottom: 12px;
 }
 
 .progress-ring {
-  width: 160px;
-  height: 160px;
+  width: 120px;
+  height: 120px;
 }
 
 .progress-ring-bg {
@@ -382,25 +438,25 @@ onMounted(() => {
 }
 
 .center-percent {
-  font-size: 32px;
+  font-size: 24px;
   font-weight: 700;
   color: #4CAF50;
   line-height: 1;
 }
 
 .center-label {
-  font-size: 14px;
+  font-size: 12px;
   color: #666;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .progress-details {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 32px;
+  gap: 24px;
   width: 100%;
-  padding-top: 16px;
+  padding-top: 12px;
   border-top: 1px solid #F0F0F0;
 }
 
@@ -408,23 +464,23 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .detail-value {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
   color: #333;
 }
 
 .detail-label {
-  font-size: 14px;
+  font-size: 12px;
   color: #666;
 }
 
 .detail-divider {
   width: 1px;
-  height: 32px;
+  height: 24px;
   background: #E0E0E0;
 }
 
@@ -569,18 +625,27 @@ onMounted(() => {
 
 .empty-state {
   text-align: center;
-  padding: 80px 20px;
+  padding: 40px 20px;
 }
 
 .empty-state-icon {
-  font-size: 64px;
+  font-size: 56px;
   display: block;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .empty-state-text {
-  font-size: 18px;
+  font-size: 17px;
   color: #666;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.empty-state-hint {
+  font-size: 13px;
+  color: #999;
+  display: block;
+  margin-bottom: 16px;
 }
 
 .btn {

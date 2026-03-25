@@ -173,6 +173,12 @@ function goEmergency() {
 onMounted(() => {
   healthStore.fetchHealthRecords()
   medicationStore.fetchTodayLogs()
+
+  // 监听退出登录，清除用户数据
+  uni.$on('userLoggedOut', () => {
+    healthStore.healthRecords = []
+    healthStore.medicalHistoryAnswers = []
+  })
 })
 </script>
 

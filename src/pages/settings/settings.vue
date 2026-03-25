@@ -3,14 +3,14 @@
     <!-- 用户信息 -->
     <view class="user-section">
       <view class="user-avatar">
-        <image v-if="profile?.avatar_url" :src="profile.avatar_url" class="avatar-img" />
+        <image v-if="authStore.profile?.avatar_url" :src="authStore.profile.avatar_url" class="avatar-img" />
         <view v-else class="avatar-placeholder">
           <text class="avatar-icon">👤</text>
         </view>
       </view>
       <view class="user-info">
-        <text class="user-name">{{ profile?.username || '用户' + userId?.slice(-4) }}</text>
-        <text class="user-phone">{{ profile?.phone || '未绑定手机' }}</text>
+        <text class="user-name">{{ authStore.profile?.username || (authStore.userId ? '用户' + authStore.userId.slice(-4) : '用户') }}</text>
+        <text class="user-phone">{{ authStore.profile?.phone || '未绑定手机' }}</text>
       </view>
       <text class="edit-btn" @click="editProfile">编辑</text>
     </view>
@@ -90,6 +90,16 @@
         </view>
         <text class="setting-arrow">></text>
       </view>
+
+      <!-- 修改密码 -->
+      <view class="setting-item" @click="changePassword">
+        <text class="setting-icon">🔑</text>
+        <view class="setting-info">
+          <text class="setting-title">修改密码</text>
+          <text class="setting-desc">更改您的登录密码</text>
+        </view>
+        <text class="setting-arrow">></text>
+      </view>
     </view>
 
     <!-- 关于 -->
@@ -125,13 +135,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/store/auth'
+import { speakText } from '@/services/voice'
 
 const authStore = useAuthStore()
-
-const profile = computed(() => authStore.profile)
-const userId = computed(() => authStore.userId)
 
 // 紧急联系人
 const emergencyContact = ref('')
@@ -280,6 +288,76 @@ function logout() {
       }
     }
   })
+}
+
+// 修改密码
+async function changePassword() {
+  // 第一步：输入当前密码
+  const currentResult = await new Promise((resolve) => {
+    uni.showModal({
+      title: '当前密码',
+      editable: true,
+      placeholderText: '请输入当前密码',
+      password: true,
+      success: (res) => resolve(res)
+    })
+  })
+
+  if (!currentResult || !('confirm' in currentResult) || !currentResult.confirm || !currentResult.content) {
+    return
+  }
+
+  // 第二步：输入新密码
+  const newResult = await new Promise((resolve) => {
+    uni.showModal({
+      title: '新密码',
+      editable: true,
+      placeholderText: '请输入新密码（至少 6 位）',
+      password: true,
+      success: (res) => resolve(res)
+    })
+  })
+
+  if (!newResult || !('confirm' in newResult) || !newResult.confirm || !newResult.content) {
+    return
+  }
+
+  // 第三步：确认新密码
+  const confirmResult = await new Promise((resolve) => {
+    uni.showModal({
+      title: '确认新密码',
+      editable: true,
+      placeholderText: '请再次输入新密码',
+      password: true,
+      success: (res) => resolve(res)
+    })
+  })
+
+  if (!confirmResult || !('confirm' in confirmResult) || !confirmResult.confirm || !confirmResult.content) {
+    return
+  }
+
+  // 验证两次输入的新密码是否一致
+  if (newResult.content !== confirmResult.content) {
+    uni.showToast({ title: '两次输入的新密码不一致', icon: 'none' })
+    return
+  }
+
+  // 验证新密码长度
+  if (newResult.content.length < 6) {
+    uni.showToast({ title: '密码至少 6 位', icon: 'none' })
+    return
+  }
+
+  // 执行修改密码
+  const result = await authStore.changePassword(currentResult.content, newResult.content)
+
+  if (result.success) {
+    uni.showToast({ title: '密码修改成功', icon: 'success' })
+    speakText('密码修改成功')
+  } else {
+    uni.showToast({ title: result.error || '修改失败', icon: 'none' })
+  }
 }
 </script>
 
