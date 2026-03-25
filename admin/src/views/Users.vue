@@ -174,7 +174,7 @@ async function fetchUserMedications(userId: string) {
       .from('medication_schedules')
       .select(`
         *,
-        medication:medications(name)
+        medication:common_medications(name)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
@@ -193,9 +193,10 @@ async function fetchUserMedications(userId: string) {
 async function fetchMedicationsList() {
   try {
     const { data, error } = await supabase
-      .from('medications')
+      .from('common_medications')
       .select('id, name')
-      .order('created_at', { ascending: false })
+      .eq('is_active', true)
+      .order('name', { ascending: true })
 
     if (error) throw error
     medications.value = data || []
