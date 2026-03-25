@@ -252,22 +252,22 @@ export async function recordAndRecognize(): Promise<SpeechRecognitionResult> {
             }
           })
         } else {
-          // 标准基座/H5+ 环境：使用 XMLHttpRequest 获取录音文件
-          console.log('标准基座/H5 环境：使用 XHR 获取录音文件')
+          // 标准基座环境：使用 uni.request 获取录音文件
+          console.log('标准基座环境：使用 uni.request 获取录音文件')
 
           const blob = await new Promise<Blob>((resolve, reject) => {
-            const xhr = new XMLHttpRequest()
-            xhr.open('GET', tempFilePath, true)
-            xhr.responseType = 'blob'
-            xhr.onload = () => {
-              console.log('录音文件获取成功，大小:', xhr.response.size)
-              resolve(xhr.response)
-            }
-            xhr.onerror = (e) => {
-              console.error('XHR 获取文件失败:', e)
-              reject(new Error('读取录音文件失败'))
-            }
-            xhr.send()
+            uni.request({
+              url: tempFilePath,
+              responseType: 'arraybuffer',
+              success: (response) => {
+                console.log('录音文件获取成功，大小:', response.data.byteLength)
+                resolve(new Blob([response.data], { type: 'audio/wav' }))
+              },
+              fail: (err) => {
+                console.error('uni.request 获取文件失败:', err)
+                reject(new Error(`读取录音文件失败：${err.errMsg}`))
+              }
+            })
           })
 
           const result = await recognizeSpeechBaidu(blob)
