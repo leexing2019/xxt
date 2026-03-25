@@ -1,73 +1,29 @@
 // 语音服务 - 处理语音识别和语音播报
+import { recordAndRecognize } from './baidu-speech'
+
 export interface VoiceResult {
   success: boolean
   text?: string
   error?: string
 }
 
-// 语音识别
+// 语音识别 - 使用百度语音 API
 export async function recognizeSpeech(): Promise<VoiceResult> {
-  // #ifdef APP-PLUS
-  return new Promise((resolve) => {
-    const speechRecognizer = uni.requireNativePlugin('speech') as any
-    
-    if (!speechRecognizer) {
-      // 降级处理：使用H5语音API
-      resolve(recognizeSpeechH5())
-      return
+  try {
+    // 使用百度语音 API（通过 recordAndRecognize 函数）
+    const result = await recordAndRecognize()
+    return {
+      success: result.success,
+      text: result.text,
+      error: result.error
     }
-    
-    speechRecognizer.startRecognize({
-      lang: 'zh-CN',
-      success: (res: any) => {
-        resolve({ success: true, text: res.result })
-      },
-      fail: (err: any) => {
-        resolve({ success: false, error: err.errMsg || '语音识别失败' })
-      }
-    })
-  })
-  // #endif
-  
-  // #ifndef APP-PLUS
-  return recognizeSpeechH5()
-  // #endif
-}
-
-// H5语音识别（降级方案）
-function recognizeSpeechH5(): Promise<VoiceResult> {
-  return new Promise((resolve) => {
-    // 使用浏览器原生语音识别
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    
-    if (!SpeechRecognition) {
-      resolve({ success: false, error: '当前浏览器不支持语音识别' })
-      return
+  } catch (error: any) {
+    console.error('语音识别失败:', error)
+    return {
+      success: false,
+      error: error.message || '语音识别失败，请检查 API 配置'
     }
-    
-    const recognition = new SpeechRecognition()
-    recognition.lang = 'zh-CN'
-    recognition.continuous = false
-    recognition.interimResults = false
-    
-    recognition.onresult = (event: any) => {
-      const text = event.results[0][0].transcript
-      resolve({ success: true, text })
-    }
-    
-    recognition.onerror = (event: any) => {
-      resolve({ success: false, error: event.error })
-    }
-    
-    // 提示用户开始说话
-    uni.showToast({
-      title: '请说话...',
-      icon: 'none',
-      duration: 2000
-    })
-    
-    recognition.start()
-  })
+  }
 }
 
 // 语音播报
@@ -75,7 +31,7 @@ export function speakText(text: string, options?: { lang?: string; speed?: numbe
   return new Promise((resolve, reject) => {
     // #ifdef APP-PLUS
     const speechSynthesizer = uni.requireNativePlugin('speech') as any
-    
+
     if (speechSynthesizer) {
       speechSynthesizer.startSpeak({
         text,
@@ -86,8 +42,8 @@ export function speakText(text: string, options?: { lang?: string; speed?: numbe
       return
     }
     // #endif
-    
-    // H5/降级方案：使用Web Speech API
+
+    // H5/降级方案：使用 Web Speech API
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = options?.lang || 'zh-CN'
@@ -109,7 +65,7 @@ export function stopSpeak(): void {
     speechSynthesizer.stopSpeak()
   }
   // #endif
-  
+
   // H5
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel()
@@ -126,7 +82,7 @@ export function makePhoneCall(phoneNumber: string): Promise<void> {
       fail: (err) => reject(err)
     })
     // #endif
-    
+
     // #ifdef H5
     window.location.href = `tel:${phoneNumber}`
     resolve()
@@ -145,7 +101,7 @@ export function sendSMS(phoneNumber: string, content?: string): Promise<void> {
       fail: (err) => reject(err)
     })
     // #endif
-    
+
     // #ifdef H5
     window.location.href = `sms:${phoneNumber}${content ? `?body=${encodeURIComponent(content)}` : ''}`
     resolve()
