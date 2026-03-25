@@ -1,14 +1,8 @@
 {
   "mcpServers": {
     "supabase": {
-      "command": "node",
-      "args": [
-        "C:\\Users\\zlx19\\AppData\\Roaming\\npm\\node_modules\\@supabase\\mcp-server-supabase\\dist\\transports\\stdio.js"
-      ],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "sbp_f604b061f9cfcff122a5b5b60a92ed360615dea4",
-        "SUPABASE_PROJECT_ID": "vqtrfkigzqtcthrivbzn"
-      }
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=vqtrfkigzqtcthrivbzn"
     }
   }
 }

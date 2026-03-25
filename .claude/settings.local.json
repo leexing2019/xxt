@@ -45,7 +45,12 @@
       "Bash(C:\\\\Users\\\\zlx19\\\\AppData\\\\Local\\\\supabase\\\\supabase.exe login:*)",
       "Skill(update-config)",
       "Bash(\"C:\\\\Users\\\\zlx19\\\\AppData\\\\Local\\\\supabase\\\\supabase.exe\" --version)",
-      "Bash(\"C:\\\\Users\\\\zlx19\\\\AppData\\\\Local\\\\supabase\\\\supabase.exe\" projects:*)"
+      "Bash(\"C:\\\\Users\\\\zlx19\\\\AppData\\\\Local\\\\supabase\\\\supabase.exe\" projects:*)",
+      "Bash(curl -s 'https://vqtrfkigzqtcthrivbzn.supabase.co/rest/v1/rest/v1/rpc/is_admin_user' -X POST -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxdHJma2lnenF0Y3Rocml2YnpuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mzg5NTE5NSwiZXhwIjoyMDg5NDcxMTk1fQ.YznHv4aNl7WpH4s8cjoYRR0_IH1guoBbLl6zRrdsb3s' -H 'Content-Type: application/json' -H 'Prefer: return=representation')",
+      "Bash(curl -s 'https://vqtrfkigzqtcthrivbzn.supabase.co/rest/v1/' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxdHJma2lnenF0Y3Rocml2YnpuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mzg5NTE5NSwiZXhwIjoyMDg5NDcxMTk1fQ.YznHv4aNl7WpH4s8cjoYRR0_IH1guoBbLl6zRrdsb3s' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxdHJma2lnenF0Y3Rocml2YnpuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mzg5NTE5NSwiZXhwIjoyMDg5NDcxMTk1fQ.YznHv4aNl7WpH4s8cjoYRR0_IH1guoBbLl6zRrdsb3s')",
+      "Bash(curl:*)",
+      "Bash(node -e \":*)",
+      "Bash(supabase --version)"
     ]
   }
 }

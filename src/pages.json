@@ -115,6 +115,14 @@
         "navigationBarBackgroundColor": "#2196F3",
         "navigationBarTextStyle": "white"
       }
+    },
+    {
+      "path": "pages/report-view/report-view",
+      "style": {
+        "navigationBarTitleText": "报告查看",
+        "navigationBarBackgroundColor": "#2196F3",
+        "navigationBarTextStyle": "white"
+      }
     }
   ],
   "globalStyle": {

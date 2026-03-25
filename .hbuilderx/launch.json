@@ -1,0 +1,11 @@
+{
+    "version" : "1.0",
+    "configurations" : [
+        {
+            "customPlaygroundType" : "device",
+            "packageName" : "speech",
+            "playground" : "standard",
+            "type" : "uni-app:app-android"
+        }
+    ]
+}
