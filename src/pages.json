@@ -159,5 +159,10 @@
       }
     ]
   },
+  "permission": {
+    "scope.record": {
+      "desc": "用于语音识别和语音交互功能"
+    }
+  },
   "requiredPrivateInfos": ["chooseLocation", "getLocation"]
 }
