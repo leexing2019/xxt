@@ -967,15 +967,22 @@ onMounted(async () => {
   const options = currentPage.options as any
 
   if (options?.id) {
+    console.log('[编辑模式] 开始加载数据，药品 ID:', options.id)
+
     // 编辑模式：先刷新数据，再加载药品数据
     await medicationStore.fetchMedications()
     await medicationStore.fetchSchedules()
+
+    console.log('[编辑模式] medications 数量:', medications.value.length)
+    console.log('[编辑模式] schedules 数量:', schedules.value.length)
 
     isEditMode.value = true
     editingMedicationId.value = options.id
 
     // 获取药品信息
     const medication = medications.value.find(m => m.id === options.id)
+    console.log('[编辑模式] 找到的药品:', medication)
+
     if (medication) {
       // 填充选中药品
       selectedMedication.value = {
@@ -991,6 +998,8 @@ onMounted(async () => {
 
       // 获取该药品的用药计划
       const medSchedules = schedules.value.filter(s => s.medication_id === options.id)
+      console.log('[编辑模式] 该药品的用药计划数量:', medSchedules.length)
+
       if (medSchedules.length > 0) {
         // 保存原有计划 ID 用于删除
         editingScheduleIds.value = medSchedules.map(s => s.id)
@@ -1013,6 +1022,7 @@ onMounted(async () => {
       }
 
       // 直接进入第 2 步
+      console.log('[编辑模式] 设置 currentStep = 2')
       currentStep.value = 2
       speakText('已进入编辑模式，请修改服药时间')
     } else {
