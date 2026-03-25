@@ -86,44 +86,38 @@ export async function saveApiConfigToBackend(config: ApiConfig): Promise<boolean
   }
 }
 
-// 测试 OCR 连接
-export async function testOcrConnection(apiKey: string, secretKey: string): Promise<{ success: boolean; message: string }> {
+// 测试百度 API 连接（通过 Edge Function 代理）
+export async function testBaiduApiConnection(apiKey: string, secretKey: string): Promise<{ success: boolean; message: string }> {
   try {
-    const tokenUrl = `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${apiKey}&client_secret=${secretKey}`
+    // 获取 Supabase URL 和匿名密钥
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-    const response = await fetch(tokenUrl, {
-      method: 'POST'
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return { success: false, message: 'Supabase 配置缺失' }
+    }
+
+    // 调用 Edge Function 测试连接
+    const edgeFunctionUrl = `${supabaseUrl}/functions/v1/test-baidu-api`
+
+    const response = await fetch(edgeFunctionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+      },
+      body: JSON.stringify({ apiKey, secretKey })
     })
 
     const data = await response.json()
 
-    if (data.access_token) {
-      return { success: true, message: '百度 OCR API 连接正常！' }
+    if (data.success) {
+      return { success: true, message: data.message }
     } else {
-      return { success: false, message: '无法获取 access_token，请检查 API Key 和 Secret Key' }
+      return { success: false, message: data.message || '连接失败' }
     }
   } catch (error: any) {
-    return { success: false, message: error.message || '连接失败' }
-  }
-}
-
-// 测试语音连接
-export async function testSpeechConnection(apiKey: string, secretKey: string): Promise<{ success: boolean; message: string }> {
-  try {
-    const tokenUrl = `https://openapi.baidu.com/oauth/2.0/token?grant_type=client_credentials&client_id=${apiKey}&client_secret=${secretKey}`
-
-    const response = await fetch(tokenUrl, {
-      method: 'POST'
-    })
-
-    const data = await response.json()
-
-    if (data.access_token) {
-      return { success: true, message: '百度语音 API 连接正常！' }
-    } else {
-      return { success: false, message: '无法获取 access_token，请检查 API 配置' }
-    }
-  } catch (error: any) {
-    return { success: false, message: error.message || '连接失败' }
+    console.error('Edge Function 调用失败:', error)
+    return { success: false, message: '网络错误：' + (error.message || '请检查网络连接') }
   }
 }
