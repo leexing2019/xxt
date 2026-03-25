@@ -61,6 +61,28 @@ export interface MedicationLog {
   created_at: string
 }
 
+// 获取服药状态标签
+export function getMedicationStatus(
+  scheduledTime: string,
+  takenTime?: string
+): { label: string; class: string; isLate: boolean } {
+  if (!takenTime) {
+    return { label: '待服用', class: 'pending', isLate: false }
+  }
+
+  const scheduled = new Date(`1970-01-01T${scheduledTime}`)
+  const taken = new Date(takenTime)
+  const diffMinutes = (taken.getTime() - scheduled.getTime()) / 60000
+
+  if (diffMinutes < -15) {
+    return { label: '提前', class: 'early', isLate: false }
+  } else if (diffMinutes > 15) {
+    return { label: '过时', class: 'late', isLate: true }
+  } else {
+    return { label: '准点', class: 'ontime', isLate: false }
+  }
+}
+
 export const useMedicationStore = defineStore('medication', () => {
   const authStore = useAuthStore()
   

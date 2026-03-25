@@ -80,10 +80,10 @@
       <button class="btn btn-primary mt-20" @click="goAddMedication">添加服药计划</button>
     </view>
 
-    <!-- 用药列表 -->
-    <view v-else class="medications-section">
-      <text class="section-title">待用药</text>
-      <view v-for="item in todayMedications" :key="item.id" class="medication-item card" :class="{ 'medication-taken': item.taken }">
+    <!-- 用药列表 - 待服用区域 -->
+    <view v-if="pendingMedications.length > 0" class="medications-section">
+      <text class="section-title">待服用</text>
+      <view v-for="item in pendingMedications" :key="item.id" class="medication-item card pending">
         <view class="medication-header">
           <view class="medication-time">
             <text class="time-icon">⏰</text>
@@ -91,13 +91,52 @@
           </view>
           <view class="medication-action">
             <button
-              v-if="!item.taken"
               class="btn btn-primary btn-take"
               @click="takeMedication(item)"
             >
               服用
             </button>
-            <text v-else class="taken-badge">✓ 已服用</text>
+          </view>
+        </view>
+        <view class="medication-content">
+          <!-- 药品图标 -->
+          <view class="medication-icon-wrapper">
+            <MedicationIcon
+              :name="item.common_medications?.name || '药'"
+              :appearance-desc="item.common_medications?.appearance_desc"
+              :size="100"
+            />
+          </view>
+          <!-- 药品信息 -->
+          <view class="medication-details">
+            <text class="medication-name">{{ item.common_medications?.name }}</text>
+            <view class="medication-appearance">
+              <text class="appearance-icon">🔍</text>
+              <text class="appearance-text">{{ item.common_medications?.appearance_desc || '请遵医嘱使用' }}</text>
+            </view>
+            <text class="medication-dosage">用量：{{ item.dosage }}</text>
+            <text class="medication-instructions">💡 {{ item.instructions || '请遵医嘱使用' }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 用药列表 - 已服用区域 -->
+    <view v-if="takenMedications.length > 0" class="medications-section taken-section">
+      <text class="section-title">已服用</text>
+      <view v-for="item in takenMedications" :key="item.id" class="medication-item card taken">
+        <view class="medication-header">
+          <view class="medication-time">
+            <text class="time-icon">⏰</text>
+            <text class="time-text">{{ item.time_of_day }}</text>
+          </view>
+          <view class="medication-action">
+            <view class="status-tag" :class="getMedicationStatus(item).class">
+              <text v-if="getMedicationStatus(item).class === 'early'">🕐</text>
+              <text v-else-if="getMedicationStatus(item).class === 'ontime'">✅</text>
+              <text v-else-if="getMedicationStatus(item).class === 'late'">⏰</text>
+              {{ getMedicationStatus(item).label }}
+            </view>
           </view>
         </view>
         <view class="medication-content">
@@ -169,11 +208,51 @@ const todayMedications = computed(() => {
 
   return medicationStore.schedules
     .filter(s => s.is_active && s.weekdays.includes(dayOfWeek))
-    .map(schedule => ({
-      ...schedule,
-      taken: !!medicationStore.todayLogs.find(log => log.schedule_id === schedule.id && log.status === 'taken')
-    }))
+    .map(schedule => {
+      const log = medicationStore.todayLogs.find(log => log.schedule_id === schedule.id && log.status === 'taken')
+      return {
+        ...schedule,
+        taken: !!log,
+        taken_time: log?.taken_time
+      }
+    })
 })
+
+// 分离未服用和已服用的药品
+const pendingMedications = computed(() => {
+  return todayMedications.value
+    .filter(m => !m.taken)
+    .sort((a, b) => a.time_of_day.localeCompare(b.time_of_day))
+})
+
+const takenMedications = computed(() => {
+  return todayMedications.value
+    .filter(m => m.taken)
+    .sort((a, b) => a.time_of_day.localeCompare(b.time_of_day))
+})
+
+// 获取服药状态标签
+const getMedicationStatus = (item: any) => {
+  if (!item.taken) {
+    return { label: '待服用', class: 'pending', isLate: false }
+  }
+
+  if (!item.taken_time) {
+    return { label: '已服用', class: 'taken', isLate: false }
+  }
+
+  const scheduled = new Date(`1970-01-01T${item.time_of_day}`)
+  const taken = new Date(item.taken_time)
+  const diffMinutes = (taken.getTime() - scheduled.getTime()) / 60000
+
+  if (diffMinutes < -15) {
+    return { label: '提前', class: 'early', isLate: false }
+  } else if (diffMinutes > 15) {
+    return { label: '过时', class: 'late', isLate: true }
+  } else {
+    return { label: '准点', class: 'ontime', isLate: false }
+  }
+}
 
 // 计算属性
 const greeting = computed(() => {
@@ -209,6 +288,29 @@ async function takeMedication(item: any) {
   if (item.taken) {
     uni.showToast({ title: '已确认服药', icon: 'success' })
     return
+  }
+
+  // 检查是否过时
+  const status = getMedicationStatus(item)
+  if (status.isLate) {
+    // 计算超时分钟数
+    const scheduled = new Date(`1970-01-01T${item.time_of_day}`)
+    const now = new Date(`1970-01-01T${new Date().toTimeString().slice(0, 8)}`)
+    const diffMinutes = Math.floor((now.getTime() - scheduled.getTime()) / 60000)
+
+    const confirmed = await new Promise<boolean>((resolve) => {
+      uni.showModal({
+        title: '超时提醒',
+        content: `您已超时${diffMinutes}分钟，是否确认服药？`,
+        confirmText: '确认',
+        cancelText: '取消',
+        success: (res) => {
+          resolve(res.confirm)
+        }
+      })
+    })
+
+    if (!confirmed) return
   }
 
   uni.showModal({
@@ -507,9 +609,19 @@ onMounted(() => {
   transition: all 0.3s ease;
 }
 
-.medication-taken {
-  opacity: 0.75;
+.medication-item.pending {
+  background: white;
+  border-left: 4rpx solid #2196F3;
+}
+
+.medication-item.taken {
   background: linear-gradient(135deg, #E8F5E9 0%, #F5F5F5 100%);
+  border-left: 4rpx solid #A5D6A7;
+  opacity: 0.85;
+}
+
+.taken-section {
+  margin-top: 8px;
 }
 
 .medication-header {
@@ -558,6 +670,42 @@ onMounted(() => {
   padding: 8px 16px;
   background: #E8F5E9;
   border-radius: 16px;
+}
+
+/* 状态标签样式 */
+.status-tag {
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+
+  &.pending {
+    background: #E3F2FD;
+    color: #1565C0;
+  }
+
+  &.early {
+    background: #FFF3E0;
+    color: #E65100;
+  }
+
+  &.ontime {
+    background: #E8F5E9;
+    color: #1B5E20;
+  }
+
+  &.late {
+    background: #FFEBEE;
+    color: #B71C1C;
+  }
+
+  &.taken {
+    background: #E8F5E9;
+    color: #1B5E20;
+  }
 }
 
 .medication-content {
