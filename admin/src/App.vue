@@ -10,7 +10,8 @@ import {
   Setting,
   Menu,
   Fold,
-  SwitchButton
+  SwitchButton,
+  VideoPlay
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -71,6 +72,12 @@ function toggleSidebar() {
             <el-icon><Setting /></el-icon>
             <template #title>
               <span>API 配置</span>
+            </template>
+          </el-menu-item>
+          <el-menu-item index="/remote-notification">
+            <el-icon><VideoPlay /></el-icon>
+            <template #title>
+              <span>通知演示</span>
             </template>
           </el-menu-item>
         </el-menu>
