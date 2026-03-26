@@ -102,18 +102,15 @@ CREATE INDEX IF NOT EXISTS idx_medication_logs_user_status
 ON medication_logs(user_id, status);
 
 -- ============================================================================
--- 4. 创建 RLS 策略（允许后台管理员访问）
+-- 4. RLS 策略
 -- ============================================================================
 
--- 为视图创建 RLS 策略
--- 注意：后台管理系统使用 anon key，需要确保策略允许认证用户访问
-ALTER VIEW user_daily_compliance ENABLE ROW LEVEL SECURITY;
+-- 视图继承基础表的 RLS 策略，无需额外创建
+-- 确保 medication_logs 表允许后台认证用户访问即可
 
--- 删除已有策略
-DROP POLICY IF EXISTS "Backend can view compliance stats" ON user_daily_compliance;
-
--- 创建允许所有认证用户查看的策略
-CREATE POLICY "Backend can view compliance stats" ON user_daily_compliance
+-- 检查并创建 medication_logs 的 RLS 策略（如果不存在）
+DROP POLICY IF EXISTS "Users can view own logs" ON medication_logs;
+CREATE POLICY "Users can view own logs" ON medication_logs
 FOR SELECT
 TO authenticated
 USING (true);

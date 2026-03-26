@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { supabase } from '@/services/supabase'
-import { User, Bell, Sound, Phone, Document, VideoPlay } from '@element-plus/icons-vue'
+import { User, Bell, Mic, Phone, Document, VideoPlay } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 interface UserProfile {
@@ -19,7 +19,7 @@ const title = ref('')
 const message = ref('')
 
 const notificationTypes = [
-  { label: '声音', value: 'sound', icon: Sound, color: '#3b82f6' },
+  { label: '声音', value: 'sound', icon: Mic, color: '#3b82f6' },
   { label: '震动', value: 'vibration', icon: Phone, color: '#8b5cf6' },
   { label: '横幅', value: 'banner', icon: Bell, color: '#06b6d4' },
   { label: '系统通知', value: 'system', icon: Document, color: '#22c55e' }

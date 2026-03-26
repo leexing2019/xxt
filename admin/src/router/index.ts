@@ -51,16 +51,20 @@ export function setupRouterGuard(router: Router) {
 
     // 等待 auth 初始化完成（防止刷新时未初始化就跳转）
     if (!authStore.initialized) {
-      await new Promise(resolve => {
-        const checkInitialized = () => {
-          if (authStore.initialized) {
-            resolve(true)
-          } else {
-            setTimeout(checkInitialized, 50)
-          }
-        }
-        checkInitialized()
-      })
+      // 轮询等待初始化完成，最多等待 5 秒
+      const maxWait = 5000
+      const interval = 50
+      let waited = 0
+
+      while (!authStore.initialized && waited < maxWait) {
+        await new Promise(resolve => setTimeout(resolve, interval))
+        waited += interval
+      }
+
+      // 如果超时仍未初始化，警告但继续
+      if (!authStore.initialized) {
+        console.warn('[Router] Auth initialization timeout, proceeding anyway')
+      }
     }
 
     // 设置页面标题
