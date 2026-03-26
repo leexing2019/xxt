@@ -1,28 +1,30 @@
 /* 全局样式 - Material Design 3 + 老年人友好设计 */
 
-/* 主题色变量 - 提高对比度 */
+/* 主题色变量 - 统一设计系统 */
 :root {
-  --primary-color: #1E88E5;
-  --primary-light: #64B5F6;
-  --primary-dark: #1565C0;
-  --primary-light-bg: #E3F2FD;
-  --success-color: #43A047;
-  --success-light: #81C784;
-  --success-bg: #E8F5E9;
-  --warning-color: #FB8C00;
-  --warning-light: #FFB74D;
-  --warning-bg: #FFF3E0;
-  --danger-color: #E53935;
-  --danger-light: #E57373;
-  --danger-bg: #FFEBEE;
-  --text-primary: #1A1A1A;
-  --text-secondary: #424242;
-  --text-disabled: #9E9E9E;
-  --bg-color: #F8F9FA;
+  --primary-color: #3B82F6;
+  --primary-light: #60A5FA;
+  --primary-dark: #1D4ED8;
+  --primary-light-bg: #DBEAFE;
+  --success-color: #10B981;
+  --success-light: #34D399;
+  --success-bg: #D1FAE5;
+  --warning-color: #F59E0B;
+  --warning-light: #FBBF24;
+  --warning-bg: #FEF3C7;
+  --danger-color: #EF4444;
+  --danger-light: #F87171;
+  --danger-bg: #FEE2E2;
+  --emergency-color: #FF6B6B;
+  --emergency-dark: #C62828;
+  --text-primary: #1E293B;
+  --text-secondary: #475569;
+  --text-disabled: #94A3B8;
+  --bg-color: #F1F5F9;
   --card-bg: #FFFFFF;
-  --border-color: #E0E0E0;
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --border-color: #E2E8F0;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
@@ -113,10 +115,10 @@ page {
 .btn-primary {
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: white;
-  box-shadow: 0 4px 12px rgba(30, 136, 229, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 
   &:active {
-    box-shadow: 0 2px 6px rgba(30, 136, 229, 0.2);
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);
   }
 
   &:disabled {
@@ -134,9 +136,9 @@ page {
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, var(--danger-color) 0%, #C62828 100%);
+  background: linear-gradient(135deg, var(--danger-color) 0%, #DC2626 100%);
   color: white;
-  box-shadow: 0 4px 12px rgba(229, 57, 53, 0.3);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .btn-outline {
