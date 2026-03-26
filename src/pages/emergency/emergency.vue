@@ -395,13 +395,13 @@ function closeDetail() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.1);
-  border-left: 6rpx solid #FF6B6B;
+  box-shadow: var(--shadow-md);
+  border-left: 4rpx solid var(--emergency-color);
   transition: all 0.2s ease;
 
   &:active {
     transform: scale(0.98);
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-sm);
   }
 }
 
@@ -498,13 +498,14 @@ function closeDetail() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
   transition: all 0.2s ease;
   min-height: 120rpx;
+  border-left: 4rpx solid transparent;
 
   &:active {
     transform: scale(0.98);
-    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+    box-shadow: var(--shadow-sm);
   }
 }
 
