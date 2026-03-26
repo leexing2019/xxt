@@ -1089,7 +1089,7 @@ onUnmounted(() => {
 .search-btn {
   width: 140rpx;
   height: 88rpx;
-  background: linear-gradient(135deg, #2196F3, #1976D2);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: white;
   font-size: 30rpx;
   border-radius: 44rpx;
@@ -1234,15 +1234,15 @@ onUnmounted(() => {
 }
 
 .voice-btn {
-  background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
-  color: #1976D2;
-  border: 2rpx solid #2196F3;
+  background: linear-gradient(135deg, var(--primary-light-bg) 0%, var(--primary-light-bg) 100%);
+  color: var(--primary-color);
+  border: 2rpx solid var(--primary-color);
 }
 
 .camera-btn {
-  background: linear-gradient(135deg, #FFF3E0, #FFE0B2);
-  color: #F57C00;
-  border: 2rpx solid #FF9800;
+  background: linear-gradient(135deg, var(--warning-bg) 0%, var(--warning-bg) 100%);
+  color: var(--warning-color);
+  border: 2rpx solid var(--warning-color);
 }
 
 .action-icon {
@@ -1332,16 +1332,16 @@ onUnmounted(() => {
   display: inline-block;
   padding: 16rpx 32rpx;
   font-size: 28rpx;
-  color: #666;
-  background: #F5F5F5;
+  color: var(--text-secondary);
+  background: var(--bg-color);
   border-radius: 40rpx;
   transition: all 0.2s;
 
   &.active {
-    background: linear-gradient(135deg, #2196F3, #1976D2);
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
     color: white;
     font-weight: 600;
-    box-shadow: 0 4rpx 12rpx rgba(33, 150, 243, 0.3);
+    box-shadow: 0 4rpx 12px rgba(59, 130, 246, 0.3);
   }
 }
 
@@ -1820,7 +1820,7 @@ onUnmounted(() => {
   flex: 2;
   height: 88rpx;
   padding: 0 48rpx;
-  background: linear-gradient(135deg, #2196F3, #1976D2);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: white;
   border: none;
   border-radius: 44rpx;
@@ -1835,7 +1835,7 @@ onUnmounted(() => {
   flex: 2;
   height: 88rpx;
   padding: 0 48rpx;
-  background: linear-gradient(135deg, #4CAF50, #45a049);
+  background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
   color: white;
   border: none;
   border-radius: 44rpx;
@@ -1844,7 +1844,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4rpx 24rpx rgba(76, 175, 80, 0.4);
+  box-shadow: 0 4rpx 24px rgba(16, 185, 129, 0.4);
 }
 
 .btn-cancel {
