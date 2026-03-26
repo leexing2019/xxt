@@ -20,9 +20,9 @@ const authStore = useAuthStore()
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const isCollapsed = computed(() => authStore.sidebarCollapsed)
 
-function handleCommand(command: string) {
+async function handleCommand(command: string) {
   if (command === 'logout') {
-    authStore.logout()
+    await authStore.logout()
     router.push('/login')
   }
 }
