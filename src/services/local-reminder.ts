@@ -129,13 +129,21 @@ async function checkRemoteNotifications(userId: string) {
 
     const notification = data[0]
 
-    // 防止重复处理
-    if (lastCheckedNotificationId === notification.id) {
+    console.log('[RemoteNotification] 收到远程通知:', notification.id)
+
+    // 先更新状态为处理中，防止重复触发
+    const { error: updateError } = await supabase
+      .from('remote_notifications')
+      .update({ status: 'sent', sent_by: userId })
+      .eq('id', notification.id)
+
+    if (updateError) {
+      console.error('[RemoteNotification] 更新状态失败:', updateError)
+      // 即使更新失败也删除本地缓存，避免死循环
       return
     }
-    lastCheckedNotificationId = notification.id
 
-    console.log('[RemoteNotification] 收到远程通知:', notification)
+    console.log('[RemoteNotification] 状态已更新为 sent')
 
     // 触发提醒
     triggerImmediateReminder({
@@ -147,12 +155,6 @@ async function checkRemoteNotifications(userId: string) {
       },
       dosage: ''
     })
-
-    // 标记为已发送
-    await supabase
-      .from('remote_notifications')
-      .update({ status: 'sent' })
-      .eq('id', notification.id)
   } catch (error) {
     console.error('[RemoteNotification] 检查失败:', error)
   }
