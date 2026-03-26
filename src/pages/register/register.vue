@@ -209,7 +209,7 @@ function showPrivacy() {
 <style lang="scss" scoped>
 .register-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #2196F3 0%, #1976D2 100%);
+  background: linear-gradient(180deg, #3B82F6 0%, #1D4ED8 100%);
   display: flex;
   flex-direction: column;
 }
@@ -328,15 +328,15 @@ function showPrivacy() {
 
   &.active {
     &.bar-weak {
-      background: #E53935;
+      background: var(--danger-color);
     }
 
     &.bar-medium {
-      background: #FB8C00;
+      background: var(--warning-color);
     }
 
     &.bar-strong {
-      background: #43A047;
+      background: var(--success-color);
     }
   }
 }
@@ -365,7 +365,7 @@ function showPrivacy() {
 }
 
 .text-primary {
-  color: #2196F3;
+  color: #3B82F6;
 }
 
 .text-secondary {
