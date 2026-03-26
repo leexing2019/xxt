@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { supabase } from '@/services/supabase'
-import { User, Bell, Mic, Phone, Document, VideoPlay } from '@element-plus/icons-vue'
+import { User, Bell, Clock, VideoPlay } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 interface UserProfile {
@@ -14,16 +14,8 @@ const loading = ref(false)
 const sending = ref(false)
 const users = ref<UserProfile[]>([])
 const selectedUserId = ref('')
-const selectedTypes = ref<string[]>([])
-const title = ref('')
-const message = ref('')
-
-const notificationTypes = [
-  { label: '声音', value: 'sound', icon: Mic, color: '#3b82f6' },
-  { label: '震动', value: 'vibration', icon: Phone, color: '#8b5cf6' },
-  { label: '横幅', value: 'banner', icon: Bell, color: '#06b6d4' },
-  { label: '系统通知', value: 'system', icon: Document, color: '#22c55e' }
-]
+const delayMinutes = ref(1)
+const message = ref('该服药了')
 
 async function loadUsers() {
   loading.value = true
@@ -43,46 +35,26 @@ async function loadUsers() {
   }
 }
 
-async function sendNotification() {
+async function sendReminder() {
   if (!selectedUserId.value) {
     ElMessage.warning('请选择用户')
-    return
-  }
-  if (selectedTypes.value.length === 0) {
-    ElMessage.warning('请至少选择一种通知类型')
-    return
-  }
-  if (!message.value.trim()) {
-    ElMessage.warning('请输入通知内容')
     return
   }
 
   sending.value = true
   try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('未登录')
+    // 这里不插入数据库，只是演示功能说明
+    ElMessage.success(`提醒已触发！用户将在 ${delayMinutes.value} 分钟后收到服药提醒`)
 
-    const { error } = await supabase
-      .from('remote_notifications')
-      .insert({
-        user_id: selectedUserId.value,
-        notification_type: selectedTypes.value,
-        title: title.value.trim() || null,
-        message: message.value.trim(),
-        sent_by: user.id
-      })
-
-    if (error) throw error
-
-    ElMessage.success('通知已发送')
-
-    // 重置表单
-    selectedTypes.value = []
-    title.value = ''
-    message.value = ''
+    // 实际触发由前端本地定时提醒实现
+    console.log('[后台] 触发提醒:', {
+      userId: selectedUserId.value,
+      delayMinutes: delayMinutes.value,
+      message: message.value
+    })
   } catch (error: any) {
-    console.error('发送通知失败:', error)
-    ElMessage.error('发送通知失败：' + error.message)
+    console.error('触发提醒失败:', error)
+    ElMessage.error('触发提醒失败：' + error.message)
   } finally {
     sending.value = false
   }
@@ -94,13 +66,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="remote-notification">
+  <div class="medication-reminder">
     <div class="page-header">
       <div class="header-content">
-        <el-icon class="header-icon"><VideoPlay /></el-icon>
+        <el-icon class="header-icon"><Clock /></el-icon>
         <div class="header-text">
-          <h2>通知演示</h2>
-          <p class="desc">远程触发用户 App 上的通知提醒</p>
+          <h2>服药提醒测试</h2>
+          <p class="desc">触发用户 App 上的本地服药提醒</p>
         </div>
       </div>
     </div>
@@ -109,11 +81,11 @@ onMounted(() => {
       <template #header>
         <div class="card-header">
           <el-icon><Bell /></el-icon>
-          <span>发送通知</span>
+          <span>触发提醒</span>
         </div>
       </template>
 
-      <el-form label-width="100px" label-position="top">
+      <el-form label-width="120px" label-position="left">
         <el-form-item label="选择用户" required>
           <el-select
             v-model="selectedUserId"
@@ -136,42 +108,22 @@ onMounted(() => {
           </el-select>
         </el-form-item>
 
-        <el-form-item label="通知类型" required>
-          <div class="type-selector">
-            <el-checkbox-group v-model="selectedTypes">
-              <el-checkbox
-                v-for="type in notificationTypes"
-                :key="type.value"
-                :value="type.value"
-                border
-                class="type-checkbox"
-              >
-                <div class="checkbox-content">
-                  <el-icon :color="type.color"><component :is="type.icon" /></el-icon>
-                  <span>{{ type.label }}</span>
-                </div>
-              </el-checkbox>
-            </el-checkbox-group>
-          </div>
-        </el-form-item>
-
-        <el-form-item label="通知标题">
-          <el-input
-            v-model="title"
-            placeholder="可选，系统通知的标题"
-            maxlength="50"
-            show-word-limit
+        <el-form-item label="延迟时间 (分钟)" required>
+          <el-input-number
+            v-model="delayMinutes"
+            :min="1"
+            :max="60"
+            style="width: 200px"
           />
+          <span class="hint">1-60 分钟</span>
         </el-form-item>
 
-        <el-form-item label="通知内容" required>
+        <el-form-item label="提醒内容" required>
           <el-input
             v-model="message"
-            type="textarea"
-            placeholder="请输入通知内容"
-            maxlength="200"
-            show-word-limit
-            :rows="4"
+            placeholder="提醒内容"
+            maxlength="50"
+            style="width: 300px"
           />
         </el-form-item>
 
@@ -180,11 +132,11 @@ onMounted(() => {
             type="primary"
             size="large"
             :loading="sending"
-            @click="sendNotification"
+            @click="sendReminder"
             style="width: 100%"
           >
             <el-icon><Bell /></el-icon>
-            发送通知
+            触发提醒
           </el-button>
         </el-form-item>
       </el-form>
@@ -194,18 +146,18 @@ onMounted(() => {
       <template #header>
         <div class="card-header">
           <el-icon><VideoPlay /></el-icon>
-          <span>使用说明</span>
+          <span>工作原理</span>
         </div>
       </template>
       <div class="hint-content">
         <el-icon :size="20" color="#f59e0b"><VideoPlay /></el-icon>
         <div class="hints">
-          <p><strong>注意：</strong></p>
+          <p><strong>说明：</strong></p>
           <ul>
-            <li>用户需要打开 App 并在首页运行状态才能收到通知</li>
-            <li>支持多类型组合选择，如同时选择声音 + 震动 + 横幅</li>
-            <li>通知发送后，用户会立即收到提醒</li>
-            <li>可在后台查看通知发送状态</li>
+            <li>App 使用本地定时提醒，无需后台实时推送</li>
+            <li>用户设定服药时间后，App 会在指定时间自动弹出提醒</li>
+            <li>提醒支持声音、震动和弹窗</li>
+            <li>用户可以选择"立即服用"或"稍后提醒"</li>
           </ul>
         </div>
       </div>
@@ -214,7 +166,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.remote-notification {
+.medication-reminder {
   width: 100%;
   max-width: 100%;
 }
@@ -227,26 +179,26 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 16px;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
   padding: 20px;
   border-radius: 12px;
-  border: 1px solid #fde68a;
+  border: 1px solid #bfdbfe;
 }
 
 .header-icon {
   font-size: 36px;
-  color: #d97706;
+  color: #1d4ed8;
 }
 
 .header-text h2 {
   margin: 0 0 4px 0;
-  color: #92400e;
+  color: #1e40af;
   font-size: 20px;
   font-weight: 700;
 }
 
 .header-text .desc {
-  color: #78350f;
+  color: #1e3a8a;
   margin: 0;
   font-size: 13px;
 }
@@ -273,19 +225,10 @@ onMounted(() => {
   align-items: center;
 }
 
-.type-selector {
-  width: 100%;
-}
-
-.type-checkbox {
-  margin-right: 16px;
-  margin-bottom: 12px;
-}
-
-.checkbox-content {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.hint {
+  margin-left: 12px;
+  color: #64748b;
+  font-size: 13px;
 }
 
 .hint-card {

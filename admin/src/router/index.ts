@@ -40,7 +40,7 @@ export const routes: RouteRecordRaw[] = [
     path: '/remote-notification',
     name: 'RemoteNotification',
     component: () => import('@/views/RemoteNotification.vue'),
-    meta: { title: '通知演示', requiresAuth: true }
+    meta: { title: '服药提醒测试', requiresAuth: true }
   }
 ]
 

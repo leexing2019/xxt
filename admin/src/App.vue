@@ -77,7 +77,7 @@ function toggleSidebar() {
           <el-menu-item index="/remote-notification">
             <el-icon><VideoPlay /></el-icon>
             <template #title>
-              <span>通知演示</span>
+              <span>服药提醒测试</span>
             </template>
           </el-menu-item>
         </el-menu>

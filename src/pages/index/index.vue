@@ -148,7 +148,7 @@ import { speakText, recognizeSpeech } from '@/services/voice'
 import { showImmediateNotification, vibrate } from '@/services/reminder'
 import type { MedicationSchedule } from '@/store/medication'
 import MedicationIcon from '@/components/MedicationIcon.vue'
-import { startRemoteNotificationListener, stopRemoteNotificationListener } from '@/services/remote-notification'
+import { startLocalMedicationReminder, stopLocalMedicationReminder } from '@/services/local-reminder'
 
 const authStore = useAuthStore()
 const medicationStore = useMedicationStore()
@@ -174,14 +174,14 @@ onMounted(async () => {
     await medicationStore.fetchSchedules()
     await medicationStore.fetchTodayLogs()
 
-    // 启动远程通知监听
-    startRemoteNotificationListener(authStore.userId!)
+    // 启动本地服药提醒监听
+    startLocalMedicationReminder(authStore.userId!)
   }
 })
 
-// 页面卸载时停止远程通知监听
+// 页面卸载时停止本地提醒监听
 onUnmounted(() => {
-  stopRemoteNotificationListener()
+  stopLocalMedicationReminder()
 })
 
 // 从 store 加载真实数据（24 小时动态窗口 + 漏服检测）
