@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { supabase } from '@/services/supabase'
 import { getAverageComplianceRate } from '@/services/compliance'
 import ComplianceDrawer from '@/components/compliance/ComplianceDrawer.vue'
 import { User, VideoPlay, Goods, CircleCheck, TrendCharts, ArrowUp } from '@element-plus/icons-vue'
 
+const router = useRouter()
 const showComplianceDrawer = ref(false)
+
+function goToMedications() {
+  router.push('/medications')
+}
 
 const stats = ref({
   totalUsers: 0,
@@ -116,7 +122,7 @@ onMounted(() => {
       </el-col>
 
       <el-col :span="6">
-        <el-card shadow="hover" class="stat-card card-meds">
+        <el-card shadow="hover" class="stat-card card-meds" @click="goToMedications" style="cursor: pointer;">
           <div class="stat-content">
             <div class="stat-icon-wrapper">
               <el-icon :size="36"><Goods /></el-icon>
@@ -126,7 +132,7 @@ onMounted(() => {
               <div class="stat-value">{{ stats.totalMedications }}</div>
               <div class="stat-trend">
                 <el-icon><ArrowUp /></el-icon>
-                <span>5% 较上周</span>
+                <span>公共药品库</span>
               </div>
             </div>
           </div>
