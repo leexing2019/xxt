@@ -67,10 +67,10 @@ export function startLocalMedicationReminder(userId: string) {
   // 立即检查并设置提醒
   setupMedicationReminders(userId)
 
-  // 每 30 秒检查一次是否有新的服药计划
+  // 每 5 秒检查一次是否有新的服药计划
   const checkInterval = setInterval(() => {
     setupMedicationReminders(userId)
-  }, 30000)
+  }, 5000)
 
   // 保存定时器 ID 以便清理
   reminderTimers.set('checkInterval', checkInterval as unknown as number)

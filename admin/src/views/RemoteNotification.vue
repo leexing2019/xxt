@@ -14,7 +14,7 @@ const loading = ref(false)
 const sending = ref(false)
 const users = ref<UserProfile[]>([])
 const selectedUserId = ref('')
-const delayMinutes = ref(1)
+const delaySeconds = ref(10)
 const message = ref('该服药了')
 
 async function loadUsers() {
@@ -44,12 +44,12 @@ async function sendReminder() {
   sending.value = true
   try {
     // 这里不插入数据库，只是演示功能说明
-    ElMessage.success(`提醒已触发！用户将在 ${delayMinutes.value} 分钟后收到服药提醒`)
+    ElMessage.success(`提醒已触发！用户将在 ${delaySeconds.value} 秒后收到服药提醒`)
 
     // 实际触发由前端本地定时提醒实现
     console.log('[后台] 触发提醒:', {
       userId: selectedUserId.value,
-      delayMinutes: delayMinutes.value,
+      delaySeconds: delaySeconds.value,
       message: message.value
     })
   } catch (error: any) {
@@ -108,14 +108,14 @@ onMounted(() => {
           </el-select>
         </el-form-item>
 
-        <el-form-item label="延迟时间 (分钟)" required>
+        <el-form-item label="延迟时间 (秒)" required>
           <el-input-number
-            v-model="delayMinutes"
+            v-model="delaySeconds"
             :min="1"
             :max="60"
             style="width: 200px"
           />
-          <span class="hint">1-60 分钟</span>
+          <span class="hint">1-60 秒</span>
         </el-form-item>
 
         <el-form-item label="提醒内容" required>
