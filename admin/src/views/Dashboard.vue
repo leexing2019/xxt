@@ -25,15 +25,47 @@ const stats = ref({
 })
 
 const recentUsers = ref<any[]>([])
+const chartData = ref({
+  users: [0, 0, 0, 0, 0, 0, 0],
+  medications: [0, 0, 0, 0, 0, 0, 0]
+})
 const loading = ref(true)
 
-// 模拟图表数据
-const chartData = computed(() => {
-  return {
-    users: [120, 132, 101, 134, 90, 230, 210],
-    medications: [220, 182, 191, 234, 290, 330, 310]
+// 获取近 7 天数据
+async function fetchChartData() {
+  const today = new Date()
+  const dates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today)
+    d.setDate(d.getDate() - (6 - i))
+    return d.toISOString().split('T')[0]
+  })
+
+  // 获取用户增长数据
+  const usersPromises = dates.map(async (date) => {
+    const { count } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .lte('created_at', `${date}T23:59:59.999Z`)
+    return count || 0
+  })
+
+  // 获取药品添加数据
+  const medsPromises = dates.map(async (date) => {
+    const { count } = await supabase
+      .from('common_medications')
+      .select('*', { count: 'exact', head: true })
+      .lte('created_at', `${date}T23:59:59.999Z`)
+    return count || 0
+  })
+
+  const usersCounts = await Promise.all(usersPromises)
+  const medsCounts = await Promise.all(medsPromises)
+
+  chartData.value = {
+    users: usersCounts,
+    medications: medsCounts
   }
-})
+}
 
 async function fetchStats() {
   loading.value = true
@@ -73,6 +105,7 @@ async function fetchStats() {
 
 onMounted(() => {
   fetchStats()
+  fetchChartData()
 })
 </script>
 
