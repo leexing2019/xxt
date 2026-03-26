@@ -13,6 +13,10 @@ function goToMedications() {
   router.push('/medications')
 }
 
+function goToUsers() {
+  router.push('/users')
+}
+
 const stats = ref({
   totalUsers: 0,
   activeUsers: 0,
@@ -86,7 +90,7 @@ onMounted(() => {
 
     <el-row :gutter="16" class="stats-cards">
       <el-col :span="6">
-        <el-card shadow="hover" class="stat-card card-users">
+        <el-card shadow="hover" class="stat-card card-users" @click="goToUsers" style="cursor: pointer;">
           <div class="stat-content">
             <div class="stat-icon-wrapper">
               <el-icon :size="36"><User /></el-icon>
