@@ -16,7 +16,8 @@
             "delay" : 0
         },
         "modules" : {
-            "Speech" : {}
+            "Speech" : {},
+            "Push" : {}
         },
         "distribute" : {
             "permissions" : [

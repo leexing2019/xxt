@@ -3,6 +3,50 @@ import { playReminderSound, vibrate } from './reminder'
 
 let reminderTimers: Map<string, number> = new Map()
 let currentUserId: string | null = null
+let scheduledPushNotifications: Map<string, any> = new Map()
+
+/**
+ * 请求通知权限
+ */
+export async function requestNotificationPermission(): Promise<boolean> {
+  // #ifdef APP-PLUS
+  try {
+    const plusObj = plus as any
+    if (plusObj.push) {
+      // 请求推送权限
+      const result = await new Promise<boolean>((resolve) => {
+        plusObj.push.createMessage(
+          '权限请求',
+          '需要通知权限来发送服药提醒',
+          {
+            cover: true,
+            sound: 'none'
+          },
+          (result: any) => {
+            resolve(true)
+          },
+          (error: any) => {
+            console.error('[Permission] 请求失败:', error)
+            resolve(false)
+          }
+        )
+      })
+      return result
+    }
+  } catch (error) {
+    console.error('[Permission] 请求通知权限失败:', error)
+  }
+  // #endif
+
+  // #ifdef H5
+  if ('Notification' in window) {
+    const permission = await Notification.requestPermission()
+    return permission === 'granted'
+  }
+  // #endif
+
+  return true
+}
 
 /**
  * 启动本地服药提醒监听
@@ -17,13 +61,16 @@ export function startLocalMedicationReminder(userId: string) {
   currentUserId = userId
   console.log('[LocalReminder] 启动本地提醒监听，用户:', userId)
 
-  // 立即检查一次
-  checkUpcomingReminders(userId)
+  // 先请求通知权限
+  requestNotificationPermission()
 
-  // 每 10 秒检查一次是否有即将到来的提醒
+  // 立即检查并设置提醒
+  setupMedicationReminders(userId)
+
+  // 每 30 秒检查一次是否有新的服药计划
   const checkInterval = setInterval(() => {
-    checkUpcomingReminders(userId)
-  }, 10000)
+    setupMedicationReminders(userId)
+  }, 30000)
 
   // 保存定时器 ID 以便清理
   reminderTimers.set('checkInterval', checkInterval as unknown as number)
@@ -38,23 +85,29 @@ export function stopLocalMedicationReminder() {
     clearInterval(timerId)
   }
   reminderTimers.clear()
+
+  // 清除所有已调度的推送通知
+  for (const [taskId, task] of scheduledPushNotifications.entries()) {
+    clearPushNotification(taskId)
+  }
+  scheduledPushNotifications.clear()
+
   currentUserId = null
   console.log('[LocalReminder] 监听已停止')
 }
 
 /**
- * 检查即将到来的提醒
+ * 设置服药提醒
  */
-async function checkUpcomingReminders(userId: string) {
+async function setupMedicationReminders(userId: string) {
   try {
     const now = new Date()
-    const currentHour = now.getHours()
-    const currentMinute = now.getMinutes()
-    const currentTime = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`
+    const today = getTodayDateString()
+    const currentMinutes = now.getHours() * 60 + now.getMinutes()
 
-    console.log('[LocalReminder] 检查提醒，当前时间:', currentTime)
+    console.log('[LocalReminder] 设置提醒，当前时间:', `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`)
 
-    // 获取用户今天的服药计划
+    // 获取用户的服药计划
     const { data: schedules, error } = await supabase
       .from('medication_schedules')
       .select(`
@@ -81,45 +134,143 @@ async function checkUpcomingReminders(userId: string) {
       return
     }
 
-    // 检查每个计划，看是否需要提醒
+    // 为每个计划设置提醒
     for (const schedule of schedules) {
-      const scheduleTime = schedule.time_of_day
-      const shouldRemind = shouldTriggerReminder(scheduleTime, currentTime)
+      const [hour, minute] = schedule.time_of_day.split(':').map(Number)
+      const scheduleMinutes = hour * 60 + minute
+      const reminderKey = `reminder_${schedule.id}_${today}`
 
-      if (shouldRemind) {
-        const reminderKey = `reminder_${schedule.id}_${getTodayDateString()}`
+      // 检查今天是否已经提醒过
+      const hasReminded = uni.getStorageSync(reminderKey)
+      if (hasReminded) {
+        continue
+      }
 
-        // 检查今天是否已经提醒过
-        const hasReminded = uni.getStorageSync(reminderKey)
-        if (!hasReminded) {
-          console.log('[LocalReminder] 触发提醒:', schedule)
-          await triggerMedicationReminder(schedule)
-          // 标记为已提醒
-          uni.setStorageSync(reminderKey, true)
+      // 计算距离提醒时间的分钟差
+      let diffMinutes = scheduleMinutes - currentMinutes
+
+      // 如果时间已过，计算明天的时间
+      if (diffMinutes < 0) {
+        diffMinutes += 24 * 60
+      }
+
+      // 如果提醒时间在 5 分钟到 24 小时内，设置推送通知
+      if (diffMinutes >= 0 && diffMinutes < 24 * 60) {
+        const reminderTime = new Date()
+        reminderTime.setHours(hour, minute, 0, 0)
+
+        // 如果提醒时间已过，设置为明天
+        if (reminderTime.getTime() < now.getTime()) {
+          reminderTime.setDate(reminderTime.getDate() + 1)
+        }
+
+        // 设置提前 5 分钟提醒
+        const notifyTime = new Date(reminderTime.getTime() - 5 * 60 * 1000)
+
+        // 如果提前提醒的时间还没过，就设置提醒
+        if (notifyTime.getTime() > now.getTime()) {
+          schedulePushNotification(
+            schedule.id.toString(),
+            {
+              title: '⏰ 服药提醒',
+              content: `该服用 ${schedule.common_medications?.name || '药品'} 了`,
+              time: schedule.time_of_day,
+              scheduleId: schedule.id
+            },
+            notifyTime
+          )
+          console.log('[LocalReminder] 设置提醒:', schedule.time_of_day, '提前 5 分钟通知')
         }
       }
     }
   } catch (error) {
-    console.error('[LocalReminder] 检查提醒失败:', error)
+    console.error('[LocalReminder] 设置提醒失败:', error)
   }
 }
 
 /**
- * 判断是否应该触发提醒
- * 在计划时间的 ±5 分钟内触发
+ * 调度本地推送通知
  */
-function shouldTriggerReminder(scheduleTime: string, currentTime: string): boolean {
-  const [scheduleHour, scheduleMinute] = scheduleTime.split(':').map(Number)
-  const [currentHour, currentMinute] = currentTime.split(':').map(Number)
+function schedulePushNotification(taskId: string, options: {
+  title: string
+  content: string
+  time?: string
+  scheduleId?: number
+}, notifyTime: Date) {
+  // #ifdef APP-PLUS
+  const plusObj = plus as any
 
-  const scheduleMinutes = scheduleHour * 60 + scheduleMinute
-  const currentMinutes = currentHour * 60 + currentMinute
+  // 清除旧的提醒
+  if (scheduledPushNotifications.has(taskId)) {
+    clearPushNotification(taskId)
+  }
 
-  // 允许 5 分钟误差
-  const diff = currentMinutes - scheduleMinutes
+  const delay = notifyTime.getTime() - Date.now()
+  console.log('[LocalReminder] 调度推送，延迟:', Math.round(delay / 1000), '秒')
 
-  // 在计划时间的 -5 到 +10 分钟内触发
-  return diff >= -5 && diff <= 10
+  // 创建推送消息
+  const pushMsg = plusObj.push.createMessage(
+    options.content,
+    options.title,
+    {
+      cover: true,
+      sound: 'system',
+      when: notifyTime,
+      data: {
+        scheduleId: options.scheduleId,
+        time: options.time
+      }
+    },
+    (result: any) => {
+      console.log('[LocalReminder] 用户点击了通知')
+      // 点击通知后打开 App
+      plusObj.runtime.launchInfo()
+    },
+    (error: any) => {
+      console.error('[LocalReminder] 推送失败:', error)
+    }
+  )
+
+  scheduledPushNotifications.set(taskId, pushMsg)
+  // #endif
+
+  // #ifdef H5
+  if ('Notification' in window && Notification.permission === 'granted') {
+    const timeoutId = setTimeout(() => {
+      new Notification(options.title, {
+        body: options.content,
+        icon: '/static/logo.png',
+        tag: `reminder_${taskId}`,
+        requireInteraction: true
+      })
+      playReminderSound()
+    }, notifyTime.getTime() - Date.now())
+
+    scheduledPushNotifications.set(taskId, { timeoutId })
+  }
+  // #endif
+}
+
+/**
+ * 清除推送通知
+ */
+function clearPushNotification(taskId: string) {
+  // #ifdef APP-PLUS
+  const task = scheduledPushNotifications.get(taskId)
+  if (task) {
+    const plusObj = plus as any
+    plusObj.push.clearMessage(task)
+  }
+  // #endif
+
+  // #ifdef H5
+  const task = scheduledPushNotifications.get(taskId)
+  if (task && task.timeoutId) {
+    clearTimeout(task.timeoutId)
+  }
+  // #endif
+
+  scheduledPushNotifications.delete(taskId)
 }
 
 /**
@@ -131,14 +282,15 @@ function getTodayDateString(): string {
 }
 
 /**
- * 触发服药提醒
+ * 立即触发服药提醒（用于测试或准点提醒）
  */
-async function triggerMedicationReminder(schedule: any) {
+export async function triggerImmediateReminder(schedule: any) {
   const medicationName = schedule.common_medications?.name || '药品'
   const dosage = schedule.common_medications?.dosage || schedule.dosage || ''
   const time = schedule.time_of_day
+  const today = getTodayDateString()
 
-  console.log('[LocalReminder] 显示服药提醒:', medicationName, time)
+  console.log('[LocalReminder] 触发提醒:', medicationName, time)
 
   // 播放声音提醒
   playReminderSound()
@@ -146,7 +298,40 @@ async function triggerMedicationReminder(schedule: any) {
   // 震动提醒
   vibrate()
 
-  // 显示提醒弹窗
+  // 显示推送通知
+  // #ifdef APP-PLUS
+  const plusObj = plus as any
+  plusObj.push.createMessage(
+    `该服用 ${medicationName} ${dosage} 了`,
+    '⏰ 服药提醒',
+    {
+      cover: true,
+      sound: 'system',
+      data: {
+        scheduleId: schedule.id,
+        time: time
+      }
+    },
+    (result: any) => {
+      console.log('[LocalReminder] 用户点击了提醒通知')
+      // 点击后记录服药
+      recordMedication(schedule.id, today)
+    }
+  )
+  // #endif
+
+  // #ifdef H5
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('⏰ 服药提醒', {
+      body: `该服用 ${medicationName} ${dosage} 了`,
+      icon: '/static/logo.png',
+      requireInteraction: true,
+      tag: `immediate_${schedule.id}`
+    })
+  }
+  // #endif
+
+  // 显示弹窗
   uni.showModal({
     title: '⏰ 服药提醒',
     content: `该服用 ${medicationName} ${dosage} 了\n计划时间：${time}`,
@@ -155,7 +340,7 @@ async function triggerMedicationReminder(schedule: any) {
     success: async (res) => {
       if (res.confirm) {
         console.log('[LocalReminder] 用户确认服药')
-        // 这里可以调用 recordMedication 来记录服药
+        recordMedication(schedule.id, today)
         uni.showToast({
           title: '已记录服药',
           icon: 'success'
@@ -164,7 +349,7 @@ async function triggerMedicationReminder(schedule: any) {
         console.log('[LocalReminder] 用户选择稍后提醒')
         // 10 分钟后再次提醒
         setTimeout(() => {
-          triggerMedicationReminder(schedule)
+          triggerImmediateReminder(schedule)
         }, 10 * 60 * 1000)
       }
     }
@@ -179,6 +364,21 @@ async function triggerMedicationReminder(schedule: any) {
 }
 
 /**
+ * 记录服药
+ */
+async function recordMedication(scheduleId: number, date: string) {
+  try {
+    // 标记今天已提醒
+    uni.setStorageSync(`reminder_${scheduleId}_${date}`, true)
+
+    // TODO: 调用后端 API 记录服药日志
+    console.log('[LocalReminder] 记录服药:', scheduleId, date)
+  } catch (error) {
+    console.error('[LocalReminder] 记录服药失败:', error)
+  }
+}
+
+/**
  * 手动添加一次性提醒（用于测试）
  */
 export function addOneTimeReminder(
@@ -188,32 +388,18 @@ export function addOneTimeReminder(
 ) {
   console.log('[LocalReminder] 添加一次性提醒:', medicationName, delayMinutes, '分钟后')
 
-  const timerId = setTimeout(() => {
-    console.log('[LocalReminder] 触发一次性提醒')
+  const notifyTime = new Date(Date.now() + delayMinutes * 60 * 1000)
 
-    playReminderSound()
-    vibrate()
-
-    uni.showModal({
+  schedulePushNotification(
+    `onetime_${medicationName}`,
+    {
       title: '⏰ 服药提醒',
-      content: `该服用 ${medicationName} ${dosage} 了`,
-      confirmText: '我已服用',
-      cancelText: '取消',
-      success: (res) => {
-        if (res.confirm) {
-          uni.showToast({
-            title: '已记录服药',
-            icon: 'success'
-          })
-        }
-      }
-    })
-  }, delayMinutes * 60 * 1000)
-
-  reminderTimers.set(`onetime_${medicationName}`, timerId as unknown as number)
+      content: `该服用 ${medicationName} ${dosage} 了`
+    },
+    notifyTime
+  )
 
   return () => {
-    clearTimeout(timerId)
-    reminderTimers.delete(`onetime_${medicationName}`)
+    clearPushNotification(`onetime_${medicationName}`)
   }
 }
