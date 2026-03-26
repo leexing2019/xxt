@@ -115,10 +115,11 @@ async function setupMedicationReminders(userId: string) {
         time_of_day,
         is_active,
         medication_id,
+        dosage,
         common_medications (
+          id,
           name,
-          dosage,
-          instructions
+          dosage_unit
         )
       `)
       .eq('user_id', userId)
@@ -169,11 +170,20 @@ async function setupMedicationReminders(userId: string) {
 
         // 如果提前提醒的时间还没过，就设置提醒
         if (notifyTime.getTime() > now.getTime()) {
+          const dosageUnit = schedule.common_medications?.dosage_unit || ''
+          const dosage = schedule.dosage || ''
+          let dosageDesc = ''
+          if (dosage && dosageUnit) {
+            dosageDesc = ` ${dosage}${dosageUnit}`
+          } else if (dosage) {
+            dosageDesc = ` ${dosage}`
+          }
+
           schedulePushNotification(
             schedule.id.toString(),
             {
               title: '⏰ 服药提醒',
-              content: `该服用 ${schedule.common_medications?.name || '药品'} 了`,
+              content: `该服用 ${schedule.common_medications?.name || '药品'}${dosageDesc} 了`,
               time: schedule.time_of_day,
               scheduleId: schedule.id
             },
@@ -286,11 +296,22 @@ function getTodayDateString(): string {
  */
 export async function triggerImmediateReminder(schedule: any) {
   const medicationName = schedule.common_medications?.name || '药品'
-  const dosage = schedule.common_medications?.dosage || schedule.dosage || ''
+  const dosageUnit = schedule.common_medications?.dosage_unit || ''
+  const dosage = schedule.dosage || ''
   const time = schedule.time_of_day
   const today = getTodayDateString()
 
-  console.log('[LocalReminder] 触发提醒:', medicationName, time)
+  // 构建剂量描述
+  let dosageDesc = ''
+  if (dosage && dosageUnit) {
+    dosageDesc = `${dosage}${dosageUnit}`
+  } else if (dosage) {
+    dosageDesc = dosage
+  } else if (dosageUnit) {
+    dosageDesc = dosageUnit
+  }
+
+  console.log('[LocalReminder] 触发提醒:', medicationName, dosageDesc, time)
 
   // 播放声音提醒
   playReminderSound()
@@ -302,7 +323,7 @@ export async function triggerImmediateReminder(schedule: any) {
   // #ifdef APP-PLUS
   const plusObj = plus as any
   plusObj.push.createMessage(
-    `该服用 ${medicationName} ${dosage} 了`,
+    `该服用 ${medicationName} ${dosageDesc}了`,
     '⏰ 服药提醒',
     {
       cover: true,
@@ -323,7 +344,7 @@ export async function triggerImmediateReminder(schedule: any) {
   // #ifdef H5
   if ('Notification' in window && Notification.permission === 'granted') {
     new Notification('⏰ 服药提醒', {
-      body: `该服用 ${medicationName} ${dosage} 了`,
+      body: `该服用 ${medicationName} ${dosageDesc}了`,
       icon: '/static/logo.png',
       requireInteraction: true,
       tag: `immediate_${schedule.id}`
@@ -334,7 +355,7 @@ export async function triggerImmediateReminder(schedule: any) {
   // 显示弹窗
   uni.showModal({
     title: '⏰ 服药提醒',
-    content: `该服用 ${medicationName} ${dosage} 了\n计划时间：${time}`,
+    content: `该服用 ${medicationName} ${dosageDesc}了\n计划时间：${time}`,
     confirmText: '我已服用',
     cancelText: '稍后提醒',
     success: async (res) => {
