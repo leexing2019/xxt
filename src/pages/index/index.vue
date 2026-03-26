@@ -141,13 +141,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import { useMedicationStore } from '@/store/medication'
 import { speakText, recognizeSpeech } from '@/services/voice'
 import { showImmediateNotification, vibrate } from '@/services/reminder'
 import type { MedicationSchedule } from '@/store/medication'
 import MedicationIcon from '@/components/MedicationIcon.vue'
+import { startRemoteNotificationListener, stopRemoteNotificationListener } from '@/services/remote-notification'
 
 const authStore = useAuthStore()
 const medicationStore = useMedicationStore()
@@ -172,7 +173,15 @@ onMounted(async () => {
     lastUserId = authStore.userId
     await medicationStore.fetchSchedules()
     await medicationStore.fetchTodayLogs()
+
+    // 启动远程通知监听
+    startRemoteNotificationListener(authStore.userId!)
   }
+})
+
+// 页面卸载时停止远程通知监听
+onUnmounted(() => {
+  stopRemoteNotificationListener()
 })
 
 // 从 store 加载真实数据（24 小时动态窗口 + 漏服检测）
