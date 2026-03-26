@@ -135,7 +135,7 @@ async function setupMedicationReminders(userId: string) {
     const { data: medications, error: medError } = await supabase
       .from('common_medications')
       .select('id, name, dosage_unit')
-      .in('id', medicationIds)
+      .filter('id', 'in', `(${medicationIds.join(',')})`)
 
     if (medError) {
       console.error('[LocalReminder] 获取药品信息失败:', medError)
