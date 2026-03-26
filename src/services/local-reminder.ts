@@ -110,13 +110,7 @@ async function setupMedicationReminders(userId: string) {
     // 获取用户的服药计划
     const { data: schedules, error } = await supabase
       .from('medication_schedules')
-      .select(`
-        id,
-        time_of_day,
-        is_active,
-        medication_id,
-        dosage
-      `)
+      .select('*, common_medications(id, name, dosage_unit)')
       .eq('user_id', userId)
       .eq('is_active', true)
       .order('time_of_day', { ascending: true })
@@ -130,27 +124,8 @@ async function setupMedicationReminders(userId: string) {
       return
     }
 
-    // 批量获取药品信息
-    const medicationIds = schedules.map(s => s.medication_id)
-    const { data: medications, error: medError } = await supabase
-      .from('common_medications')
-      .select('id, name, dosage_unit')
-      .filter('id', 'in', `(${medicationIds.join(',')})`)
-
-    if (medError) {
-      console.error('[LocalReminder] 获取药品信息失败:', medError)
-      return
-    }
-
-    // 合并数据
-    const medMap = new Map((medications || []).map(m => [m.id, m]))
-    const schedulesWithMeds = schedules.map(s => ({
-      ...s,
-      common_medications: medMap.get(s.medication_id) || null
-    }))
-
     // 为每个计划设置提醒
-    for (const schedule of schedulesWithMeds) {
+    for (const schedule of schedules) {
       const [hour, minute] = schedule.time_of_day.split(':').map(Number)
       const scheduleMinutes = hour * 60 + minute
       const reminderKey = `reminder_${schedule.id}_${today}`
