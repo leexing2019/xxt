@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { supabase } from '@/services/supabase'
+import { getAverageComplianceRate } from '@/services/compliance'
+import ComplianceDrawer from '@/components/compliance/ComplianceDrawer.vue'
 import { User, VideoPlay, Goods, CircleCheck, TrendCharts, ArrowUp } from '@element-plus/icons-vue'
+
+const showComplianceDrawer = ref(false)
 
 const stats = ref({
   totalUsers: 0,
@@ -30,9 +34,9 @@ async function fetchStats() {
       .from('profiles')
       .select('*', { count: 'exact', head: true })
 
-    // 获取药品总数
+    // 获取公共药品库总数
     const { count: medsCount } = await supabase
-      .from('medications')
+      .from('common_medications')
       .select('*', { count: 'exact', head: true })
 
     stats.value.totalUsers = usersCount || 0
@@ -47,9 +51,9 @@ async function fetchStats() {
 
     recentUsers.value = data || []
 
-    // 模拟活跃用户和依从性数据
-    stats.value.activeUsers = Math.floor((stats.value.totalUsers || 0) * 0.6)
-    stats.value.complianceRate = 85
+    // 获取实际平均依从率
+    const complianceRate = await getAverageComplianceRate(7)
+    stats.value.complianceRate = complianceRate
   } catch (error) {
     console.error('获取统计数据失败:', error)
   } finally {
@@ -130,7 +134,7 @@ onMounted(() => {
       </el-col>
 
       <el-col :span="6">
-        <el-card shadow="hover" class="stat-card card-compliance">
+        <el-card shadow="hover" class="stat-card card-compliance" @click="showComplianceDrawer = true" style="cursor: pointer;">
           <div class="stat-content">
             <div class="stat-icon-wrapper">
               <el-icon :size="36"><CircleCheck /></el-icon>
@@ -140,7 +144,7 @@ onMounted(() => {
               <div class="stat-value">{{ stats.complianceRate }}%</div>
               <div class="stat-trend">
                 <el-icon><ArrowUp /></el-icon>
-                <span>3% 较上周</span>
+                <span>近 7 日平均</span>
               </div>
             </div>
           </div>
@@ -233,6 +237,9 @@ onMounted(() => {
         <p>暂无用户数据</p>
       </div>
     </el-card>
+
+    <!-- 依从性抽屉 -->
+    <ComplianceDrawer v-model="showComplianceDrawer" />
   </div>
 </template>
 
