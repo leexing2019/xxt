@@ -288,7 +288,7 @@ onMounted(async () => {
 
 .card {
   background: white;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   padding: 24rpx;
   margin: 16rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
@@ -304,12 +304,13 @@ onMounted(async () => {
   width: 100rpx;
   height: 100rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2196F3, #1976D2);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   overflow: hidden;
+  box-shadow: 0 4rpx 12rpx rgba(59, 130, 246, 0.2);
 }
 
 .med-image {
@@ -473,7 +474,7 @@ onMounted(async () => {
 .stat-value {
   font-size: 36rpx;
   font-weight: bold;
-  color: #2196F3;
+  color: var(--primary-color);
 }
 
 .stat-label {
@@ -526,12 +527,12 @@ onMounted(async () => {
 
 .btn-outline {
   background: transparent;
-  border: 2rpx solid #2196F3;
-  color: #2196F3;
+  border: 2rpx solid var(--primary-color);
+  color: var(--primary-color);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #2196F3, #1976D2);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: white;
   border: none;
 }
