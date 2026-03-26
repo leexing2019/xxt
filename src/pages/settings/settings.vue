@@ -387,11 +387,11 @@ async function changePassword() {
   width: 100rpx;
   height: 100rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-bg) 0%, rgba(33, 150, 243, 0.1) 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4rpx 12rpx rgba(33, 150, 243, 0.15);
+  box-shadow: 0 4rpx 12rpx rgba(59, 130, 246, 0.2);
   transition: transform 0.2s ease;
 }
 
@@ -427,12 +427,12 @@ async function changePassword() {
   background: var(--primary-light-bg);
   border-radius: 20rpx;
   transition: all 0.2s ease;
-}
 
-.edit-btn:active {
-  background: var(--primary-color);
-  color: white;
-  transform: scale(0.95);
+  &:active {
+    background: var(--primary-color);
+    color: white;
+    transform: scale(0.95);
+  }
 }
 
 .settings-list {
@@ -592,7 +592,7 @@ async function changePassword() {
 .logout-btn {
   width: 100%;
   height: 96rpx;
-  background: linear-gradient(135deg, #EF5350 0%, #C62828 100%);
+  background: linear-gradient(135deg, var(--danger-color) 0%, #DC2626 100%);
   color: white;
   border: none;
   border-radius: 16rpx;
@@ -602,13 +602,13 @@ async function changePassword() {
   gap: 12rpx;
   font-size: 32rpx;
   font-weight: 600;
-  box-shadow: 0 8rpx 24rpx rgba(239, 83, 80, 0.35);
+  box-shadow: 0 8rpx 24rpx rgba(239, 68, 68, 0.3);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
 
-.logout-btn:active {
-  transform: scale(0.96);
-  box-shadow: 0 4rpx 12rpx rgba(239, 83, 80, 0.25);
+  &:active {
+    transform: scale(0.96);
+    box-shadow: 0 4rpx 12rpx rgba(239, 68, 68, 0.25);
+  }
 }
 
 .logout-btn .btn-icon {
