@@ -207,30 +207,60 @@ function schedulePushNotification(taskId: string, options: {
   const delay = notifyTime.getTime() - Date.now()
   console.log('[LocalReminder] 调度推送，延迟:', Math.round(delay / 1000), '秒')
 
-  // 创建推送消息
-  const pushMsg = plusObj.push.createMessage(
-    options.content,
-    options.title,
-    {
-      cover: true,
-      sound: 'system',
-      when: notifyTime,
-      data: {
-        scheduleId: options.scheduleId,
-        time: options.time
-      }
-    },
-    (result: any) => {
-      console.log('[LocalReminder] 用户点击了通知')
-      // 点击通知后打开 App
-      plusObj.runtime.launchInfo()
-    },
-    (error: any) => {
-      console.error('[LocalReminder] 推送失败:', error)
-    }
-  )
+  // 检查 plus.push 是否可用
+  if (!plusObj || !plusObj.push || !plusObj.push.createMessage) {
+    console.warn('[LocalReminder] plus.push.createMessage 不可用，使用 setTimeout 降级方案')
+    // 降级方案：使用 setTimeout 定时触发
+    const timeoutId = setTimeout(() => {
+      console.log('[LocalReminder] 定时器触发提醒')
+      triggerImmediateReminder({
+        id: options.scheduleId,
+        time_of_day: options.time,
+        common_medications: { name: options.content.replace('该服用', '').replace(' 了', '') }
+      })
+    }, delay)
+    scheduledPushNotifications.set(taskId, { timeoutId, type: 'fallback' })
+    return
+  }
 
-  scheduledPushNotifications.set(taskId, pushMsg)
+  // 创建推送消息
+  try {
+    const pushMsg = plusObj.push.createMessage(
+      options.content,
+      options.title,
+      {
+        cover: true,
+        sound: 'system',
+        when: notifyTime,
+        data: {
+          scheduleId: options.scheduleId,
+          time: options.time
+        }
+      },
+      (result: any) => {
+        console.log('[LocalReminder] 用户点击了通知')
+        // 点击通知后打开 App
+        plusObj.runtime.launchInfo()
+      },
+      (error: any) => {
+        console.error('[LocalReminder] 推送失败:', error)
+      }
+    )
+
+    scheduledPushNotifications.set(taskId, pushMsg)
+    console.log('[LocalReminder] 推送消息创建成功')
+  } catch (error) {
+    console.error('[LocalReminder] createMessage 异常:', error)
+    // 降级方案
+    const timeoutId = setTimeout(() => {
+      triggerImmediateReminder({
+        id: options.scheduleId,
+        time_of_day: options.time,
+        common_medications: { name: options.content.replace('该服用', '').replace(' 了', '') }
+      })
+    }, delay)
+    scheduledPushNotifications.set(taskId, { timeoutId, type: 'fallback' })
+  }
   // #endif
 
   // #ifdef H5
