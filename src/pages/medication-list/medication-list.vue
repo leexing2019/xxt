@@ -296,12 +296,12 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   gap: 12rpx;
-  box-shadow: 0 4px 12px rgba(30, 136, 229, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
   border: none;
 
   &:active {
     transform: scale(0.98);
-    box-shadow: 0 2px 6px rgba(30, 136, 229, 0.2);
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);
   }
 }
 
@@ -355,6 +355,7 @@ onMounted(async () => {
   align-items: center;
   box-shadow: var(--shadow-md);
   transition: all 0.2s ease;
+  border-left: 4rpx solid transparent;
 
   &:active {
     box-shadow: var(--shadow-sm);
@@ -461,7 +462,7 @@ onMounted(async () => {
 .contraindication-card {
   background: var(--warning-bg);
   border-left: 6rpx solid var(--warning-color);
-  border-radius: 8rpx;
+  border-radius: 16rpx;
   padding: 20rpx;
   margin-bottom: 16rpx;
 }
