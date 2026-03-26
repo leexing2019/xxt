@@ -9,8 +9,6 @@ const authStore = useAuthStore()
 
 const email = ref('')
 const password = ref('')
-const error = ref('')
-const showTestAccount = ref(false)
 
 async function handleLogin() {
   error.value = ''
@@ -27,12 +25,6 @@ async function handleLogin() {
   } else {
     error.value = result.error || '登录失败'
   }
-}
-
-function useTestAccount() {
-  email.value = 'test@medication.local'
-  password.value = 'test123456'
-  showTestAccount.value = false
 }
 </script>
 
@@ -98,35 +90,6 @@ function useTestAccount() {
         >
           {{ authStore.loading ? '登录中...' : '登录' }}
         </el-button>
-
-        <div style="text-align: center; margin-top: 16px;">
-          <el-button type="info" size="small" @click="showTestAccount = !showTestAccount">
-            使用测试账号
-          </el-button>
-        </div>
-
-        <el-collapse-transition>
-          <div v-if="showTestAccount" class="test-account-tip">
-            <el-alert
-              title="测试账号"
-              type="info"
-              :closable="false"
-              show-icon
-            >
-              <template #title>
-                <div class="tip-content">
-                  <p>由于 Supabase 未配置，请使用以下任意方式：</p>
-                  <ol>
-                    <li>在 Supabase 控制台创建账号</li>
-                    <li>使用邮箱：<code>test@medication.local</code></li>
-                    <li>密码：<code>test123456</code></li>
-                  </ol>
-                  <el-button type="primary" size="small" @click="useTestAccount">填充测试账号</el-button>
-                </div>
-              </template>
-            </el-alert>
-          </div>
-        </el-collapse-transition>
       </el-form>
     </el-card>
   </div>
@@ -274,31 +237,5 @@ h1 {
 
 :deep(.el-alert) {
   border-radius: 8px;
-}
-
-.test-account-tip {
-  margin-top: 16px;
-}
-
-.tip-content {
-  font-size: 13px;
-  line-height: 1.8;
-}
-
-.tip-content ol {
-  margin: 8px 0;
-  padding-left: 20px;
-}
-
-.tip-content code {
-  background: #f1f5f9;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: monospace;
-  color: #0369a1;
-}
-
-.tip-content .el-button {
-  margin-top: 12px;
 }
 </style>
