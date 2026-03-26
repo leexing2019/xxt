@@ -35,12 +35,6 @@ export const routes: RouteRecordRaw[] = [
     name: 'ApiSettings',
     component: () => import('@/views/ApiSettings.vue'),
     meta: { title: 'API 配置', requiresAuth: true }
-  },
-  {
-    path: '/remote-notification',
-    name: 'RemoteNotification',
-    component: () => import('@/views/RemoteNotification.vue'),
-    meta: { title: '服药提醒测试', requiresAuth: true }
   }
 ]
 

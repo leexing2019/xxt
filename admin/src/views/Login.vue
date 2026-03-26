@@ -9,6 +9,7 @@ const authStore = useAuthStore()
 
 const email = ref('')
 const password = ref('')
+const error = ref('')
 
 async function handleLogin() {
   error.value = ''

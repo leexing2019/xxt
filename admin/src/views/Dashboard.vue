@@ -31,35 +31,41 @@ const chartData = ref({
 })
 const loading = ref(true)
 
-// 获取近 7 天数据
+// 获取近 7 天数据（优化版：一次性获取所有数据）
 async function fetchChartData() {
   const today = new Date()
+  const startDate = new Date(today)
+  startDate.setDate(startDate.getDate() - 6)
+  startDate.setHours(0, 0, 0, 0)
+
+  // 一次性获取所有用户数据
+  const { data: usersData } = await supabase
+    .from('profiles')
+    .select('created_at')
+    .gte('created_at', startDate.toISOString())
+    .lte('created_at', today.toISOString())
+
+  // 一次性获取所有药品数据
+  const { data: medsData } = await supabase
+    .from('common_medications')
+    .select('created_at')
+    .gte('created_at', startDate.toISOString())
+    .lte('created_at', today.toISOString())
+
+  // 按日期分组统计
   const dates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today)
     d.setDate(d.getDate() - (6 - i))
     return d.toISOString().split('T')[0]
   })
 
-  // 获取用户增长数据
-  const usersPromises = dates.map(async (date) => {
-    const { count } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .lte('created_at', `${date}T23:59:59.999Z`)
-    return count || 0
+  const usersCounts = dates.map(date => {
+    return usersData?.filter(item => item.created_at.startsWith(date)).length || 0
   })
 
-  // 获取药品添加数据
-  const medsPromises = dates.map(async (date) => {
-    const { count } = await supabase
-      .from('common_medications')
-      .select('*', { count: 'exact', head: true })
-      .lte('created_at', `${date}T23:59:59.999Z`)
-    return count || 0
+  const medsCounts = dates.map(date => {
+    return medsData?.filter(item => item.created_at.startsWith(date)).length || 0
   })
-
-  const usersCounts = await Promise.all(usersPromises)
-  const medsCounts = await Promise.all(medsPromises)
 
   chartData.value = {
     users: usersCounts,
