@@ -4,6 +4,7 @@ import { playReminderSound, vibrate } from './reminder'
 let reminderTimers: Map<string, number> = new Map()
 let currentUserId: string | null = null
 let scheduledPushNotifications: Map<string, any> = new Map()
+let lastCheckedNotificationId: string | null = null
 
 /**
  * 请求通知权限
@@ -12,26 +13,29 @@ export async function requestNotificationPermission(): Promise<boolean> {
   // #ifdef APP-PLUS
   try {
     const plusObj = plus as any
+    console.log('[Permission] plus 对象:', !!plusObj)
+    console.log('[Permission] plus.push 对象:', !!plusObj?.push)
+
     if (plusObj.push) {
-      // 请求推送权限
-      const result = await new Promise<boolean>((resolve) => {
+      console.log('[Permission] plus.push.createMessage:', typeof plusObj.push.createMessage)
+
+      // 测试推送是否可用
+      try {
         plusObj.push.createMessage(
+          '测试消息',
           '权限请求',
-          '需要通知权限来发送服药提醒',
           {
             cover: true,
-            sound: 'none'
+            sound: 'system'
           },
-          (result: any) => {
-            resolve(true)
-          },
-          (error: any) => {
-            console.error('[Permission] 请求失败:', error)
-            resolve(false)
-          }
+          () => console.log('[Permission] 测试推送成功'),
+          (error: any) => console.error('[Permission] 测试推送失败:', error)
         )
-      })
-      return result
+        console.log('[Permission] 测试推送已发送')
+        return true
+      } catch (e) {
+        console.error('[Permission] createMessage 异常:', e)
+      }
     }
   } catch (error) {
     console.error('[Permission] 请求通知权限失败:', error)
@@ -70,7 +74,11 @@ export function startLocalMedicationReminder(userId: string) {
   // 每 5 秒检查一次是否有新的服药计划
   const checkInterval = setInterval(() => {
     setupMedicationReminders(userId)
+    checkRemoteNotifications(userId)
   }, 5000)
+
+  // 立即检查一次远程通知
+  checkRemoteNotifications(userId)
 
   // 保存定时器 ID 以便清理
   reminderTimers.set('checkInterval', checkInterval as unknown as number)
@@ -93,7 +101,61 @@ export function stopLocalMedicationReminder() {
   scheduledPushNotifications.clear()
 
   currentUserId = null
+  lastCheckedNotificationId = null
   console.log('[LocalReminder] 监听已停止')
+}
+
+/**
+ * 检查远程通知
+ */
+async function checkRemoteNotifications(userId: string) {
+  try {
+    const { data, error } = await supabase
+      .from('remote_notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+      .limit(1)
+
+    if (error) {
+      console.error('[RemoteNotification] 查询失败:', error)
+      return
+    }
+
+    if (!data || data.length === 0) {
+      return
+    }
+
+    const notification = data[0]
+
+    // 防止重复处理
+    if (lastCheckedNotificationId === notification.id) {
+      return
+    }
+    lastCheckedNotificationId = notification.id
+
+    console.log('[RemoteNotification] 收到远程通知:', notification)
+
+    // 触发提醒
+    triggerImmediateReminder({
+      id: notification.id,
+      time_of_day: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+      common_medications: {
+        name: notification.message || '药品',
+        dosage_unit: ''
+      },
+      dosage: ''
+    })
+
+    // 标记为已发送
+    await supabase
+      .from('remote_notifications')
+      .update({ status: 'sent' })
+      .eq('id', notification.id)
+  } catch (error) {
+    console.error('[RemoteNotification] 检查失败:', error)
+  }
 }
 
 /**

@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { supabase } from '@/services/supabase'
+import { useAuthStore } from '@/stores/auth'
 import { User, Bell, Clock, VideoPlay } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+
+const authStore = useAuthStore()
 
 interface UserProfile {
   id: string
@@ -43,10 +46,22 @@ async function sendReminder() {
 
   sending.value = true
   try {
-    // 这里不插入数据库，只是演示功能说明
-    ElMessage.success(`提醒已触发！用户将在 ${delaySeconds.value} 秒后收到服药提醒`)
+    // 插入数据库，触发远程通知
+    const { error } = await supabase
+      .from('remote_notifications')
+      .insert({
+        user_id: selectedUserId.value,
+        notification_type: 'medication_reminder',
+        title: '服药提醒',
+        message: message.value,
+        status: 'pending',
+        sent_by: authStore.userId
+      })
 
-    // 实际触发由前端本地定时提醒实现
+    if (error) throw error
+
+    ElMessage.success(`提醒已触发！用户将在下次检查时收到服药提醒（约 5 秒内）`)
+
     console.log('[后台] 触发提醒:', {
       userId: selectedUserId.value,
       delaySeconds: delaySeconds.value,
