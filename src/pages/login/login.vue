@@ -152,7 +152,7 @@ function goEmergency() {
 <style lang="scss" scoped>
 .login-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #2196F3 0%, #1976D2 100%);
+  background: linear-gradient(180deg, #3B82F6 0%, #1D4ED8 100%);
   display: flex;
   flex-direction: column;
 }
@@ -275,7 +275,7 @@ function goEmergency() {
 }
 
 .text-primary {
-  color: #2196F3;
+  color: #3B82F6;
 }
 
 .text-secondary {
