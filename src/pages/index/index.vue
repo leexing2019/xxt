@@ -11,57 +11,23 @@
       </view>
     </view>
 
-    <!-- 进度环形卡片 -->
-    <view class="progress-card card">
-      <view class="progress-content">
-        <view class="progress-ring-container">
-          <svg class="progress-ring" width="120" height="120" viewBox="0 0 120 120">
-            <!-- 背景圆环 -->
-            <circle
-              class="progress-ring-bg"
-              cx="60"
-              cy="60"
-              r="48"
-              fill="none"
-              stroke="#E0E0E0"
-              stroke-width="12"
-            />
-            <!-- 进度圆环 -->
-            <circle
-              class="progress-ring-fill"
-              cx="60"
-              cy="60"
-              r="48"
-              fill="none"
-              stroke="url(#progressGradient)"
-              stroke-width="12"
-              stroke-linecap="round"
-              :stroke-dasharray="circumference"
-              :stroke-dashoffset="dashOffset"
-              transform="rotate(-90 60 60)"
-            />
-            <defs>
-              <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#4CAF50" />
-                <stop offset="100%" stop-color="#45a049" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <view class="progress-center-text">
-            <text class="center-percent">{{ progressPercent }}%</text>
-            <text class="center-label">已完成</text>
-          </view>
+    <!-- 进度卡片 -->
+    <view class="progress-card">
+      <view class="progress-row">
+        <text class="progress-label">今日进度</text>
+        <text class="progress-value">{{ progressPercent }}%</text>
+      </view>
+      <view class="progress-bar">
+        <view class="progress-fill" :style="{ width: progressPercent + '%' }"></view>
+      </view>
+      <view class="progress-stats">
+        <view class="stat">
+          <text class="stat-value">{{ takenCount }}</text>
+          <text class="stat-label">已服用</text>
         </view>
-        <view class="progress-details">
-          <view class="detail-item">
-            <text class="detail-value">{{ takenCount }}</text>
-            <text class="detail-label">已服用</text>
-          </view>
-          <view class="detail-divider" />
-          <view class="detail-item">
-            <text class="detail-value">{{ totalCount }}</text>
-            <text class="detail-label">总计划</text>
-          </view>
+        <view class="stat">
+          <text class="stat-value">{{ totalCount }}</text>
+          <text class="stat-label">总计划</text>
         </view>
       </view>
     </view>
@@ -82,25 +48,14 @@
 
     <!-- 用药列表 - 待服用区域 -->
     <view v-if="pendingMedications.length > 0" class="medications-section">
-      <text class="section-title">待服用</text>
-      <view v-for="item in pendingMedications" :key="item.id" class="medication-item card pending">
-        <view class="medication-header">
-          <view class="medication-time">
-            <text class="time-icon">⏰</text>
-            <text class="time-text">{{ item.time_of_day }}</text>
-          </view>
-          <view class="medication-action">
-            <button
-              class="btn btn-primary btn-take"
-              @click="takeMedication(item)"
-            >
-              服用
-            </button>
-          </view>
-        </view>
-        <view class="medication-content">
-          <!-- 药品照片/图标 -->
-          <view class="medication-avatar">
+      <view class="section-header">
+        <text class="section-icon">⏰</text>
+        <text class="section-title">待服用</text>
+        <text class="section-count">{{ pendingMedications.length }}</text>
+      </view>
+      <view v-for="item in pendingMedications" :key="item.id" class="med-card pending">
+        <view class="med-header">
+          <view class="med-avatar">
             <image
               v-if="item.common_medications?.image_url"
               :src="getImageUrl(item.common_medications.image_url)"
@@ -108,48 +63,52 @@
               mode="aspectFill"
               @error="handleImageError(item)"
             />
-            <MedicationIcon
-              v-else
-              :name="item.common_medications?.name || '药'"
-              :appearance-desc="item.common_medications?.appearance_desc"
-              :size="60"
-            />
+            <text v-else class="med-avatar-emoji">💊</text>
           </view>
-          <!-- 药品信息 -->
-          <view class="medication-details">
-            <text class="medication-name">{{ item.common_medications?.name }}</text>
-            <view class="medication-appearance">
-              <text class="appearance-icon">🔍</text>
-              <text class="appearance-text">{{ item.common_medications?.appearance_desc || '请遵医嘱使用' }}</text>
+          <view class="med-info">
+            <text class="med-name">{{ item.common_medications?.name }}</text>
+            <view class="med-meta">
+              <text class="med-time-badge">⏰ {{ item.time_of_day }}</text>
+              <text class="med-dose">{{ item.dosage }}</text>
             </view>
-            <text class="medication-dosage">用量：{{ item.dosage }}</text>
-            <text class="medication-instructions">💡 {{ item.instructions || '请遵医嘱使用' }}</text>
           </view>
+          <view class="status-badge" :class="getPendingStatusClass(item)">
+            <text>{{ getPendingStatusLabel(item) }}</text>
+          </view>
+        </view>
+        <view class="med-content">
+          <view class="med-row" v-if="item.common_medications?.appearance_desc">
+            <text class="med-row-icon">🔍</text>
+            <view class="med-row-content">
+              <text class="med-row-label">外观</text>
+              <text class="med-row-text">{{ item.common_medications.appearance_desc }}</text>
+            </view>
+          </view>
+          <view class="med-row">
+            <text class="med-row-icon">💡</text>
+            <view class="med-row-content">
+              <text class="med-row-label">注意事项</text>
+              <text class="med-row-text">{{ item.instructions || '请遵医嘱使用' }}</text>
+            </view>
+          </view>
+        </view>
+        <view class="med-actions">
+          <button class="btn btn-detail" @click="goDetail(item)">📋 详情</button>
+          <button class="btn btn-take" @click="takeMedication(item)">✅ 服用</button>
         </view>
       </view>
     </view>
 
     <!-- 用药列表 - 已服用区域 -->
     <view v-if="takenMedications.length > 0" class="medications-section taken-section">
-      <text class="section-title">已服用</text>
-      <view v-for="item in takenMedications" :key="item.id" class="medication-item card taken">
-        <view class="medication-header">
-          <view class="medication-time">
-            <text class="time-icon">⏰</text>
-            <text class="time-text">{{ item.time_of_day }}</text>
-          </view>
-          <view class="medication-action">
-            <view class="status-tag" :class="getMedicationStatus(item).class">
-              <text v-if="getMedicationStatus(item).class === 'early'">🕐</text>
-              <text v-else-if="getMedicationStatus(item).class === 'ontime'">✅</text>
-              <text v-else-if="getMedicationStatus(item).class === 'late'">⏰</text>
-              {{ getMedicationStatus(item).label }}
-            </view>
-          </view>
-        </view>
-        <view class="medication-content">
-          <!-- 药品照片/图标 -->
-          <view class="medication-avatar">
+      <view class="section-header">
+        <text class="section-icon">✅</text>
+        <text class="section-title">已服用</text>
+        <text class="section-count taken-count">{{ takenMedications.length }}</text>
+      </view>
+      <view v-for="item in takenMedications" :key="item.id" class="med-card taken">
+        <view class="med-header">
+          <view class="med-avatar taken-avatar">
             <image
               v-if="item.common_medications?.image_url"
               :src="getImageUrl(item.common_medications.image_url)"
@@ -157,23 +116,24 @@
               mode="aspectFill"
               @error="handleImageError(item)"
             />
-            <MedicationIcon
-              v-else
-              :name="item.common_medications?.name || '药'"
-              :appearance-desc="item.common_medications?.appearance_desc"
-              :size="60"
-            />
+            <text v-else class="med-avatar-emoji">💊</text>
           </view>
-          <!-- 药品信息 -->
-          <view class="medication-details">
-            <text class="medication-name">{{ item.common_medications?.name }}</text>
-            <view class="medication-appearance">
-              <text class="appearance-icon">🔍</text>
-              <text class="appearance-text">{{ item.common_medications?.appearance_desc || '请遵医嘱使用' }}</text>
+          <view class="med-info">
+            <text class="med-name">{{ item.common_medications?.name }}</text>
+            <view class="med-meta">
+              <text class="med-time-badge">⏰ {{ item.time_of_day }}</text>
+              <text class="med-dose">{{ item.dosage }}</text>
             </view>
-            <text class="medication-dosage">用量：{{ item.dosage }}</text>
-            <text class="medication-instructions">💡 {{ item.instructions || '请遵医嘱使用' }}</text>
           </view>
+          <view class="status-badge" :class="getMedicationStatus(item).class">
+            <text v-if="getMedicationStatus(item).class === 'early'">🕐</text>
+            <text v-else-if="getMedicationStatus(item).class === 'ontime'">✅</text>
+            <text v-else-if="getMedicationStatus(item).class === 'late'">⏰</text>
+            <text>{{ getMedicationStatus(item).label }}</text>
+          </view>
+        </view>
+        <view class="taken-badge">
+          <text>✓ 已于 {{ formatTakenTime(item.taken_time) }} 服用</text>
         </view>
       </view>
     </view>
@@ -215,22 +175,52 @@ onMounted(async () => {
   }
 })
 
-// 从 store 加载真实数据
+// 从 store 加载真实数据（24 小时动态窗口 + 漏服检测）
 const todayMedications = computed(() => {
   if (!medicationStore.schedules.length) return []
 
   const now = new Date()
-  const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay() // 周一=1, 周日=7
+  const currentDayOfWeek = now.getDay() === 0 ? 7 : now.getDay() // 周一=1，周日=7
+  const currentHour = now.getHours()
+  const currentMinutes = currentHour * 60 + now.getMinutes() // 当前时间的分钟数（0-1439）
 
   return medicationStore.schedules
-    .filter(s => s.is_active && s.weekdays.includes(dayOfWeek))
+    .filter(s => s.is_active && s.weekdays.includes(currentDayOfWeek))
     .map(schedule => {
       const log = medicationStore.todayLogs.find(log => log.schedule_id === schedule.id && log.status === 'taken')
+
+      // 解析服药时间
+      const [scheduleHour, scheduleMinute] = schedule.time_of_day.split(':').map(Number)
+      const scheduledMinutes = scheduleHour * 60 + scheduleMinute // 计划时间的分钟数
+
+      // 计算时间差（分钟）
+      let timeDiff = currentMinutes - scheduledMinutes
+
+      // 处理跨天情况（如果当前时间在计划时间之前，说明是第二天的计划）
+      if (timeDiff < 0) {
+        timeDiff += 24 * 60 // 加上 24 小时的分钟数
+      }
+
+      // 24 小时窗口判定：只显示 24 小时内的计划
+      const isInWindow = timeDiff < 24 * 60
+
+      // 漏服判定：超过 4 小时（240 分钟）未服用
+      const isMissed = !log && timeDiff > 240
+
       return {
         ...schedule,
         taken: !!log,
-        taken_time: log?.taken_time
+        taken_time: log?.taken_time,
+        isMissed, // 是否已漏服
+        isInWindow, // 是否在 24 小时窗口内
+        timeDiff // 距离计划时间的分钟差
       }
+    })
+    .filter(item => {
+      // 过滤条件：
+      // 1. 必须在 24 小时窗口内
+      // 2. 如果已漏服，也过滤掉（不再展示）
+      return item.isInWindow && !item.isMissed
     })
 })
 
@@ -268,6 +258,44 @@ const getMedicationStatus = (item: any) => {
   } else {
     return { label: '准点', class: 'ontime', isLate: false }
   }
+}
+
+// 获取待服用状态标签 class
+const getPendingStatusClass = (item: any) => {
+  const now = new Date()
+  const scheduled = new Date(`1970-01-01T${item.time_of_day}`)
+  const diffMinutes = (now.getTime() - scheduled.getTime()) / 60000
+
+  if (diffMinutes < -15) return 'early'
+  if (diffMinutes <= 15) return 'ontime'
+  return 'late'
+}
+
+// 获取待服用状态标签文字
+const getPendingStatusLabel = (item: any) => {
+  const now = new Date()
+  const scheduled = new Date(`1970-01-01T${item.time_of_day}`)
+  const diffMinutes = (now.getTime() - scheduled.getTime()) / 60000
+
+  if (diffMinutes < -15) return '🕐 提前'
+  if (diffMinutes <= 15) return '✅ 准点'
+  return '⏰ 过时'
+}
+
+// 格式化服用时间
+const formatTakenTime = (takenTime: string) => {
+  if (!takenTime) return ''
+  const date = new Date(takenTime)
+  const hours = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes().toString().padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+// 跳转详情页
+function goDetail(item: any) {
+  uni.navigateTo({
+    url: `/pages/medication-detail/medication-detail?id=${item.id}`
+  })
 }
 
 // 计算属性
@@ -466,7 +494,7 @@ onMounted(() => {
 <style lang="scss" scoped>
 .container {
   min-height: 100vh;
-  background-color: #F5F5F5;
+  background-color: #F5F7FA;
   padding-bottom: 140px;
 }
 
@@ -474,11 +502,9 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 20px;
-  background: linear-gradient(135deg, #2196F3, #1976D2);
-  border-radius: 0 0 24px 24px;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+  padding: 20px 20px;
+  background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+  margin-bottom: 12px;
 }
 
 .greeting-section {
@@ -488,25 +514,24 @@ onMounted(() => {
 }
 
 .greeting-text {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   color: white;
 }
 
 .date-text {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .voice-btn {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   transition: all 0.2s ease;
 
   &:active {
@@ -516,238 +541,163 @@ onMounted(() => {
 }
 
 .voice-icon {
-  font-size: 24px;
+  font-size: 22px;
 }
 
+/* 进度卡片 - 新设计 */
 .progress-card {
   margin: 12px;
-  background: white;
+  background: linear-gradient(135deg, #10B981, #059669);
   border-radius: 16px;
   padding: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16,185,129,0.2);
 }
 
-.progress-content {
+.progress-row {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-}
-
-.progress-ring-container {
-  position: relative;
-  width: 120px;
-  height: 120px;
   margin-bottom: 12px;
 }
 
-.progress-ring {
-  width: 120px;
-  height: 120px;
+.progress-label {
+  font-size: 14px;
+  opacity: 0.9;
 }
 
-.progress-ring-bg {
-  stroke: #E0E0E0;
+.progress-value {
+  font-size: 32px;
+  font-weight: 700;
 }
 
-.progress-ring-fill {
-  transition: stroke-dashoffset 0.5s ease;
+.progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 12px;
 }
 
-.progress-center-text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+.progress-fill {
+  height: 100%;
+  background: #fff;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.progress-stats {
+  display: flex;
+  gap: 20px;
+}
+
+.stat {
+  font-size: 12px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+
+  .stat-value {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .stat-label {
+    opacity: 0.9;
+    margin-top: 2px;
+  }
 }
 
-.center-percent {
-  font-size: 24px;
-  font-weight: 700;
-  color: #4CAF50;
-  line-height: 1;
-}
-
-.center-label {
-  font-size: 12px;
-  color: #666;
-  margin-top: 2px;
-}
-
-.progress-details {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  width: 100%;
-  padding-top: 12px;
-  border-top: 1px solid #F0F0F0;
-}
-
-.detail-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.detail-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: #333;
-}
-
-.detail-label {
-  font-size: 12px;
-  color: #666;
-}
-
-.detail-divider {
-  width: 1px;
-  height: 24px;
-  background: #E0E0E0;
-}
-
+/* 分区标题 */
 .medications-section {
   padding: 0 16px;
 }
 
-.section-title {
-  display: block;
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 12px;
-}
-
-.medication-item {
+.section-header {
   display: flex;
-  flex-direction: column;
-  padding: 16px;
-  margin-bottom: 16px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 6px 12px;
 }
 
-.medication-item.pending {
-  background: white;
-  border-left: 4rpx solid #2196F3;
+.section-icon {
+  font-size: 18px;
 }
 
-.medication-item.taken {
-  background: linear-gradient(135deg, #E8F5E9 0%, #F5F5F5 100%);
-  border-left: 4rpx solid #A5D6A7;
-  opacity: 0.85;
+.section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.section-count {
+  background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 12px;
+  margin-left: auto;
 }
 
 .taken-section {
-  margin-top: 8px;
+  margin-top: 16px;
 }
 
-.medication-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #F0F0F0;
+.taken-count {
+  background: linear-gradient(135deg, #10B981, #059669);
 }
 
-.medication-time {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.time-icon {
-  font-size: 18px;
-}
-
-.time-text {
-  font-size: 18px;
-  font-weight: 600;
-  color: #2196F3;
-}
-
-.medication-action {
-  display: flex;
-  align-items: center;
-}
-
-.btn-take {
-  padding: 10px 28px;
-  font-size: 16px;
-  min-height: 42px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #4CAF50, #45a049);
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
-}
-
-.taken-badge {
-  font-size: 15px;
-  color: #4CAF50;
-  font-weight: 600;
-  padding: 8px 16px;
-  background: #E8F5E9;
+/* 服药卡片 - 新设计 */
+.med-card {
+  background: #fff;
   border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border-left: 4px solid #3B82F6;
+  transition: all 0.2s ease;
 }
 
-/* 状态标签样式 */
-.status-tag {
-  padding: 6rpx 16rpx;
-  border-radius: 20rpx;
-  font-size: 22rpx;
-  font-weight: 500;
+.med-card.pending {
+  border-left-color: #3B82F6;
+  background: linear-gradient(135deg, #fff, #EFF6FF);
+}
+
+.med-card.taken {
+  border-left-color: #10B981;
+  background: linear-gradient(135deg, #fff, #ECFDF5);
+  opacity: 0.95;
+}
+
+/* 卡片头部 */
+.med-header {
   display: flex;
+  gap: 12px;
   align-items: center;
-  gap: 4rpx;
-
-  &.pending {
-    background: #E3F2FD;
-    color: #1565C0;
-  }
-
-  &.early {
-    background: #FFF3E0;
-    color: #E65100;
-  }
-
-  &.ontime {
-    background: #E8F5E9;
-    color: #1B5E20;
-  }
-
-  &.late {
-    background: #FFEBEE;
-    color: #B71C1C;
-  }
-
-  &.taken {
-    background: #E8F5E9;
-    color: #1B5E20;
-  }
+  margin-bottom: 12px;
 }
 
-.medication-content {
-  display: flex;
-  gap: 16px;
-}
-
-.medication-avatar {
-  flex-shrink: 0;
-  width: 80rpx;
-  height: 80rpx;
+/* 药品头像 */
+.med-avatar {
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  background: white;
+  background: linear-gradient(135deg, #3B82F6, #1D4ED8);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   overflow: hidden;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px rgba(59,130,246,0.3);
+}
+
+.med-avatar.taken-avatar {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+}
+
+.med-avatar-emoji {
+  font-size: 26px;
 }
 
 .med-image {
@@ -756,67 +706,170 @@ onMounted(() => {
   object-fit: cover;
 }
 
-.medication-icon-wrapper {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.medication-details {
+/* 药品信息 */
+.med-info {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
   min-width: 0;
 }
 
-.medication-name {
-  font-size: 18px;
+.med-name {
+  font-size: 16px;
   font-weight: 700;
-  color: #333;
-  line-height: 1.3;
+  color: #1e293b;
+  margin-bottom: 6px;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.medication-appearance {
+.med-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.med-time-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.med-dose {
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* 状态标签 */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.status-badge.early {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.ontime {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.late {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* 卡片内容 */
+.med-content {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.med-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.med-row-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.med-row-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.med-row-label {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.med-row-text {
+  display: block;
+  color: #475569;
+  line-height: 1.5;
+}
+
+/* 底部按钮 */
+.med-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-detail {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.btn-detail:active {
+  background: #e2e8f0;
+}
+
+.btn-take {
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(16,185,129,0.3);
+}
+
+.btn-take:active {
+  transform: scale(0.98);
+  box-shadow: 0 1px 4px rgba(16,185,129,0.3);
+}
+
+/* 已服用标记 */
+.taken-badge {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
-  background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
-  border-radius: 8px;
-  margin: 4px 0;
-}
-
-.appearance-icon {
-  font-size: 14px;
-}
-
-.appearance-text {
+  gap: 8px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #dcfce7, #86efac);
+  border-radius: 12px;
   font-size: 13px;
-  color: #E65100;
-  line-height: 1.4;
-  flex: 1;
+  font-weight: 600;
+  color: #166534;
 }
 
-.medication-dosage {
-  font-size: 15px;
-  color: #333;
-  font-weight: 500;
-}
-
-.medication-instructions {
-  font-size: 13px;
-  color: #666;
-  line-height: 1.5;
-  padding: 8px 10px;
-  background: #F5F5F5;
-  border-radius: 8px;
-}
-
+/* 空状态 */
 .empty-state {
   text-align: center;
-  padding: 40px 20px;
+  padding: 60px 20px;
 }
 
 .empty-state-icon {
@@ -839,19 +892,6 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 14px 28px;
-  border-radius: 10px;
-  font-size: 18px;
-  border: none;
-  cursor: pointer;
-  background-color: #2196F3;
-  color: white;
-}
-
 .btn-primary {
   background-color: #2196F3;
 }
@@ -860,6 +900,7 @@ onMounted(() => {
   margin-top: 20px;
 }
 
+/* 加载状态 */
 .loading-state {
   text-align: center;
   padding: 80px 20px;
@@ -875,31 +916,6 @@ onMounted(() => {
 .loading-text {
   font-size: 18px;
   color: #666;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 80px 20px;
-}
-
-.empty-state-icon {
-  font-size: 64px;
-  display: block;
-  margin-bottom: 16px;
-}
-
-.empty-state-text {
-  font-size: 18px;
-  color: #666;
-  display: block;
-  margin-bottom: 8px;
-}
-
-.empty-state-hint {
-  font-size: 14px;
-  color: #999;
-  display: block;
-  margin-bottom: 20px;
 }
 
 @keyframes pulse {
