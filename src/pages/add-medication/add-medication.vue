@@ -620,9 +620,17 @@ async function handleSearch() {
     searchResults.value = await searchCommonMedications(searchKeyword.value)
 
     if (searchResults.value.length === 0) {
+      // 未找到药品，显示添加入口
+      showDropdown.value = true
+      showEmptyAction.value = true
+      searchSuggestions.value = []
       uni.showToast({ title: '未找到相关药品', icon: 'none' })
-      speakText('未找到相关药品，请试试其他方式')
+      speakText('公共药库没有找到这个药，可以点击"添加新药"按钮')
     } else {
+      // 找到了药品，显示建议列表
+      showDropdown.value = true
+      showEmptyAction.value = false
+      searchSuggestions.value = searchResults.value
       speakText(`找到${searchResults.value.length}种药品，请查看屏幕选择`)
     }
   } catch (error) {
