@@ -155,7 +155,11 @@ onMounted(async () => {
     emergencyContact.value = authStore.profile.emergency_contact || ''
     emergencyPhone.value = authStore.profile.emergency_phone || ''
   }
+})
 
+// 每次页面显示时检查是否有自动弹出事件（从紧急求助页面跳转而来）
+onShow(() => {
+  console.log('[Settings] onShow 被调用')
   // 检查是否有自动弹出参数（从紧急求助页面跳转而来）
   // 通过 uni.$emit 传递参数
   uni.$once('autoOpenEmergency', () => {
