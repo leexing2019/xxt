@@ -271,7 +271,7 @@ const getMedicationStatus = (item: any) => {
   }
 }
 
-// 获取待服用状态标签 class（直接比较时间，不依赖 Date 对象避免时区问题）
+// 获取待服用状态标签 class
 const getPendingStatusClass = (item: any) => {
   const now = new Date()
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
@@ -288,7 +288,7 @@ const getPendingStatusClass = (item: any) => {
   return 'late'
 }
 
-// 获取待服用状态标签文字
+// 获取待服用状态标签文字（未服用状态）
 const getPendingStatusLabel = (item: any) => {
   const now = new Date()
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
@@ -300,9 +300,9 @@ const getPendingStatusLabel = (item: any) => {
   // 计算时间差（分钟）
   const diffMinutes = nowMinutes - scheduledMinutes
 
-  if (diffMinutes < -15) return '🕐 提前'
-  if (diffMinutes <= 15) return '✅ 准点'
-  return '⏰ 过时'
+  if (diffMinutes < -15) return '🕒 未到服用时间'
+  if (diffMinutes <= 15) return '✅ 准点未服'
+  return '⏰ 过时未服'
 }
 
 // 格式化服用时间
