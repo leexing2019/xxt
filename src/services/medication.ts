@@ -235,39 +235,53 @@ function parseOCRText(text: string): OCRResult {
 
   console.log('[OCR] 原始文本:', JSON.stringify(text))
 
+  // 第一遍：收集所有候选行
+  const nameCandidates: string[] = []
+  const specCandidates: string[] = []
+  const manufacturerCandidates: string[] = []
+
   for (const line of lines) {
     const trimmedLine = line.trim()
     if (!trimmedLine) continue
 
     console.log('[OCR] 处理行:', JSON.stringify(trimmedLine))
 
-    // 尝试匹配药品名称（通常是最长的文本，包含剂型）
-    if (trimmedLine.length > 5 && /片 | 胶囊 | 口服液|颗粒|注射液 | 丸|散|膏|酊/.test(trimmedLine)) {
-      result.name = trimmedLine
+    // 排除日期格式（如 2025/11/03）
+    if (/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(trimmedLine)) continue
+
+    // 排除纯数字（如批号 251101）
+    if (/^\d+$/.test(trimmedLine)) continue
+
+    // 尝试匹配药品名称（包含剂型关键词，长度至少 4 个字符）
+    if (trimmedLine.length >= 4 && /(片|胶囊|口服液|颗粒|注射液|丸|散|膏|酊)/.test(trimmedLine)) {
+      nameCandidates.push(trimmedLine)
     }
+
     // 匹配规格（数字 + 单位）
-    if (/\d+mg|\d+g|\d+ml|\d+×/.test(trimmedLine)) {
-      result.specification = trimmedLine
-      // 如果没有名称，尝试从规格行提取
-      if (!result.name) {
-        // 处理冒号分隔的多个药品，如":门冬氨酸钾 79mg:无水门冬氨酸镁 70mg:"
-        const parts = trimmedLine.split(':').filter(p => p.trim())
-        for (const part of parts) {
-          // 排除日期格式（如 2025/11/03）
-          if (/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(part)) continue
-          // 提取数字前的中文作为药品名称（去掉^因为可能有前导冒号）
-          const match = part.match(/([a-zA-Z\u4e00-\u9fa5]+)\s*\d+/)
-          if (match && match[1].length > 2) {
-            result.name = match[1].trim()
-            break
-          }
-        }
-      }
+    if (/\d+(mg|g|ml|×)/i.test(trimmedLine)) {
+      specCandidates.push(trimmedLine)
     }
+
     // 匹配厂家
-    if (/公司 | 制药|药业 | 制药厂|生物/.test(trimmedLine)) {
-      result.manufacturer = trimmedLine
+    if (/(公司 | 制药 | 药业 | 制药厂 | 生物)/.test(trimmedLine)) {
+      manufacturerCandidates.push(trimmedLine)
     }
+  }
+
+  // 第二遍：选择最佳匹配
+  // 药品名称：优先选择包含剂型且最像药名的
+  if (nameCandidates.length > 0) {
+    // 优先选择第一个包含剂型的（通常是药名）
+    result.name = nameCandidates[0]
+    console.log('[OCR] 选择药名:', result.name)
+  }
+
+  if (specCandidates.length > 0) {
+    result.specification = specCandidates[0]
+  }
+
+  if (manufacturerCandidates.length > 0) {
+    result.manufacturer = manufacturerCandidates[0]
   }
 
   console.log('[OCR] 解析结果:', result)
