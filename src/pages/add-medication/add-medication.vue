@@ -743,8 +743,9 @@ async function processImageRecognition(imagePath: string) {
 
     if (result.name) {
       // 尝试在常用药中匹配
+      console.log('[OCR] 搜索关键词:', result.name)
       const matched = await searchCommonMedications(result.name)
-      console.log('[OCR] 匹配结果:', matched.length)
+      console.log('[OCR] 匹配结果:', matched.length, matched)
 
       if (matched.length > 0) {
         selectMedication(matched[0], true) // 传入 true 自动跳转下一步
