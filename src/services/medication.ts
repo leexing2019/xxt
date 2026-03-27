@@ -183,22 +183,53 @@ function readImageWithPlusIO(imagePath: string): Promise<string> {
 function parseOCRText(text: string): OCRResult {
   const lines = text.split('\n')
   const result: OCRResult = {}
+  let longestLine = ''
 
   for (const line of lines) {
-    // 尝试匹配药品名称（通常是最长的文本）
-    if (line.length > 5 && /片 | 胶囊 | 口服液|颗粒|注射液/.test(line)) {
-      result.name = line.trim()
+    const trimmedLine = line.trim()
+    if (!trimmedLine) continue
+
+    // 记录最长的行作为候选名称
+    if (trimmedLine.length > longestLine.length) {
+      longestLine = trimmedLine
     }
-    // 匹配规格
-    if (/\d+mg|\d+g|\d+ml|\d+×/.test(line)) {
-      result.specification = line.trim()
+
+    // 尝试匹配药品名称（通常是最长的文本，包含剂型）
+    if (trimmedLine.length > 5 && /片 | 胶囊 | 口服液|颗粒|注射液|丸|散|膏|酊/.test(trimmedLine)) {
+      result.name = trimmedLine
+    }
+    // 匹配规格（数字+单位）
+    if (/\d+mg|\d+g|\d+ml|\d+×/.test(trimmedLine)) {
+      result.specification = trimmedLine
+      // 如果没有名称，尝试从规格行提取
+      if (!result.name) {
+        // 提取数字前的中文/英文作为药品名称
+        const match = trimmedLine.match(/^([a-zA-Z\u4e00-\u9fa5]+)\s*\d+/)
+        if (match) {
+          result.name = match[1].trim()
+        }
+      }
     }
     // 匹配厂家
-    if (/公司 | 制药|药业 | 制药厂/.test(line)) {
-      result.manufacturer = line.trim()
+    if (/公司 | 制药|药业 | 制药厂|生物/.test(trimmedLine)) {
+      result.manufacturer = trimmedLine
     }
   }
 
+  // 如果还是没有名称，使用最长的行
+  if (!result.name && longestLine) {
+    // 去除冒号、分号等分隔符后的内容
+    const cleanLine = longestLine.split(':')[0].split(';')[0].trim()
+    // 提取可能的药品名（去除数字部分）
+    const nameMatch = cleanLine.match(/^([a-zA-Z\u4e00-\u9fa5]+)/)
+    if (nameMatch) {
+      result.name = nameMatch[1]
+    } else {
+      result.name = cleanLine
+    }
+  }
+
+  console.log('[OCR] 解析结果:', result)
   return result
 }
 
