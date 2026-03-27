@@ -2,8 +2,6 @@
  * 药品识别服务 - 使用百度 OCR 识别药品图片
  */
 
-import { API_ENDPOINTS } from '@/config/api'
-
 interface OCRResult {
   name?: string
   specification?: string
@@ -12,39 +10,63 @@ interface OCRResult {
   form?: string
 }
 
+// 百度 OCR API 配置
+const BAIDU_OCR_API_KEY = '你的 API Key'
+const BAIDU_OCR_SECRET_KEY = '你的 Secret Key'
+
 // 获取 OCR Token
-async function getOcrToken(config?: any): Promise<string> {
-  // TODO: 从后端获取 token
-  return ''
+async function getOcrToken(): Promise<string | null> {
+  if (!BAIDU_OCR_API_KEY || !BAIDU_OCR_SECRET_KEY) {
+    console.log('[OCR] 未配置 API Key 或 Secret Key')
+    return null
+  }
+
+  try {
+    // 调用百度 OAuth 获取 access_token
+    const response = await new Promise<any>((resolve, reject) => {
+      uni.request({
+        url: 'https://aip.baidubce.com/oauth/2.0/token',
+        method: 'POST',
+        header: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        data: `grant_type=client_credentials&client_id=${BAIDU_OCR_API_KEY}&client_secret=${BAIDU_OCR_SECRET_KEY}`,
+        success: resolve,
+        fail: reject
+      })
+    })
+
+    if (response.data?.access_token) {
+      console.log('[OCR] 获取 token 成功')
+      return response.data.access_token
+    } else {
+      console.error('[OCR] 获取 token 失败:', response.data)
+      return null
+    }
+  } catch (error) {
+    console.error('[OCR] 获取 token 异常:', error)
+    return null
+  }
 }
 
 /**
  * 识别药品图片
  */
 export async function recognizeMedication(imagePath: string): Promise<OCRResult> {
-  const config = await getOcrToken()
+  const token = await getOcrToken()
 
   // 如果没有配置 token，返回模拟数据
-  if (!config) {
+  if (!token) {
     console.log('[OCR] 未配置 token，使用模拟数据')
-    // 返回模拟数据
     return getMockOCRResult()
   }
 
   try {
-    // 获取 access_token
-    const token = await getOcrToken(config)
-    if (!token) {
-      return getMockOCRResult()
-    }
-
     // 读取图片并转换为 base64
     const imageBase64 = await imagePathToBase64(imagePath)
 
-    // 调用 OCR API
+    // 调用百度 OCR API
     const response = await new Promise<any>((resolve, reject) => {
       uni.request({
-        url: `${API_ENDPOINTS.BAIDU_OCR}?access_token=${token}`,
+        url: `https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic?access_token=${token}`,
         method: 'POST',
         header: { 'Content-Type': 'application/x-www-form-urlencoded' },
         data: {
@@ -58,14 +80,17 @@ export async function recognizeMedication(imagePath: string): Promise<OCRResult>
       })
     })
 
+    console.log('[OCR] API 响应:', response)
+
     if (response.data?.words_result) {
       const text = response.data.words_result.map((item: any) => item.words).join('\n')
       return parseOCRText(text)
     }
 
+    console.error('[OCR] 识别失败，无返回结果')
     return getMockOCRResult()
   } catch (error) {
-    console.error('OCR 识别失败:', error)
+    console.error('[OCR] 识别失败:', error)
     return getMockOCRResult()
   }
 }
