@@ -6,6 +6,7 @@
  */
 
 import { supabase } from './supabase'
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/config/supabase'
 import PinyinMatch from 'pinyin-match'
 import { identifyForm, getMedicationColor } from '@/utils/medication-icon'
 
@@ -64,21 +65,38 @@ export async function fetchCommonMedications(): Promise<CommonMedication[]> {
   }
 
   try {
-    const { data, error } = await supabase
-      .from('common_medications')
-      .select('*')
-      .eq('is_active', true)
-      .order('category', { ascending: true })
-      .order('name', { ascending: true })
+    // 使用 fetch 替代 supabase client，兼容性更好
+    const url = `${SUPABASE_URL}/rest/v1/common_medications?is_active=eq.true&order=category.asc,order=name.asc`
 
-    if (error) throw error
+    const response = await new Promise<any>((resolve, reject) => {
+      uni.request({
+        url: url,
+        method: 'GET',
+        header: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000,
+        success: resolve,
+        fail: reject
+      })
+    })
 
-    cachedMedications = data || []
-    lastFetchTime = now
-
-    return cachedMedications
-  } catch (error) {
+    if (response.statusCode === 200) {
+      cachedMedications = response.data || []
+      lastFetchTime = now
+      return cachedMedications
+    } else {
+      throw new Error(`HTTP ${response.statusCode}`)
+    }
+  } catch (error: any) {
     console.error('获取公共药品库失败:', error)
+    // 如果是网络错误，尝试使用本地缓存
+    if (cachedMedications) {
+      console.log('[CommonMedications] 使用缓存数据')
+      return cachedMedications
+    }
     // 失败时返回空数组
     return []
   }
