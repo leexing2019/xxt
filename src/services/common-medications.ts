@@ -61,22 +61,26 @@ export async function fetchCommonMedications(): Promise<CommonMedication[]> {
 
   // 检查缓存
   if (cachedMedications && (now - lastFetchTime) < CACHE_DURATION) {
+    console.log('[CommonMedications] 使用缓存，数量:', cachedMedications.length)
     return cachedMedications
   }
 
   try {
-    // 使用 fetch 替代 supabase client，兼容性更好
-    const url = `${SUPABASE_URL}/rest/v1/common_medications?select=*&is_active=eq.true&order=category.asc,name.asc`
+    // 使用 uni.request 直接调用 Supabase REST API
+    const url = `${SUPABASE_URL}/rest/v1/common_medications`
+    const params = 'select=*&is_active=eq.true&order=category.asc&order=name.asc'
+    const fullUrl = `${url}?${params}`
+
+    console.log('[CommonMedications] 请求 URL:', fullUrl)
 
     const response = await new Promise<any>((resolve, reject) => {
       uni.request({
-        url: url,
+        url: fullUrl,
         method: 'GET',
         header: {
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
+          'Content-Type': 'application/json'
         },
         timeout: 10000,
         success: resolve,
@@ -84,9 +88,12 @@ export async function fetchCommonMedications(): Promise<CommonMedication[]> {
       })
     })
 
+    console.log('[CommonMedications] 响应状态:', response.statusCode, '数据:', response.data)
+
     if (response.statusCode === 200) {
       cachedMedications = response.data || []
       lastFetchTime = now
+      console.log('[CommonMedications] 加载成功，数量:', cachedMedications.length)
       return cachedMedications
     } else {
       console.error('[CommonMedications] 请求失败，状态码:', response.statusCode, '数据:', response.data)
