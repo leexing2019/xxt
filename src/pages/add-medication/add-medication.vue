@@ -320,7 +320,8 @@ import type { NodeJS } from 'node'
 import { useMedicationStore } from '@/store/medication'
 import { useAuthStore } from '@/store/auth'
 import { recognizeMedication } from '@/services/medication'
-import { recognizeSpeech, getSpeechRecorder, speakText } from '@/services/voice'
+import { recognizeSpeech, speakText } from '@/services/voice'
+import { SpeechRecorder } from '@/services/baidu-speech'
 import {
   fetchCommonMedications,
   getDisplayMedications,
@@ -641,7 +642,7 @@ async function handleSearch() {
 }
 
 // 语音选择药品 - 按住说话模式
-const speechRecorder = getSpeechRecorder()
+const speechRecorder = new SpeechRecorder()
 
 async function startVoicePress() {
   if (voiceRecognized.value) return
