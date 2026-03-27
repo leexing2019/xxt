@@ -145,6 +145,7 @@ import { showImmediateNotification, vibrate } from '@/services/reminder'
 import type { MedicationSchedule } from '@/store/medication'
 import MedicationIcon from '@/components/MedicationIcon.vue'
 import { startLocalMedicationReminder, stopLocalMedicationReminder } from '@/services/local-reminder'
+import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 
 const authStore = useAuthStore()
 const medicationStore = useMedicationStore()
@@ -418,29 +419,35 @@ function getImageUrl(imageUrl: string): string {
   return imageUrl
 }
 
-// 下拉刷新
-async function onPullDownRefresh() {
-  try {
-    console.log('[首页] 开始下拉刷新...')
-    await medicationStore.fetchSchedules()
-    await medicationStore.fetchTodayLogs()
-    uni.showToast({
-      title: '刷新成功',
-      icon: 'success'
-    })
-  } catch (error) {
-    console.error('[首页] 下拉刷新失败:', error)
-    uni.showToast({
-      title: '刷新失败',
-      icon: 'error'
-    })
-  } finally {
-    uni.stopPullDownRefresh()
-  }
+// 下拉刷新处理函数
+function handlePullDownRefresh() {
+  console.log('[首页] 开始下拉刷新...')
+  // 添加延迟确保刷新动画显示
+  setTimeout(async () => {
+    try {
+      await medicationStore.fetchSchedules()
+      await medicationStore.fetchTodayLogs()
+      uni.showToast({
+        title: '刷新成功',
+        icon: 'success'
+      })
+    } catch (error) {
+      console.error('[首页] 下拉刷新失败:', error)
+      uni.showToast({
+        title: '刷新失败',
+        icon: 'error'
+      })
+    } finally {
+      uni.stopPullDownRefresh()
+    }
+  }, 300)
 }
 
+// 注册生命周期
+onPullDownRefresh(handlePullDownRefresh)
+
 // 检测用户切换 - uni-app onShow 生命周期
-async function onShow() {
+function onShowHandler() {
   // 等待认证初始化
   if (!authStore.initialized) {
     let waitCount = 0
@@ -465,6 +472,9 @@ async function onShow() {
   }
 }
 
+// 注册 onShow 生命周期
+onShow(onShowHandler)
+
 onMounted(() => {
   if (!authStore.isLoggedIn) {
     uni.redirectTo({ url: '/pages/login/login' })
@@ -487,12 +497,6 @@ onMounted(() => {
     medicationStore.todayLogs = []
     medicationStore.medications = []
   })
-})
-
-// 导出 uni-app 生命周期函数
-defineExpose({
-  onPullDownRefresh,
-  onShow
 })
 </script>
 
