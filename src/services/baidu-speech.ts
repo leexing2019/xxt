@@ -118,6 +118,8 @@ export async function recognizeSpeechBaidu(audioBase64: string | { base64: strin
     // 参考官方示例：https://ai.baidu.com/ai-doc/SPEECH/4l9mh6qf9
     // 百度支持格式：pcm/wav/amr/m4a，推荐使用 pcm
     // 注意：uni-app x 录制 format 设为 wav 时实际输出 wav 文件
+    const format = 'pcm'  // 与录音格式一致
+    console.log('[语音] 发送格式:', format)
     const response = await new Promise<any>((resolve, reject) => {
       uni.request({
         url: 'http://vop.baidu.com/server_api',
@@ -126,7 +128,7 @@ export async function recognizeSpeechBaidu(audioBase64: string | { base64: strin
           'Content-Type': 'application/json'
         },
         data: {
-          format: 'wav',
+          format: format,
           rate: 16000,
           channel: 1,
           cuid: cuid,
@@ -454,8 +456,8 @@ export async function recordAndRecognize(): Promise<SpeechRecognitionResult> {
       duration: 10000,
       sampleRate: 16000,
       numberOfChannels: 1,
-      encodeBitrate: 48000,
-      format: 'wav'  // uni-app x 录制 pcm 实际输出 wav，直接用 wav 格式
+      encodeBitrate: 0,  // 设为 0 尝试不压缩
+      format: 'PCM'  // 使用大写 PCM，尝试强制未压缩格式
     })
   })
 }
@@ -695,8 +697,8 @@ export class SpeechRecorder {
         duration: this.maxDuration,
         sampleRate: 16000,
         numberOfChannels: 1,
-        encodeBitrate: 48000,
-        format: 'wav'  // uni-app x 录制 pcm 实际输出 wav，直接用 wav 格式
+        encodeBitrate: 0,  // 设为 0 尝试不压缩
+        format: 'PCM'  // 使用大写 PCM，尝试强制未压缩格式
       })
     })
   }
