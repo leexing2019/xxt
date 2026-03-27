@@ -135,7 +135,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onShow } from 'vue'
+import { ref, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useAuthStore } from '@/store/auth'
 import { speakText } from '@/services/voice'
 
