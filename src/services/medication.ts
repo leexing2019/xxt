@@ -122,14 +122,60 @@ function imagePathToBase64(imagePath: string): Promise<string> {
 
     // #ifdef APP-PLUS
     // App 环境下使用 uni.getFileSystemManager
-    const fs = uni.getFileSystemManager()
-    fs.readFile({
-      filePath: imagePath,
-      encoding: 'base64',
-      success: (res) => resolve(res.data as string),
-      fail: reject
-    })
+    // uni-app x 中如果不可用，使用 plus.io 作为降级方案
+    const fs = uni.getFileSystemManager?.()
+    if (fs && typeof fs.readFile === 'function') {
+      fs.readFile({
+        filePath: imagePath,
+        encoding: 'base64',
+        success: (res) => resolve(res.data as string),
+        fail: (err) => {
+          console.error('[OCR] getFileSystemManager 失败，使用 plus.io 降级:', err)
+          // 降级方案：使用 plus.io
+          readImageWithPlusIO(imagePath).then(resolve).catch(reject)
+        }
+      })
+    } else {
+      // getFileSystemManager 不可用，使用 plus.io
+      readImageWithPlusIO(imagePath).then(resolve).catch(reject)
+    }
     // #endif
+  })
+}
+
+// 使用 plus.io 读取图片为 base64
+function readImageWithPlusIO(imagePath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      // plus.io 需要完整路径，转换 temp 路径
+      let filePath = imagePath
+
+      // 处理 _www 目录
+      if (filePath.startsWith('_www/')) {
+        filePath = filePath.replace('_www/', '')
+      }
+
+      // 使用 plus.io 读取文件
+      plus.io.resolveLocalFileSystemURL(filePath, (entry) => {
+        entry.file((file) => {
+          const reader = new plus.io.FileReader()
+          reader.onloadend = () => {
+            const result = reader.result as string
+            // 移除 data:image/xxx;base64, 前缀
+            const base64 = result.includes('base64,') ? result.split(',')[1] : result
+            resolve(base64)
+          }
+          reader.onerror = reject
+          reader.readAsDataURL(file)
+        })
+      }, (error) => {
+        console.error('[OCR] plus.io resolveLocalFileSystemURL 失败:', error)
+        reject(error)
+      })
+    } catch (e) {
+      console.error('[OCR] plus.io 读取失败:', e)
+      reject(e)
+    }
   })
 }
 
