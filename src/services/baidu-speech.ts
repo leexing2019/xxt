@@ -160,9 +160,11 @@ export async function recognizeSpeechBaidu(audioBase64: string | { base64: strin
     }
 
     const text = result.result?.[0] || ''
-    console.log('百度语音识别结果:', text)
+    // 去除标点符号和末尾语气词
+    const cleanedText = text.replace(/[.,.!?!,.:;"'"'""''（）()【】\[\]]/g, '').trim()
+    console.log('百度语音识别结果:', cleanedText)
 
-    return { text }
+    return { text: cleanedText }
   } catch (error) {
     console.error('recognizeSpeechBaidu 错误:', error)
     throw error
