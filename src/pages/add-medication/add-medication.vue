@@ -56,9 +56,15 @@
       <!-- 功能按钮 -->
       <view class="action-buttons">
         <view class="action-row">
-          <button class="action-btn voice-btn" @click="startVoiceSelect">
+          <button
+            class="action-btn voice-btn"
+            :class="{ 'voice-btn-press': isVoicePressing }"
+            @touchstart="startVoicePress"
+            @touchend="endVoicePress"
+            @touchcancel="cancelVoicePress"
+          >
             <text class="action-icon">🎤</text>
-            <text class="action-text">语音说药名</text>
+            <text class="action-text">{{ isVoicePressing ? '松开结束' : '按住说药名' }}</text>
           </button>
         </view>
         <view class="action-row">
@@ -314,7 +320,7 @@ import type { NodeJS } from 'node'
 import { useMedicationStore } from '@/store/medication'
 import { useAuthStore } from '@/store/auth'
 import { recognizeMedication } from '@/services/medication'
-import { recognizeSpeech, speakText } from '@/services/voice'
+import { recognizeSpeech, getSpeechRecorder, speakText } from '@/services/voice'
 import {
   fetchCommonMedications,
   getDisplayMedications,
@@ -322,7 +328,8 @@ import {
   searchMedications as searchCommonMedications,
   toPinyinFirst,
   type CommonMedication as DbCommonMedication,
-  type DisplayMedication as CommonMedication
+  type DisplayMedication as CommonMedication,
+  addMedicationToCommon
 } from '@/services/common-medications'
 import StepIndicator from '@/components/StepIndicator.vue'
 
@@ -376,6 +383,7 @@ const showEmptyAction = ref(false)
 // 语音识别
 const voiceRecognized = ref(false)
 const voiceText = ref('')
+const isVoicePressing = ref(false) // 是否正在按住录音
 
 // 分类
 const activeCategory = ref('all')
@@ -419,7 +427,7 @@ const weekdays = [
 ]
 
 // 用量单位
-const dosageUnits = ['片', '粒', '胶囊', 'ml', 'g', 'mg', '滴', '勺']
+const dosageUnits = ['片', '颗', '粒', '胶囊', 'ml', 'g', 'mg', '滴', '勺']
 const dosageUnitIndex = ref(0)
 
 // 加载状态
@@ -532,15 +540,17 @@ function selectSuggestion(med: CommonMedication) {
   selectMedicationFromSearch(med)
 }
 
-// 添加新药
+// 添加新药（当公共库不存在时，用户确认后会添加到公共库）
 function addNewMedication() {
   if (!searchKeyword.value.trim()) return
+
+  const drugName = searchKeyword.value.trim()
 
   // 创建临时药品对象（仅包含名称）
   const tempMed: CommonMedication = {
     id: 'temp_' + Date.now(),
-    name: searchKeyword.value.trim(),
-    genericName: searchKeyword.value.trim(),
+    name: drugName,
+    genericName: drugName,
     category: '其他',
     indications: '请确认用途',
     appearanceDesc: '',
@@ -553,7 +563,7 @@ function addNewMedication() {
   searchSuggestions.value = []
 
   selectMedication(tempMed)
-  speakText(`已添加新药${tempMed.name}，请确认信息`)
+  speakText(`已选择${drugName}，请确认信息`)
 
   // 自动进入下一步
   setTimeout(() => {
@@ -622,24 +632,62 @@ async function handleSearch() {
   }
 }
 
-// 语音选择药品
-async function startVoiceSelect() {
+// 语音选择药品 - 按住说话模式
+const speechRecorder = getSpeechRecorder()
+
+async function startVoicePress() {
   if (voiceRecognized.value) return
 
-  speakText('请说出药品名称')
+  isVoicePressing.value = true
 
   try {
-    const result = await recognizeSpeech()
+    const startResult = await speechRecorder.start()
+    if (startResult.success) {
+      speakText('请说出药品名称')
+      uni.showToast({
+        title: '松开结束录音',
+        icon: 'none',
+        duration: 2000
+      })
+    } else {
+      console.error('开始录音失败:', startResult.error)
+      isVoicePressing.value = false
+      uni.showToast({ title: '录音失败', icon: 'none' })
+    }
+  } catch (error) {
+    console.error('开始录音异常:', error)
+    isVoicePressing.value = false
+  }
+}
+
+async function endVoicePress() {
+  if (!isVoicePressing.value) return
+
+  isVoicePressing.value = false
+
+  try {
+    const result = await speechRecorder.stop()
 
     if (result.success && result.text) {
       voiceText.value = result.text
       voiceRecognized.value = true
       speakText(`您说的是${result.text}，请确认`)
+      uni.showToast({ title: '识别成功', icon: 'success' })
     } else {
       speakText('没有识别到声音，请重试')
+      uni.showToast({ title: result.error || '未识别到声音', icon: 'none' })
     }
   } catch (error) {
+    console.error('语音识别异常:', error)
     uni.showToast({ title: '语音识别失败', icon: 'none' })
+  }
+}
+
+function cancelVoicePress() {
+  isVoicePressing.value = false
+  // 如果正在录音，停止录音
+  if (speechRecorder.isCurrentlyRecording()) {
+    speechRecorder.stop().catch(console.error)
   }
 }
 
@@ -656,7 +704,8 @@ function confirmVoiceSearch() {
 function retryVoice() {
   voiceText.value = ''
   voiceRecognized.value = false
-  startVoiceSelect()
+  // 重新开始录音流程
+  startVoicePress()
 }
 
 // 拍照识别
@@ -681,13 +730,17 @@ async function processImageRecognition(imagePath: string) {
 
   try {
     const result = await recognizeMedication(imagePath)
+    console.log('[OCR] 识别结果:', result)
 
     if (result.name) {
       // 尝试在常用药中匹配
       const matched = await searchCommonMedications(result.name)
+      console.log('[OCR] 匹配结果:', matched.length)
+
       if (matched.length > 0) {
-        selectMedication(matched[0])
+        selectMedication(matched[0], true) // 传入 true 自动跳转下一步
         speakText(`识别成功，${matched[0].name}`)
+        uni.showToast({ title: `识别成功：${matched[0].name}`, icon: 'success' })
       } else {
         // 未匹配到，创建临时药品
         const tempDrug: CommonMedication = {
@@ -700,11 +753,16 @@ async function processImageRecognition(imagePath: string) {
           image: imagePath,
           usage: result.dosage || '每次 1 片'
         }
-        selectMedication(tempDrug)
+        selectMedication(tempDrug, true) // 传入 true 自动跳转下一步
         speakText('识别成功，请确认药品信息')
+        uni.showToast({ title: `识别成功：${result.name}`, icon: 'success' })
       }
+    } else {
+      uni.showToast({ title: '未识别到药品名称', icon: 'none' })
+      speakText('未识别到药品名称，请重试')
     }
   } catch (error) {
+    console.error('[OCR] 识别异常:', error)
     uni.showToast({ title: '识别失败，请重试', icon: 'none' })
   } finally {
     loading.value = false
@@ -856,6 +914,37 @@ async function confirmAdd() {
       }
     } else {
       // 添加模式：新建药品和用药计划
+      const medicationName = selectedMedication.value.name
+      const isTempMedication = selectedMedication.value.id.startsWith('temp_')
+
+      // 如果是临时药品（通过语音/OCR 识别添加的新药），先添加到公共库
+      if (isTempMedication) {
+        // 先检查是否已存在于公共库（避免重复添加）
+        const existingMeds = await searchCommonMedications(medicationName)
+        if (existingMeds.length === 0) {
+          // 添加到公共库
+          const addResult = await addMedicationToCommon(
+            medicationName,
+            selectedMedication.value.genericName || medicationName,
+            '其他',
+            selectedMedication.value.form,
+            selectedMedication.value.appearanceDesc,
+            '', // manufacturer
+            '', // specification
+            schedule.dosage + dosageUnits[dosageUnitIndex.value]
+          )
+
+          if (addResult.success) {
+            console.log('[公共库] 添加新药成功:', medicationName)
+            speakText(`已将${medicationName}添加到公共药库`)
+          } else {
+            console.error('[公共库] 添加失败:', addResult.error)
+            // 添加失败不影响继续添加到个人库
+          }
+        }
+      }
+
+      // 添加到个人药品库
       const result = await medicationStore.addMedication({
         name: selectedMedication.value.name,
         generic_name: selectedMedication.value.genericName,
@@ -1237,6 +1326,13 @@ onUnmounted(() => {
   background: linear-gradient(135deg, var(--primary-light-bg) 0%, var(--primary-light-bg) 100%);
   color: var(--primary-color);
   border: 2rpx solid var(--primary-color);
+  transition: all 0.2s;
+}
+
+.voice-btn-press {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  color: white;
+  transform: scale(0.98);
 }
 
 .camera-btn {
