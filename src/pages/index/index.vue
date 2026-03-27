@@ -201,18 +201,16 @@ const todayMedications = computed(() => {
       const [scheduleHour, scheduleMinute] = schedule.time_of_day.split(':').map(Number)
       const scheduledMinutes = scheduleHour * 60 + scheduleMinute // 计划时间的分钟数
 
-      // 计算时间差（分钟）
+      // 计算时间差（分钟）- 修复跨天逻辑
       let timeDiff = currentMinutes - scheduledMinutes
 
-      // 处理跨天情况（如果当前时间在计划时间之前，说明是第二天的计划）
-      if (timeDiff < 0) {
-        timeDiff += 24 * 60 // 加上 24 小时的分钟数
-      }
+      // 处理跨天情况：
+      // - 如果 timeDiff > 0：当前时间在计划时间之后（今天已过的计划）
+      // - 如果 timeDiff < 0：当前时间在计划时间之前（今天的未来计划）
+      // 我们只关心今天（0-1440 分钟）范围内的计划
+      const isInWindow = true // 不再使用 24 小时窗口过滤，显示当天所有计划
 
-      // 24 小时窗口判定：只显示 24 小时内的计划
-      const isInWindow = timeDiff < 24 * 60
-
-      // 漏服判定：超过 4 小时（240 分钟）未服用
+      // 漏服判定：超过 4 小时（240 分钟）未服用，且是过去的计划（timeDiff > 0）
       const isMissed = !log && timeDiff > 240
 
       return {
@@ -220,15 +218,13 @@ const todayMedications = computed(() => {
         taken: !!log,
         taken_time: log?.taken_time,
         isMissed, // 是否已漏服
-        isInWindow, // 是否在 24 小时窗口内
-        timeDiff // 距离计划时间的分钟差
+        isInWindow, // 是否在窗口内（始终为 true）
+        timeDiff // 距离计划时间的分钟差（正数=已过，负数=未到）
       }
     })
     .filter(item => {
-      // 过滤条件：
-      // 1. 必须在 24 小时窗口内
-      // 2. 如果已漏服，也过滤掉（不再展示）
-      return item.isInWindow && !item.isMissed
+      // 过滤条件：只过滤漏服超过 4 小时的
+      return !item.isMissed
     })
 })
 
