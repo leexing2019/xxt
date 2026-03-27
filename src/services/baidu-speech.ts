@@ -108,6 +108,12 @@ export async function recognizeSpeechBaidu(audioBase64: string | { base64: strin
     const cuid = generateCuid()
     console.log('[语音] 使用 cuid:', cuid, '(长度:', cuid.length, ')')
 
+    // 打印 base64 音频前 100 字符（用于检查 WAV 头）
+    const base64Preview = typeof audioBase64 === 'string'
+      ? audioBase64.slice(0, 100)
+      : audioBase64.base64.slice(0, 100)
+    console.log('[语音] base64 前 100 字符:', base64Preview)
+
     // 使用 uni.request 调用百度 API
     // 参考官方示例：https://ai.baidu.com/ai-doc/SPEECH/4l9mh6qf9
     // 百度支持格式：pcm/wav/amr/m4a，推荐使用 pcm
@@ -393,6 +399,10 @@ export async function recordAndRecognize(): Promise<SpeechRecognitionResult> {
       const duration = res.duration || 0
       console.log('[语音] 录音时长:', duration, 'ms')
 
+      // 计算预期文件大小（16k 采样率 * 16bit * 单声道）
+      const expectedSize = Math.round((duration / 1000) * 16000 * 2)
+      console.log('[语音] 预期文件大小:', expectedSize, '字节')
+
       if (duration < 1000) {
         console.warn('[语音] 录音时间太短，可能无法识别')
         resolve({
@@ -453,7 +463,7 @@ export async function recordAndRecognize(): Promise<SpeechRecognitionResult> {
 /**
  * 使用 plus.io 读取音频文件（参考 OCR 代码）
  */
-async function readAudioFileWithPlusIO(filePath: string): Promise<Blob> {
+async function readAudioFileWithPlusIO(filePath: string): Promise<{ base64: string; size: number }> {
   if (typeof plus === 'undefined' || !plus.io) {
     throw new Error('plus.io 不可用')
   }
@@ -466,7 +476,7 @@ async function readAudioFileWithPlusIO(filePath: string): Promise<Blob> {
       console.log('[语音] plus.io 路径解析成功')
 
       entry.file((file: any) => {
-        console.log('[语音] file 对象获取成功，大小:', file.size)
+        console.log('[语音] file 对象获取成功，大小:', file.size, '字节')
 
         const reader = new plus.io.FileReader()
         reader.onloadend = () => {
@@ -484,12 +494,11 @@ async function readAudioFileWithPlusIO(filePath: string): Promise<Blob> {
             for (let i = 0; i < binary.length; i++) {
               bytes[i] = binary.charCodeAt(i)
             }
-            console.log('[语音] Uint8Array 创建完成，大小:', bytes.byteLength)
+            console.log('[语音] Uint8Array 创建完成，大小:', bytes.byteLength, '字节')
 
-            // 直接使用 base64 字符串，不需要创建 Blob
-            // 百度 API 需要 base64 格式
+            // 直接使用 base64 字符串发送给百度 API
             console.log('[语音] 直接使用 base64 数据')
-            resolve({ base64, size: bytes.byteLength } as any)
+            resolve({ base64, size: bytes.byteLength })
           } catch (e) {
             console.error('[语音] 数据处理失败:', e)
             reject(e)
@@ -525,7 +534,7 @@ async function readAudioFileWithPlusIO(filePath: string): Promise<Blob> {
             for (let i = 0; i < binary.length; i++) {
               bytes[i] = binary.charCodeAt(i)
             }
-            resolve(new Blob([bytes.buffer], { type: 'audio/wav' }))
+            resolve({ base64, size: bytes.byteLength })
           }
           reader.onerror = reject
           reader.readAsDataURL(file)
