@@ -91,7 +91,14 @@
         </view>
         <view class="med-actions">
           <button class="btn btn-detail" @click="goDetail(item)">📋 详情</button>
-          <button class="btn btn-take" @click="takeMedication(item)">✅ 服用</button>
+          <button
+            class="btn btn-take"
+            :class="{ 'btn-take-disabled': isBeforeScheduledTime(item) }"
+            :disabled="isBeforeScheduledTime(item)"
+            @click="takeMedication(item)"
+          >
+            {{ isBeforeScheduledTime(item) ? '⏳ 未到时间' : '✅ 服用' }}
+          </button>
         </view>
       </view>
     </view>
@@ -312,6 +319,22 @@ const formatTakenTime = (takenTime: string) => {
   const hours = date.getHours().toString().padStart(2, '0')
   const minutes = date.getMinutes().toString().padStart(2, '0')
   return `${hours}:${minutes}`
+}
+
+// 检查是否未到服用时间（提前超过 15 分钟）
+function isBeforeScheduledTime(item: any): boolean {
+  const now = new Date()
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+
+  // 解析计划时间 "HH:mm" 格式
+  const [hours, minutes] = item.time_of_day.split(':').map(Number)
+  const scheduledMinutes = hours * 60 + minutes
+
+  // 计算时间差（分钟）
+  const diffMinutes = nowMinutes - scheduledMinutes
+
+  // 提前超过 15 分钟，返回 true（禁用按钮）
+  return diffMinutes < -15
 }
 
 // 跳转详情页
@@ -855,6 +878,20 @@ onMounted(() => {
 .btn-take:active {
   transform: scale(0.98);
   box-shadow: 0 1px 4px rgba(16,185,129,0.3);
+}
+
+/* 禁用状态的服用按钮 */
+.btn-take-disabled {
+  background: #e5e7eb !important;
+  color: #9ca3af !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+.btn-take-disabled:active {
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 /* 已服用标记 */
