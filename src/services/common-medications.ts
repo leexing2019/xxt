@@ -428,3 +428,48 @@ export async function refreshCache(): Promise<CommonMedication[]> {
   lastFetchTime = 0
   return fetchCommonMedications()
 }
+
+/**
+ * 添加药品到公共库（仅管理员可用）
+ */
+export async function addMedicationToCommon(
+  name: string,
+  genericName: string,
+  category: string,
+  form?: string,
+  appearanceDesc?: string,
+  manufacturer?: string,
+  specification?: string,
+  dosageUnit?: string
+): Promise<{ success: boolean; id?: string; error?: string }> {
+  try {
+    const { data, error } = await supabase
+      .from('common_medications')
+      .insert([{
+        name,
+        generic_name: genericName || name,
+        category,
+        form,
+        appearance_desc: appearanceDesc,
+        manufacturer,
+        specification,
+        dosage_unit: dosageUnit,
+        is_active: true
+      }])
+      .select()
+      .single()
+
+    if (error) throw error
+
+    // 清除缓存
+    clearCache()
+
+    return { success: true, id: data.id }
+  } catch (error) {
+    console.error('添加药品到公共库失败:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '添加失败'
+    }
+  }
+}
