@@ -270,7 +270,10 @@ export function toPinyinFirst(text: string): string {
  * 优先使用数据库的 pinyin_initials 字段， fallback 到本地计算
  */
 export async function searchMedications(keyword: string): Promise<DisplayMedication[]> {
+  // 先确保数据已加载
   const allMeds = await getDisplayMedications()
+  console.log('[searchMedications] 总药品数量:', allMeds.length)
+
   const kw = keyword.toLowerCase().trim()
 
   if (!kw) return []
@@ -443,6 +446,7 @@ function getPlaceholderImage(name: string): string {
  * 清除缓存
  */
 export function clearCache() {
+  console.log('[CommonMedications] 清除缓存')
   cachedMedications = null
   lastFetchTime = 0
 }
@@ -451,6 +455,7 @@ export function clearCache() {
  * 刷新缓存（强制重新获取）
  */
 export async function refreshCache(): Promise<CommonMedication[]> {
+  console.log('[CommonMedications] 强制刷新缓存')
   cachedMedications = null
   lastFetchTime = 0
   return fetchCommonMedications()

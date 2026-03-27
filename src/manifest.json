@@ -1,6 +1,6 @@
 {
     "name" : "AI用药助手",
-    "appid" : "__UNI__0F4F880",
+    "appid" : "__UNI__85BF990",
     "description" : "专为老年人设计的智能用药管理APP",
     "versionName" : "1.0.0",
     "versionCode" : "100",
@@ -17,7 +17,9 @@
         },
         "modules" : {
             "Speech" : {},
-            "Push" : {}
+            "Push" : {},
+            "Camera" : {},
+            "Record" : {}
         },
         "distribute" : {
             "permissions" : [
@@ -38,14 +40,25 @@
             "minSdkVersion" : 21,
             "targetSdkVersion" : 33,
             "abiFilters" : [ "armeabi-v7a", "arm64-v8a" ],
-            "sdkConfigs" : {},
+            "sdkConfigs" : {
+                "speech" : {
+                    "baidu" : {
+                        "appid" : "7569618",
+                        "apikey" : "Gk5SOw79mm0ROObNgZKdqZfF",
+                        "secretkey" : "y5lVWNlF5V9m02xKMnv2KcYsZJfTsLzq"
+                    }
+                }
+            },
             "icons" : {
                 "android" : {
-                    "hdpi" : "static/icons/icon-72x72.png",
-                    "xhdpi" : "static/icons/icon-96x96.png",
-                    "xxhdpi" : "static/icons/icon-144x144.png",
-                    "xxxhdpi" : "static/icons/icon-192x192.png"
+                    "hdpi" : "src/static/icons/icon-72x72.png",
+                    "xhdpi" : "src/static/icons/icon-96x96.png",
+                    "xxhdpi" : "src/static/icons/icon-144x144.png",
+                    "xxxhdpi" : "src/static/icons/icon-192x192.png"
                 }
+            },
+            "ios" : {
+                "dSYMs" : false
             }
         }
     },

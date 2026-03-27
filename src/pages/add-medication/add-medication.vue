@@ -1055,9 +1055,11 @@ function resetState() {
 
 // 页面加载时语音提示并加载公共药品库
 onMounted(async () => {
-  // 加载公共药品库数据
+  // 加载公共药品库数据（强制刷新缓存）
   loadingDrugs.value = true
+  console.log('[add-medication] 开始加载公共药品库')
   commonMedications.value = await getDisplayMedications()
+  console.log('[add-medication] 公共药品库加载完成，数量:', commonMedications.value.length)
   loadingDrugs.value = false
 
   // 检查是否是编辑模式
