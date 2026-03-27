@@ -241,7 +241,7 @@ const takenMedications = computed(() => {
     .sort((a, b) => a.time_of_day.localeCompare(b.time_of_day))
 })
 
-// 获取服药状态标签
+// 获取服药状态标签（直接比较时间，不依赖 Date 对象避免时区问题）
 const getMedicationStatus = (item: any) => {
   if (!item.taken) {
     return { label: '待服用', class: 'pending', isLate: false }
@@ -251,9 +251,16 @@ const getMedicationStatus = (item: any) => {
     return { label: '已服用', class: 'taken', isLate: false }
   }
 
-  const scheduled = new Date(`1970-01-01T${item.time_of_day}`)
-  const taken = new Date(item.taken_time)
-  const diffMinutes = (taken.getTime() - scheduled.getTime()) / 60000
+  // 解析计划时间 "HH:mm" 格式
+  const [scheduleHours, scheduleMinutes] = item.time_of_day.split(':').map(Number)
+  const scheduledTotalMinutes = scheduleHours * 60 + scheduleMinutes
+
+  // 解析实际服用时间
+  const takenDate = new Date(item.taken_time)
+  const takenTotalMinutes = takenDate.getHours() * 60 + takenDate.getMinutes()
+
+  // 计算时间差（分钟）
+  const diffMinutes = takenTotalMinutes - scheduledTotalMinutes
 
   if (diffMinutes < -15) {
     return { label: '提前', class: 'early', isLate: false }
@@ -264,11 +271,17 @@ const getMedicationStatus = (item: any) => {
   }
 }
 
-// 获取待服用状态标签 class
+// 获取待服用状态标签 class（直接比较时间，不依赖 Date 对象避免时区问题）
 const getPendingStatusClass = (item: any) => {
   const now = new Date()
-  const scheduled = new Date(`1970-01-01T${item.time_of_day}`)
-  const diffMinutes = (now.getTime() - scheduled.getTime()) / 60000
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+
+  // 解析计划时间 "HH:mm" 格式
+  const [hours, minutes] = item.time_of_day.split(':').map(Number)
+  const scheduledMinutes = hours * 60 + minutes
+
+  // 计算时间差（分钟）
+  const diffMinutes = nowMinutes - scheduledMinutes
 
   if (diffMinutes < -15) return 'early'
   if (diffMinutes <= 15) return 'ontime'
@@ -278,8 +291,14 @@ const getPendingStatusClass = (item: any) => {
 // 获取待服用状态标签文字
 const getPendingStatusLabel = (item: any) => {
   const now = new Date()
-  const scheduled = new Date(`1970-01-01T${item.time_of_day}`)
-  const diffMinutes = (now.getTime() - scheduled.getTime()) / 60000
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+
+  // 解析计划时间 "HH:mm" 格式
+  const [hours, minutes] = item.time_of_day.split(':').map(Number)
+  const scheduledMinutes = hours * 60 + minutes
+
+  // 计算时间差（分钟）
+  const diffMinutes = nowMinutes - scheduledMinutes
 
   if (diffMinutes < -15) return '🕐 提前'
   if (diffMinutes <= 15) return '✅ 准点'
