@@ -148,6 +148,7 @@ const emergencyPhone = ref('')
 
 // 页面加载时读取紧急联系人数据
 onMounted(async () => {
+  console.log('[Settings] onMounted 被调用')
   // 确保 profile 已加载
   if (!authStore.profile) {
     await authStore.fetchProfile()
@@ -156,22 +157,26 @@ onMounted(async () => {
     emergencyContact.value = authStore.profile.emergency_contact || ''
     emergencyPhone.value = authStore.profile.emergency_phone || ''
   }
+
+  // 注册全局事件监听（只注册一次）
+  uni.$on('autoOpenEmergency', handleAutoOpenEmergency)
+  console.log('[Settings] 已注册 autoOpenEmergency 事件监听')
 })
+
+// 处理自动弹出紧急联系人
+function handleAutoOpenEmergency() {
+  console.log('[Settings] 收到自动弹出紧急联系人事件')
+  if (!emergencyContact.value && !emergencyPhone.value) {
+    // 稍微延迟以确保页面渲染完成
+    setTimeout(() => {
+      setEmergencyContact()
+    }, 300)
+  }
+}
 
 // 每次页面显示时检查是否有自动弹出事件（从紧急求助页面跳转而来）
 onShow(() => {
   console.log('[Settings] onShow 被调用')
-  // 检查是否有自动弹出参数（从紧急求助页面跳转而来）
-  // 通过 uni.$emit 传递参数
-  uni.$once('autoOpenEmergency', () => {
-    console.log('[Settings] 收到自动弹出紧急联系人事件')
-    if (!emergencyContact.value && !emergencyPhone.value) {
-      // 稍微延迟以确保页面渲染完成
-      setTimeout(() => {
-        setEmergencyContact()
-      }, 300)
-    }
-  })
 })
 
 // 提醒设置
