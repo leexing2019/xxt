@@ -6,9 +6,6 @@
         <text class="greeting-text">{{ greeting }}</text>
         <text class="date-text">{{ currentDate }}</text>
       </view>
-      <view class="voice-btn" @click="startVoiceInput">
-        <text class="voice-icon">🎤</text>
-      </view>
     </view>
 
     <!-- 进度卡片 -->
@@ -144,7 +141,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import { useMedicationStore } from '@/store/medication'
-import { speakText, recognizeSpeech } from '@/services/voice'
 import { showImmediateNotification, vibrate } from '@/services/reminder'
 import type { MedicationSchedule } from '@/store/medication'
 import MedicationIcon from '@/components/MedicationIcon.vue'
@@ -396,35 +392,6 @@ async function takeMedication(item: any) {
   })
 }
 
-// 语音输入
-async function startVoiceInput() {
-  uni.showToast({ title: '请说话...', icon: 'none', duration: 2000 })
-
-  const result = await recognizeSpeech()
-
-  if (result.success && result.text) {
-    handleVoiceCommand(result.text)
-  } else {
-    uni.showToast({ title: result.error || '语音识别失败', icon: 'none' })
-  }
-}
-
-// 处理语音命令
-function handleVoiceCommand(text: string) {
-  const lowerText = text.toLowerCase()
-
-  if (lowerText.includes('添加') || lowerText.includes('新药')) {
-    goAddMedication()
-  } else if (lowerText.includes('紧急') || lowerText.includes('帮助')) {
-    goEmergency()
-  } else if (lowerText.includes('提醒') || lowerText.includes('几点')) {
-    speakText(`今天共有${totalCount.value}次用药计划，已完成${takenCount.value}次`)
-  } else {
-    speakText(`您说的是：${text}`)
-    uni.showToast({ title: `识别：${text}`, icon: 'none' })
-  }
-}
-
 // 跳转紧急页面
 function goEmergency() {
   uni.navigateTo({ url: '/pages/emergency/emergency' })
@@ -531,26 +498,6 @@ onMounted(() => {
 .date-text {
   font-size: 14px;
   color: rgba(255, 255, 255, 0.85);
-}
-
-.voice-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-
-  &:active {
-    background: rgba(255, 255, 255, 0.3);
-    transform: scale(0.95);
-  }
-}
-
-.voice-icon {
-  font-size: 22px;
 }
 
 /* 进度卡片 - 新设计 */
