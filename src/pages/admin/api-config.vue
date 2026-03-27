@@ -9,77 +9,6 @@
       <text class="header-subtitle">管理百度 API 密钥和应用功能开关</text>
     </view>
 
-    <!-- 百度 OCR API 配置 -->
-    <view class="config-section">
-      <view class="section-header">
-        <text class="section-icon">📷</text>
-        <text class="section-title">百度 OCR 拍照识别 API</text>
-      </view>
-
-      <view class="form-card">
-        <!-- API Key -->
-        <view class="form-item">
-          <view class="form-label">
-            <text class="label-text">API Key</text>
-            <text class="label-tip">百度智能云 OCR API 密钥</text>
-          </view>
-          <view class="input-wrapper">
-            <input
-              v-model="ocrConfig.apiKey"
-              class="form-input"
-              placeholder="请输入 OCR API Key"
-              placeholder-class="input-placeholder"
-              :password="!showOcrApiKey"
-            />
-            <text
-              class="eye-icon"
-              @click="showOcrApiKey = !showOcrApiKey"
-            >
-              {{ showOcrApiKey ? '👁️' : '👁️‍🗨️' }}
-            </text>
-          </view>
-        </view>
-
-        <!-- Secret Key -->
-        <view class="form-item">
-          <view class="form-label">
-            <text class="label-text">Secret Key</text>
-            <text class="label-tip">百度智能云 OCR 安全密钥</text>
-          </view>
-          <view class="input-wrapper">
-            <input
-              v-model="ocrConfig.secretKey"
-              class="form-input"
-              placeholder="请输入 OCR Secret Key"
-              placeholder-class="input-placeholder"
-              :password="!showOcrSecretKey"
-            />
-            <text
-              class="eye-icon"
-              @click="showOcrSecretKey = !showOcrSecretKey"
-            >
-              {{ showOcrSecretKey ? '👁️' : '👁️‍🗨️' }}
-            </text>
-          </view>
-        </view>
-
-        <!-- 测试连接 -->
-        <view class="test-section">
-          <button
-            class="test-btn"
-            :disabled="testingOcr"
-            @click="testBaiduOcrConnection"
-          >
-            {{ testingOcr ? '测试中...' : '📡 测试 OCR API 连接' }}
-          </button>
-          <view v-if="ocrTestResult" :class="['test-result', ocrTestResult.success ? 'success' : 'error']">
-            <text class="test-icon">{{ ocrTestResult.success ? '✅' : '❌' }}</text>
-            <text class="test-text">{{ ocrTestResult.message }}</text>
-          </view>
-        </view>
-      </view>
-    </view>
-
     <!-- 百度语音识别 API 配置 -->
     <view class="config-section">
       <view class="section-header">
@@ -245,12 +174,6 @@ import { supabase } from '@/services/supabase'
 import { clearApiConfigCache } from '@/services/api-config'
 import { clearAppConfigCache } from '@/services/app-config'
 
-// 百度 OCR API 配置
-interface BaiduOcrConfig {
-  apiKey: string
-  secretKey: string
-}
-
 // 百度语音 API 配置
 interface BaiduSpeechConfig {
   appId: string
@@ -273,11 +196,6 @@ interface TestResult {
 }
 
 // 状态
-const ocrConfig = ref<BaiduOcrConfig>({
-  apiKey: '',
-  secretKey: ''
-})
-
 const baiduConfig = ref<BaiduSpeechConfig>({
   appId: '',
   apiKey: '',
@@ -292,33 +210,15 @@ const appConfig = ref<AppConfig>({
 })
 
 // UI 状态
-const showOcrApiKey = ref(false)
-const showOcrSecretKey = ref(false)
 const showApiKey = ref(false)
 const showSecretKey = ref(false)
-const testingOcr = ref(false)
 const testing = ref(false)
 const saving = ref(false)
-const ocrTestResult = ref<TestResult | null>(null)
 const testResult = ref<TestResult | null>(null)
 
 // 加载配置
 async function loadConfig() {
   try {
-    // 加载百度 OCR 配置
-    const { data: ocrData } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'baidu_ocr_config')
-      .single()
-
-    if (ocrData?.value) {
-      ocrConfig.value = {
-        apiKey: ocrData.value.apiKey || '',
-        secretKey: ocrData.value.secretKey || ''
-      }
-    }
-
     // 加载百度语音配置
     const { data: speechData } = await supabase
       .from('app_settings')
@@ -360,56 +260,9 @@ function onAppConfigChange(key: keyof AppConfig, event: any) {
   appConfig.value[key] = event.detail.value
 }
 
-// 测试百度 OCR API 连接
-async function testBaiduOcrConnection() {
-  const { apiKey, secretKey } = ocrConfig.value
-
-  // 验证必填项
-  if (!apiKey || !secretKey) {
-    ocrTestResult.value = {
-      success: false,
-      message: '请先填写 API Key 和 Secret Key'
-    }
-    return
-  }
-
-  testingOcr.value = true
-  ocrTestResult.value = null
-
-  try {
-    // 调用百度 OCR API 获取 access_token
-    const response = await new Promise<any>((resolve, reject) => {
-      uni.request({
-        url: `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${apiKey}&client_secret=${secretKey}`,
-        method: 'GET',
-        success: resolve,
-        fail: reject
-      })
-    })
-
-    if (!response.data?.access_token) {
-      throw new Error(response.data?.error_description || '获取访问令牌失败')
-    }
-
-    ocrTestResult.value = {
-      success: true,
-      message: '连接成功！API 密钥有效，Token 获取成功'
-    }
-    uni.showToast({ title: '测试成功', icon: 'success' })
-  } catch (error) {
-    ocrTestResult.value = {
-      success: false,
-      message: error instanceof Error ? error.message : '连接失败，请检查网络和配置'
-    }
-    uni.showToast({ title: '测试失败', icon: 'none' })
-  } finally {
-    testingOcr.value = false
-  }
-}
-
 // 测试百度语音 API 连接
 async function testBaiduSpeechConnection() {
-  const { appId, apiKey, secretKey } = baiduConfig.value
+  const { apiKey, secretKey } = baiduConfig.value
 
   // 验证必填项
   if (!apiKey || !secretKey) {
@@ -457,10 +310,6 @@ async function testBaiduSpeechConnection() {
 // 保存配置
 async function saveConfig() {
   // 验证必填项
-  if (!ocrConfig.value.apiKey || !ocrConfig.value.secretKey) {
-    uni.showToast({ title: '请填写完整的 OCR API 配置', icon: 'none' })
-    return
-  }
   if (!baiduConfig.value.apiKey || !baiduConfig.value.secretKey) {
     uni.showToast({ title: '请填写完整的语音 API 配置', icon: 'none' })
     return
@@ -469,22 +318,6 @@ async function saveConfig() {
   saving.value = true
 
   try {
-    // 保存百度 OCR 配置
-    const { error: ocrError } = await supabase
-      .from('app_settings')
-      .upsert({
-        key: 'baidu_ocr_config',
-        value: {
-          apiKey: ocrConfig.value.apiKey,
-          secretKey: ocrConfig.value.secretKey
-        },
-        description: '百度 OCR API 配置'
-      }, {
-        onConflict: 'key'
-      })
-
-    if (ocrError) throw ocrError
-
     // 保存百度语音配置
     const { error: speechError } = await supabase
       .from('app_settings')

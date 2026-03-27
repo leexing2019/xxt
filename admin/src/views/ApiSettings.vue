@@ -10,19 +10,25 @@ import {
 import { Setting, Camera, Mic, ArrowDown, ArrowRight, Connection, Check, Refresh, CircleCheck } from '@element-plus/icons-vue'
 
 // 展开的配置区块
-const activeSection = ref<string | null>('baidu')
+const activeSection = ref<string | null>('baidu-ocr')
 
 // 加载状态
 const loading = ref(false)
 
-// 表单数据 - 百度 OCR 和语音共用一套密钥
+// 表单数据 - 百度 OCR 和语音分开配置
 const formData = reactive({
-  baiduApiKey: '',
-  baiduSecretKey: ''
+  // 百度 OCR
+  baiduOcrApiKey: '',
+  baiduOcrSecretKey: '',
+  // 百度语音
+  baiduSpeechAppId: '',
+  baiduSpeechApiKey: '',
+  baiduSpeechSecretKey: ''
 })
 
 // 配置状态
-const baiduConfigured = computed(() => !!formData.baiduApiKey && !!formData.baiduSecretKey)
+const ocrConfigured = computed(() => !!formData.baiduOcrApiKey && !!formData.baiduOcrSecretKey)
+const speechConfigured = computed(() => !!formData.baiduSpeechApiKey && !!formData.baiduSpeechSecretKey)
 
 // 加载配置
 async function loadConfig() {
@@ -30,9 +36,11 @@ async function loadConfig() {
   try {
     const config = await getApiConfigFromBackend()
     if (config) {
-      // 百度 OCR 和语音共用一套密钥，优先使用 OCR 的密钥
-      formData.baiduApiKey = config.baiduOcrApiKey || config.baiduSpeechApiKey || ''
-      formData.baiduSecretKey = config.baiduOcrSecretKey || config.baiduSpeechSecretKey || ''
+      formData.baiduOcrApiKey = config.baiduOcrApiKey || ''
+      formData.baiduOcrSecretKey = config.baiduOcrSecretKey || ''
+      formData.baiduSpeechAppId = config.baiduSpeechAppId || ''
+      formData.baiduSpeechApiKey = config.baiduSpeechApiKey || ''
+      formData.baiduSpeechSecretKey = config.baiduSpeechSecretKey || ''
     }
   } catch (error) {
     console.error('加载配置失败:', error)
@@ -46,14 +54,29 @@ function toggleSection(section: string) {
   activeSection.value = activeSection.value === section ? null : section
 }
 
-// 测试百度 API 连接
-async function testBaiduApi() {
-  if (!formData.baiduApiKey || !formData.baiduSecretKey) {
-    ElMessage.warning('请先填写 API Key 和 Secret Key')
+// 测试百度 OCR API 连接
+async function testBaiduOcrApi() {
+  if (!formData.baiduOcrApiKey || !formData.baiduOcrSecretKey) {
+    ElMessage.warning('请先填写 OCR API Key 和 Secret Key')
     return
   }
 
-  const result = await testBaiduApiConnection(formData.baiduApiKey, formData.baiduSecretKey)
+  const result = await testBaiduApiConnection(formData.baiduOcrApiKey, formData.baiduOcrSecretKey)
+  if (result.success) {
+    ElMessage.success(result.message)
+  } else {
+    ElMessage.error(result.message)
+  }
+}
+
+// 测试百度语音 API 连接
+async function testBaiduSpeechApi() {
+  if (!formData.baiduSpeechApiKey || !formData.baiduSpeechSecretKey) {
+    ElMessage.warning('请先填写语音 API Key 和 Secret Key')
+    return
+  }
+
+  const result = await testBaiduApiConnection(formData.baiduSpeechApiKey, formData.baiduSpeechSecretKey)
   if (result.success) {
     ElMessage.success(result.message)
   } else {
@@ -65,8 +88,10 @@ async function testBaiduApi() {
 async function saveConfig() {
   const missing: string[] = []
 
-  if (!formData.baiduApiKey) missing.push('百度 API Key')
-  if (!formData.baiduSecretKey) missing.push('百度 Secret Key')
+  if (!formData.baiduOcrApiKey) missing.push('百度 OCR API Key')
+  if (!formData.baiduOcrSecretKey) missing.push('百度 OCR Secret Key')
+  if (!formData.baiduSpeechApiKey) missing.push('百度语音 API Key')
+  if (!formData.baiduSpeechSecretKey) missing.push('百度语音 Secret Key')
 
   if (missing.length > 0) {
     try {
@@ -86,13 +111,12 @@ async function saveConfig() {
 
   loading.value = true
   try {
-    // 保存配置到数据库 - OCR 和语音共用同一套密钥
     const configToSave: ApiConfig = {
-      baiduOcrApiKey: formData.baiduApiKey,
-      baiduOcrSecretKey: formData.baiduSecretKey,
-      baiduSpeechAppId: '',  // 不需要，使用统一的 API Key
-      baiduSpeechApiKey: formData.baiduApiKey,  // 共用
-      baiduSpeechSecretKey: formData.baiduSecretKey,  // 共用
+      baiduOcrApiKey: formData.baiduOcrApiKey,
+      baiduOcrSecretKey: formData.baiduOcrSecretKey,
+      baiduSpeechAppId: formData.baiduSpeechAppId,
+      baiduSpeechApiKey: formData.baiduSpeechApiKey,
+      baiduSpeechSecretKey: formData.baiduSpeechSecretKey,
       drugApiBaseUrl: '',
       drugApiKey: ''
     }
@@ -118,26 +142,18 @@ function resetConfig() {
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
-    formData.baiduApiKey = ''
-    formData.baiduSecretKey = ''
+    formData.baiduOcrApiKey = ''
+    formData.baiduOcrSecretKey = ''
+    formData.baiduSpeechAppId = ''
+    formData.baiduSpeechApiKey = ''
+    formData.baiduSpeechSecretKey = ''
     ElMessage.success('已重置')
   }).catch(() => {})
 }
 
 // 获取引导信息
-const baiduGuide = computed(() => ({
-  name: '百度 AI 开放平台',
-  description: '用于 OCR 识别和语音服务',
-  steps: [
-    '访问百度智能云官网：https://cloud.baidu.com/',
-    '注册/登录百度账号',
-    '进入控制台 -> 人工智能 -> 文字识别 OCR（或语音技术）',
-    '创建应用，获取 API Key 和 Secret Key',
-    '开通相关服务（OCR 和语音服务均有免费额度）'
-  ],
-  freeQuota: 'OCR 每月 500 次 + 语音每月 10 万字符免费调用',
-  docUrl: 'https://cloud.baidu.com/doc/index.html'
-}))
+const ocrGuide = computed(() => API_GUIDES.baiduOcr)
+const speechGuide = computed(() => API_GUIDES.baiduSpeech)
 
 // 打开文档链接
 function openDoc(url: string) {
@@ -166,48 +182,48 @@ onMounted(() => {
     <!-- API 状态概览 -->
     <el-row :gutter="16" class="status-cards">
       <el-col :span="12">
-        <el-card shadow="hover" :class="['status-card', baiduConfigured ? 'status-ok' : 'status-empty']">
+        <el-card shadow="hover" :class="['status-card', ocrConfigured ? 'status-ok' : 'status-empty']">
           <div class="status-content">
             <div class="status-icon-wrapper">
               <el-icon class="status-icon"><Camera /></el-icon>
             </div>
             <div class="status-info">
               <span class="status-label">OCR 识别</span>
-              <span class="status-value">{{ baiduConfigured ? '已配置' : '未配置' }}</span>
+              <span class="status-value">{{ ocrConfigured ? '已配置' : '未配置' }}</span>
             </div>
           </div>
         </el-card>
       </el-col>
 
       <el-col :span="12">
-        <el-card shadow="hover" :class="['status-card', baiduConfigured ? 'status-ok' : 'status-empty']">
+        <el-card shadow="hover" :class="['status-card', speechConfigured ? 'status-ok' : 'status-empty']">
           <div class="status-content">
             <div class="status-icon-wrapper">
               <el-icon class="status-icon"><Mic /></el-icon>
             </div>
             <div class="status-info">
               <span class="status-label">语音服务</span>
-              <span class="status-value">{{ baiduConfigured ? '已配置' : '未配置' }}</span>
+              <span class="status-value">{{ speechConfigured ? '已配置' : '未配置' }}</span>
             </div>
           </div>
         </el-card>
       </el-col>
     </el-row>
 
-    <!-- 百度 API 配置 -->
+    <!-- 百度 OCR API 配置 -->
     <el-card class="config-section">
       <template #header>
-        <div class="section-header" @click="toggleSection('baidu')">
+        <div class="section-header" @click="toggleSection('baidu-ocr')">
           <div class="section-title">
             <el-icon class="section-icon"><Camera /></el-icon>
-            <span>百度 API 配置</span>
+            <span>百度 OCR API 配置</span>
           </div>
           <div class="section-status">
-            <el-tag :type="baiduConfigured ? 'success' : 'info'" size="small">
-              {{ baiduConfigured ? '✓ 已配置' : '○ 未配置' }}
+            <el-tag :type="ocrConfigured ? 'success' : 'info'" size="small">
+              {{ ocrConfigured ? '✓ 已配置' : '○ 未配置' }}
             </el-tag>
             <el-icon class="expand-icon">
-              <ArrowDown v-if="activeSection === 'baidu'" />
+              <ArrowDown v-if="activeSection === 'baidu-ocr'" />
               <ArrowRight v-else />
             </el-icon>
           </div>
@@ -215,7 +231,7 @@ onMounted(() => {
       </template>
 
       <el-collapse-transition>
-        <div v-if="activeSection === 'baidu'" class="section-content">
+        <div v-if="activeSection === 'baidu-ocr'" class="section-content">
           <el-alert type="info" :closable="false" class="guide-box">
             <template #title>
               <div class="guide-title">
@@ -223,28 +239,16 @@ onMounted(() => {
               </div>
             </template>
             <div class="guide-steps">
-              <div v-for="(step, index) in baiduGuide.steps" :key="index" class="guide-step">
+              <div v-for="(step, index) in ocrGuide.steps" :key="index" class="guide-step">
                 <span class="step-num">{{ index + 1 }}</span>
                 <span class="step-text">{{ step }}</span>
               </div>
             </div>
             <div class="guide-quota">
               <el-icon><CircleCheck /></el-icon>
-              免费额度：{{ baiduGuide.freeQuota }}
+              免费额度：{{ ocrGuide.freeQuota }}
             </div>
-            <el-button type="primary" link @click="openDoc(baiduGuide.docUrl)">查看官方文档 →</el-button>
-          </el-alert>
-
-          <el-alert type="warning" :closable="false" class="merge-tip">
-            <template #title>
-              <div class="tip-title">
-                <el-icon><CircleCheck /></el-icon>
-                OCR 和语音服务共用一套密钥
-              </div>
-            </template>
-            <p>
-              百度 OCR 和百度语音使用相同的 API Key 和 Secret Key，只需配置一次即可同时启用两项服务。
-            </p>
+            <el-button type="primary" link @click="openDoc(ocrGuide.docUrl)">查看官方文档 →</el-button>
           </el-alert>
 
           <el-form label-position="top" class="config-form">
@@ -252,9 +256,9 @@ onMounted(() => {
               <el-col :span="12">
                 <el-form-item label="API Key">
                   <el-input
-                    v-model="formData.baiduApiKey"
+                    v-model="formData.baiduOcrApiKey"
                     type="password"
-                    placeholder="请输入百度 API Key"
+                    placeholder="请输入百度 OCR API Key"
                     show-password
                     size="large"
                   />
@@ -263,9 +267,9 @@ onMounted(() => {
               <el-col :span="12">
                 <el-form-item label="Secret Key">
                   <el-input
-                    v-model="formData.baiduSecretKey"
+                    v-model="formData.baiduOcrSecretKey"
                     type="password"
-                    placeholder="请输入百度 Secret Key"
+                    placeholder="请输入百度 OCR Secret Key"
                     show-password
                     size="large"
                   />
@@ -273,7 +277,94 @@ onMounted(() => {
               </el-col>
             </el-row>
 
-            <el-button type="primary" @click="testBaiduApi" size="default">
+            <el-button type="primary" @click="testBaiduOcrApi" size="default">
+              <el-icon><Connection /></el-icon>
+              测试连接
+            </el-button>
+          </el-form>
+        </div>
+      </el-collapse-transition>
+    </el-card>
+
+    <!-- 百度语音 API 配置 -->
+    <el-card class="config-section">
+      <template #header>
+        <div class="section-header" @click="toggleSection('baidu-speech')">
+          <div class="section-title">
+            <el-icon class="section-icon"><Mic /></el-icon>
+            <span>百度语音 API 配置</span>
+          </div>
+          <div class="section-status">
+            <el-tag :type="speechConfigured ? 'success' : 'info'" size="small">
+              {{ speechConfigured ? '✓ 已配置' : '○ 未配置' }}
+            </el-tag>
+            <el-icon class="expand-icon">
+              <ArrowDown v-if="activeSection === 'baidu-speech'" />
+              <ArrowRight v-else />
+            </el-icon>
+          </div>
+        </div>
+      </template>
+
+      <el-collapse-transition>
+        <div v-if="activeSection === 'baidu-speech'" class="section-content">
+          <el-alert type="info" :closable="false" class="guide-box">
+            <template #title>
+              <div class="guide-title">
+                <span>💡</span> 如何申请
+              </div>
+            </template>
+            <div class="guide-steps">
+              <div v-for="(step, index) in speechGuide.steps" :key="index" class="guide-step">
+                <span class="step-num">{{ index + 1 }}</span>
+                <span class="step-text">{{ step }}</span>
+              </div>
+            </div>
+            <div class="guide-quota">
+              <el-icon><CircleCheck /></el-icon>
+              免费额度：{{ speechGuide.freeQuota }}
+            </div>
+            <el-button type="primary" link @click="openDoc(speechGuide.docUrl)">查看官方文档 →</el-button>
+          </el-alert>
+
+          <el-form label-position="top" class="config-form">
+            <el-row :gutter="16">
+              <el-col :span="24">
+                <el-form-item label="App ID">
+                  <el-input
+                    v-model="formData.baiduSpeechAppId"
+                    placeholder="请输入百度语音 App ID"
+                    size="large"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row :gutter="16">
+              <el-col :span="12">
+                <el-form-item label="API Key">
+                  <el-input
+                    v-model="formData.baiduSpeechApiKey"
+                    type="password"
+                    placeholder="请输入百度语音 API Key"
+                    show-password
+                    size="large"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="Secret Key">
+                  <el-input
+                    v-model="formData.baiduSpeechSecretKey"
+                    type="password"
+                    placeholder="请输入百度语音 Secret Key"
+                    show-password
+                    size="large"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <el-button type="primary" @click="testBaiduSpeechApi" size="default">
               <el-icon><Connection /></el-icon>
               测试连接
             </el-button>
@@ -304,7 +395,7 @@ onMounted(() => {
       <div class="tips-content">
         <p><el-icon><Check /></el-icon> API 密钥将加密存储在数据库中，仅用于前端服务调用</p>
         <p><el-icon><Check /></el-icon> 百度 OCR 和语音服务每月有免费额度，个人使用足够</p>
-        <p><el-icon><Check /></el-icon> 如不配置 API，前端将使用模拟数据或降级方案</p>
+        <p><el-icon><Check /></el-icon> OCR 和语音配置相互独立，可分别管理</p>
       </div>
     </el-alert>
   </div>
