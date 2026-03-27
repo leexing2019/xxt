@@ -66,7 +66,7 @@ export async function fetchCommonMedications(): Promise<CommonMedication[]> {
 
   try {
     // 使用 fetch 替代 supabase client，兼容性更好
-    const url = `${SUPABASE_URL}/rest/v1/common_medications?is_active=eq.true&order=category.asc,order=name.asc`
+    const url = `${SUPABASE_URL}/rest/v1/common_medications?select=*&is_active=eq.true&order=category.asc,name.asc`
 
     const response = await new Promise<any>((resolve, reject) => {
       uni.request({
@@ -75,7 +75,8 @@ export async function fetchCommonMedications(): Promise<CommonMedication[]> {
         header: {
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
         },
         timeout: 10000,
         success: resolve,
@@ -88,6 +89,7 @@ export async function fetchCommonMedications(): Promise<CommonMedication[]> {
       lastFetchTime = now
       return cachedMedications
     } else {
+      console.error('[CommonMedications] 请求失败，状态码:', response.statusCode, '数据:', response.data)
       throw new Error(`HTTP ${response.statusCode}`)
     }
   } catch (error: any) {
