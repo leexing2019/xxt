@@ -10,13 +10,52 @@ interface OCRResult {
   form?: string
 }
 
-// 百度 OCR API 配置
-const BAIDU_OCR_API_KEY = '你的 API Key'
-const BAIDU_OCR_SECRET_KEY = '你的 Secret Key'
+// 百度 OCR API 配置 - 从 Supabase 获取
+let cachedOcrConfig: { apiKey: string; secretKey: string } | null = null
+
+// 从 Supabase 获取 OCR 配置
+async function fetchOcrConfig(): Promise<{ apiKey: string; secretKey: string } | null> {
+  if (cachedOcrConfig) {
+    return cachedOcrConfig
+  }
+
+  try {
+    const response = await new Promise<any>((resolve, reject) => {
+      uni.request({
+        url: 'https://vqtrfkigzqtcthrivbzn.supabase.co/rest/v1/app_settings?key=eq.baidu_ocr_config',
+        method: 'GET',
+        header: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxdHJma2lnenF0Y3Rocml2YnpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4OTUxOTUsImV4cCI6MjA4OTQ3MTE5NX0.YznHv4aNl7WpH4s8cjoYRR0_IH1guoBbLl6zRrdsb3s',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxdHJma2lnenF0Y3Rocml2YnpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4OTUxOTUsImV4cCI6MjA4OTQ3MTE5NX0.YznHv4aNl7WpH4s8cjoYRR0_IH1guoBbLl6zRrdsb3s'
+        },
+        success: resolve,
+        fail: reject
+      })
+    })
+
+    if (response.statusCode === 200 && response.data && response.data.length > 0) {
+      const config = response.data[0].value
+      cachedOcrConfig = {
+        apiKey: config.apiKey || config.api_key || '',
+        secretKey: config.secretKey || config.secret_key || ''
+      }
+      console.log('[OCR] 从 Supabase 加载配置成功')
+      return cachedOcrConfig
+    } else {
+      console.log('[OCR] Supabase 中无配置')
+      return null
+    }
+  } catch (error) {
+    console.error('[OCR] 获取配置失败:', error)
+    return null
+  }
+}
 
 // 获取 OCR Token
 async function getOcrToken(): Promise<string | null> {
-  if (!BAIDU_OCR_API_KEY || !BAIDU_OCR_SECRET_KEY) {
+  const config = await fetchOcrConfig()
+
+  if (!config || !config.apiKey || !config.secretKey) {
     console.log('[OCR] 未配置 API Key 或 Secret Key')
     return null
   }
@@ -28,7 +67,7 @@ async function getOcrToken(): Promise<string | null> {
         url: 'https://aip.baidubce.com/oauth/2.0/token',
         method: 'POST',
         header: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        data: `grant_type=client_credentials&client_id=${BAIDU_OCR_API_KEY}&client_secret=${BAIDU_OCR_SECRET_KEY}`,
+        data: `grant_type=client_credentials&client_id=${config.apiKey}&client_secret=${config.secretKey}`,
         success: resolve,
         fail: reject
       })
