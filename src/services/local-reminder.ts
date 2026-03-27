@@ -18,24 +18,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
 
     if (plusObj.push) {
       console.log('[Permission] plus.push.createMessage:', typeof plusObj.push.createMessage)
-
-      // 测试推送是否可用
-      try {
-        plusObj.push.createMessage(
-          '测试消息',
-          '权限请求',
-          {
-            cover: true,
-            sound: 'system'
-          },
-          () => console.log('[Permission] 测试推送成功'),
-          (error: any) => console.error('[Permission] 测试推送失败:', error)
-        )
-        console.log('[Permission] 测试推送已发送')
-        return true
-      } catch (e) {
-        console.error('[Permission] createMessage 异常:', e)
-      }
+      return true
     }
   } catch (error) {
     console.error('[Permission] 请求通知权限失败:', error)
