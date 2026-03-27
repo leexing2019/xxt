@@ -175,6 +175,8 @@ function parseOCRText(text: string): OCRResult {
     const trimmedLine = line.trim()
     if (!trimmedLine) continue
 
+    console.log('[OCR] 处理行:', JSON.stringify(trimmedLine))
+
     // 尝试匹配药品名称（通常是最长的文本，包含剂型）
     if (trimmedLine.length > 5 && /片 | 胶囊 | 口服液|颗粒|注射液 | 丸|散|膏|酊/.test(trimmedLine)) {
       result.name = trimmedLine
@@ -187,6 +189,8 @@ function parseOCRText(text: string): OCRResult {
         // 处理冒号分隔的多个药品，如":门冬氨酸钾 79mg:无水门冬氨酸镁 70mg:"
         const parts = trimmedLine.split(':').filter(p => p.trim())
         for (const part of parts) {
+          // 排除日期格式（如 2025/11/03）
+          if (/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(part)) continue
           // 提取数字前的中文作为药品名称（去掉^因为可能有前导冒号）
           const match = part.match(/([a-zA-Z\u4e00-\u9fa5]+)\s*\d+/)
           if (match && match[1].length > 2) {
