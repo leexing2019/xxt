@@ -16,9 +16,11 @@ let cachedOcrConfig: { apiKey: string; secretKey: string } | null = null
 // 从 Supabase 获取 OCR 配置
 async function fetchOcrConfig(): Promise<{ apiKey: string; secretKey: string } | null> {
   if (cachedOcrConfig) {
+    console.log('[OCR] 使用缓存配置')
     return cachedOcrConfig
   }
 
+  console.log('[OCR] 开始从 Supabase 获取配置...')
   try {
     const response = await new Promise<any>((resolve, reject) => {
       uni.request({
@@ -33,13 +35,15 @@ async function fetchOcrConfig(): Promise<{ apiKey: string; secretKey: string } |
       })
     })
 
+    console.log('[OCR] Supabase 响应状态:', response.statusCode, '数据:', JSON.stringify(response.data))
+
     if (response.statusCode === 200 && response.data && response.data.length > 0) {
       const config = response.data[0].value
       cachedOcrConfig = {
         apiKey: config.apiKey || config.api_key || '',
         secretKey: config.secretKey || config.secret_key || ''
       }
-      console.log('[OCR] 从 Supabase 加载配置成功')
+      console.log('[OCR] 从 Supabase 加载配置成功，apiKey:', cachedOcrConfig.apiKey.substring(0, 8) + '...')
       return cachedOcrConfig
     } else {
       console.log('[OCR] Supabase 中无配置')
