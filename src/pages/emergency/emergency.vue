@@ -130,6 +130,7 @@ const emergencyScenarios = emergencyDatabase.slice(0, 4)
 // 从 store 读取真实的紧急联系人数据
 const emergencyContact = computed(() => {
   const profile = authStore.profile
+  console.log('[Emergency] emergencyContact computed, profile:', profile)
   if (profile?.emergency_contact && profile?.emergency_phone) {
     return {
       name: profile.emergency_contact,
@@ -140,10 +141,24 @@ const emergencyContact = computed(() => {
 })
 
 // 页面加载时读取用户数据
-onMounted(() => {
+onMounted(async () => {
+  console.log('[Emergency] 页面加载，当前 profile:', authStore.profile)
+  console.log('[Emergency] 当前 isLoggedIn:', authStore.isLoggedIn, 'userId:', authStore.userId)
   // 确保用户数据已加载
-  if (!authStore.profile) {
-    authStore.fetchProfile()
+  if (!authStore.profile && authStore.isLoggedIn) {
+    console.log('[Emergency] profile 为空，开始加载')
+    await authStore.fetchProfile()
+    console.log('[Emergency] profile 加载完成:', authStore.profile)
+  } else if (!authStore.isLoggedIn) {
+    console.log('[Emergency] 用户未登录，提示登录')
+    uni.showModal({
+      title: '提示',
+      content: '请先登录',
+      showCancel: false,
+      success: () => {
+        uni.switchTab({ url: '/pages/index/index' })
+      }
+    })
   }
 })
 
@@ -211,7 +226,31 @@ async function sendLocation() {
 
 // 设置紧急联系人 - 跳转到设置页面
 function goToSettings() {
-  uni.navigateTo({ url: '/pages/settings/settings' })
+  console.log('[Emergency] goToSettings 被调用')
+  // 先发送事件，通知设置页面自动弹出紧急联系人设置
+  uni.$emit('autoOpenEmergency')
+  // settings 是 tabBar 页面，必须使用 switchTab
+  uni.switchTab({
+    url: '/pages/settings/settings',
+    fail: (err) => {
+      console.error('[Emergency] switchTab 失败:', err)
+      // 降级方案：先返回再跳转
+      uni.navigateBack({
+        fail: () => {
+          uni.reLaunch({
+            url: '/pages/settings/settings',
+            fail: (err2) => {
+              console.error('[Emergency] reLaunch 失败:', err2)
+              uni.showToast({
+                title: '请手动前往设置页面',
+                icon: 'none'
+              })
+            }
+          })
+        }
+      })
+    }
+  })
 }
 
 // 显示场景详情
@@ -468,6 +507,8 @@ function closeDetail() {
   border: 3rpx dashed var(--border-color);
   transition: all 0.2s ease;
   cursor: pointer;
+  position: relative;
+  z-index: 1;
 
   &:active {
     transform: scale(0.98);

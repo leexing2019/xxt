@@ -135,7 +135,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onShow } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import { speakText } from '@/services/voice'
 
@@ -155,6 +155,18 @@ onMounted(async () => {
     emergencyContact.value = authStore.profile.emergency_contact || ''
     emergencyPhone.value = authStore.profile.emergency_phone || ''
   }
+
+  // 检查是否有自动弹出参数（从紧急求助页面跳转而来）
+  // 通过 uni.$emit 传递参数
+  uni.$once('autoOpenEmergency', () => {
+    console.log('[Settings] 收到自动弹出紧急联系人事件')
+    if (!emergencyContact.value && !emergencyPhone.value) {
+      // 稍微延迟以确保页面渲染完成
+      setTimeout(() => {
+        setEmergencyContact()
+      }, 300)
+    }
+  })
 })
 
 // 提醒设置
