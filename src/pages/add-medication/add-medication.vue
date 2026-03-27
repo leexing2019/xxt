@@ -581,6 +581,7 @@ function selectCategory(categoryId: string) {
 
 // 选择药品
 function selectMedication(drug: CommonMedication, skipNext = false) {
+  console.log('[selectMedication] 选择药品:', drug.name, 'skipNext:', skipNext)
   selectedMedication.value = drug
   // 自动填充默认用药说明（使用 generic_name 或 name）
   const defaultUsage = drug.generic_name ? `每次 1 片，每日 1 次` : `每次 1 片，每日 1 次`
@@ -589,11 +590,14 @@ function selectMedication(drug: CommonMedication, skipNext = false) {
 
   // 如果是在步骤 1 选择，提示可以进入下一步
   if (currentStep.value === 1 && skipNext) {
+    console.log('[selectMedication] 准备自动跳转，当前 step:', currentStep.value)
     // 搜索结果点击时，立即进入下一步
     setTimeout(() => {
+      console.log('[selectMedication] setTimeout 执行，selectedMedication:', selectedMedication.value?.name)
       currentStep.value++
+      console.log('[selectMedication] 已跳转到 step:', currentStep.value)
       speakText('第 2 步，设置服药时间')
-    }, 100)
+    }, 300)
   }
 }
 
@@ -748,6 +752,7 @@ async function processImageRecognition(imagePath: string) {
       console.log('[OCR] 匹配结果:', matched.length, matched)
 
       if (matched.length > 0) {
+        console.log('[OCR] 准备选择匹配药品:', matched[0].name)
         selectMedication(matched[0], true) // 传入 true 自动跳转下一步
         speakText(`识别成功，${matched[0].name}`)
         uni.showToast({ title: `识别成功：${matched[0].name}`, icon: 'success' })
