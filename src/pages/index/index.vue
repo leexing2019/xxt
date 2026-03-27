@@ -447,7 +447,7 @@ function handlePullDownRefresh() {
 onPullDownRefresh(handlePullDownRefresh)
 
 // 检测用户切换 - uni-app onShow 生命周期
-function onShowHandler() {
+async function onShowHandler() {
   // 等待认证初始化
   if (!authStore.initialized) {
     let waitCount = 0
