@@ -343,6 +343,7 @@ const schedules = computed(() => medicationStore.schedules)
 
 // 步骤条
 const currentStep = ref(1)
+const isStepTransitioning = ref(false) // 防止步骤切换期间重复点击
 
 // 编辑模式
 const isEditMode = ref(false)
@@ -592,11 +593,16 @@ function selectMedication(drug: CommonMedication, skipNext = false) {
   if (currentStep.value === 1 && skipNext) {
     console.log('[selectMedication] 准备自动跳转，当前 step:', currentStep.value)
     // 搜索结果点击时，立即进入下一步
+    isStepTransitioning.value = true
     setTimeout(() => {
       console.log('[selectMedication] setTimeout 执行，selectedMedication:', selectedMedication.value?.name)
       currentStep.value++
       console.log('[selectMedication] 已跳转到 step:', currentStep.value)
       speakText('第 2 步，设置服药时间')
+      // 等待视图层更新完成
+      setTimeout(() => {
+        isStepTransitioning.value = false
+      }, 100)
     }, 300)
   }
 }
@@ -851,15 +857,26 @@ function prevStep() {
 
 // 下一步
 function nextStep() {
-  console.log('[nextStep] 当前 step:', currentStep.value, 'selectedMedication:', selectedMedication.value?.name)
+  console.log('[nextStep] 当前 step:', currentStep.value, 'selectedMedication:', selectedMedication.value?.name, 'isTransitioning:', isStepTransitioning.value)
+
+  // 防止步骤切换期间重复点击
+  if (isStepTransitioning.value) {
+    console.log('[nextStep] 正在切换中，忽略点击')
+    return
+  }
+
   if (currentStep.value === 1) {
     if (!selectedMedication.value) {
       uni.showToast({ title: '请先选择药品', icon: 'none' })
       speakText('请先选择药品')
       return
     }
+    isStepTransitioning.value = true
     currentStep.value++
     speakText('第 2 步，设置服药时间')
+    setTimeout(() => {
+      isStepTransitioning.value = false
+    }, 100)
   } else if (currentStep.value === 2) {
     if (schedule.time_of_day.every(t => !t)) {
       uni.showToast({ title: '请设置服药时间', icon: 'none' })
@@ -871,8 +888,12 @@ function nextStep() {
       speakText('请设置用量')
       return
     }
+    isStepTransitioning.value = true
     currentStep.value++
     speakText('第 3 步，确认信息')
+    setTimeout(() => {
+      isStepTransitioning.value = false
+    }, 100)
   }
 }
 
