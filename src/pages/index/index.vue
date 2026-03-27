@@ -178,6 +178,8 @@ onMounted(async () => {
 // 页面卸载时停止本地提醒监听
 onUnmounted(() => {
   stopLocalMedicationReminder()
+  uni.$off('pageShow')
+  uni.$off('userLoggedOut')
 })
 
 // 从 store 加载真实数据（24 小时动态窗口 + 漏服检测）
@@ -416,6 +418,27 @@ function getImageUrl(imageUrl: string): string {
   return imageUrl
 }
 
+// 下拉刷新
+async function onPullDownRefresh() {
+  try {
+    console.log('[首页] 开始下拉刷新...')
+    await medicationStore.fetchSchedules()
+    await medicationStore.fetchTodayLogs()
+    uni.showToast({
+      title: '刷新成功',
+      icon: 'success'
+    })
+  } catch (error) {
+    console.error('[首页] 下拉刷新失败:', error)
+    uni.showToast({
+      title: '刷新失败',
+      icon: 'error'
+    })
+  } finally {
+    uni.stopPullDownRefresh()
+  }
+}
+
 // 检测用户切换 - uni-app onShow 生命周期
 async function onShow() {
   // 等待认证初始化
@@ -464,6 +487,12 @@ onMounted(() => {
     medicationStore.todayLogs = []
     medicationStore.medications = []
   })
+})
+
+// 导出 uni-app 生命周期函数
+defineExpose({
+  onPullDownRefresh,
+  onShow
 })
 </script>
 
