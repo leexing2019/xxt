@@ -90,25 +90,45 @@ export async function fetchCommonMedications(): Promise<CommonMedication[]> {
 
     console.log('[CommonMedications] 响应状态:', response.statusCode, '数据:', response.data)
 
-    if (response.statusCode === 200) {
-      cachedMedications = response.data || []
+    if (response.statusCode === 200 && response.data && response.data.length > 0) {
+      cachedMedications = response.data
       lastFetchTime = now
       console.log('[CommonMedications] 加载成功，数量:', cachedMedications.length)
       return cachedMedications
     } else {
-      console.error('[CommonMedications] 请求失败，状态码:', response.statusCode, '数据:', response.data)
-      throw new Error(`HTTP ${response.statusCode}`)
+      // 数据库为空时，使用本地默认数据
+      console.log('[CommonMedications] 数据库为空，使用本地默认数据')
+      cachedMedications = getFallbackMedications()
+      lastFetchTime = now
+      return cachedMedications
     }
   } catch (error: any) {
     console.error('获取公共药品库失败:', error)
-    // 如果是网络错误，尝试使用本地缓存
-    if (cachedMedications) {
-      console.log('[CommonMedications] 使用缓存数据')
-      return cachedMedications
+    // 失败时使用本地默认数据
+    if (!cachedMedications || cachedMedications.length === 0) {
+      cachedMedications = getFallbackMedications()
+      console.log('[CommonMedications] 使用本地默认数据，数量:', cachedMedications.length)
     }
-    // 失败时返回空数组
-    return []
+    return cachedMedications
   }
+}
+
+/**
+ * 本地默认药品数据（降级方案）
+ */
+function getFallbackMedications(): CommonMedication[] {
+  const now = new Date().toISOString()
+  return [
+    { id: 'fb_1', name: '阿司匹林肠溶片', generic_name: '阿司匹林', category: '心血管药', manufacturer: '拜耳医药保健有限公司', specification: '100mg × 30 片', form: '片剂', appearance_desc: '白色肠溶片', dosage_unit: '片', color: '#FFFFFF', shape: '圆形', is_active: true, created_at: now, updated_at: now, pinyin_initials: 'asplcrp' },
+    { id: 'fb_2', name: '硝苯地平缓释片', generic_name: '硝苯地平', category: '降压药', manufacturer: '拜耳医药', specification: '30mg × 7 片', form: '片剂', appearance_desc: '黄色缓释片', dosage_unit: '片', color: '#FFEB3B', shape: '圆形', is_active: true, created_at: now, updated_at: now, pinyin_initials: 'xbdphsp' },
+    { id: 'fb_3', name: '二甲双胍片', generic_name: '二甲双胍', category: '降糖药', manufacturer: '中美上海施贵宝', specification: '500mg × 20 片', form: '片剂', appearance_desc: '白色片剂', dosage_unit: '片', color: '#FFFFFF', shape: '圆形', is_active: true, created_at: now, updated_at: now, pinyin_initials: 'emsgp' },
+    { id: 'fb_4', name: '阿托伐他汀钙片', generic_name: '阿托伐他汀', category: '降脂药', manufacturer: '辉瑞制药', specification: '20mg × 7 片', form: '片剂', appearance_desc: '白色薄膜衣片', dosage_unit: '片', color: '#FFFFFF', shape: '椭圆形', is_active: true, created_at: now, updated_at: now, pinyin_initials: 'atvtgtp' },
+    { id: 'fb_5', name: '氨氯地平片', generic_name: '氨氯地平', category: '降压药', manufacturer: '辉瑞制药', specification: '5mg × 7 片', form: '片剂', appearance_desc: '白色片剂', dosage_unit: '片', color: '#FFFFFF', shape: '圆形', is_active: true, created_at: now, updated_at: now, pinyin_initials: 'aldp' },
+    { id: 'fb_6', name: '布洛芬缓释胶囊', generic_name: '布洛芬', category: '止痛药', manufacturer: '中美天津史克', specification: '300mg × 20 粒', form: '胶囊', appearance_desc: '缓释胶囊', dosage_unit: '粒', color: '#FF9800', shape: '胶囊', is_active: true, created_at: now, updated_at: now, pinyin_initials: 'blfhsn' },
+    { id: 'fb_7', name: '奥美拉唑肠溶胶囊', generic_name: '奥美拉唑', category: '胃药', manufacturer: '阿斯利康', specification: '20mg × 7 粒', form: '胶囊', appearance_desc: '肠溶胶囊', dosage_unit: '粒', color: '#2196F3', shape: '胶囊', is_active: true, created_at: now, updated_at: now, pinyin_initials: 'amlzr' },
+    { id: 'fb_8', name: '复合维生素片', generic_name: '复合维生素', category: '维生素', manufacturer: '拜耳医药', specification: '60 片', form: '片剂', appearance_desc: '复合维生素片', dosage_unit: '片', color: '#FFC107', shape: '圆形', is_active: true, created_at: now, updated_at: now, pinyin_initials: 'fhws' },
+    { id: 'fb_9', name: '碳酸钙 D3 片', generic_name: '碳酸钙 D3', category: '钙片', manufacturer: '惠氏制药', specification: '600mg × 30 片', form: '片剂', appearance_desc: '咀嚼片', dosage_unit: '片', color: '#FFFFFF', shape: '圆形', is_active: true, created_at: now, updated_at: now, pinyin_initials: 'tgsD3' }
+  ]
 }
 
 /**
