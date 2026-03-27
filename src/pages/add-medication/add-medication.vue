@@ -851,6 +851,7 @@ function prevStep() {
 
 // 下一步
 function nextStep() {
+  console.log('[nextStep] 当前 step:', currentStep.value, 'selectedMedication:', selectedMedication.value?.name)
   if (currentStep.value === 1) {
     if (!selectedMedication.value) {
       uni.showToast({ title: '请先选择药品', icon: 'none' })
